@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# ---------------------------------------------------
+# CONFIGURACIÓN
+# ---------------------------------------------------
+
 st.set_page_config(
     page_title="Finans Trading Dashboard",
     page_icon="📈",
@@ -16,131 +20,121 @@ csv_url = (
     f"tqx=out:csv&sheet={SHEET_NAME}"
 )
 
-st.title("📈 Finans Trading Dashboard")
-st.subheader("GBP — Indicadores macroeconómicos")
+# ---------------------------------------------------
+# CARGAR DATOS
+# ---------------------------------------------------
 
-
-@st.cache_data(ttl=600)
+@st.cache_data
 def cargar_datos():
     return pd.read_csv(csv_url)
 
+st.title("📈 Finans Trading Dashboard")
+st.subheader("GBP — Indicadores macroeconómicos")
 
 try:
+
     df = cargar_datos()
 
-    # Convertir fechas como ene-10, feb-10, mar-10...
+    # ----------------------------
+    # Convertir fecha
+    # ----------------------------
+
     meses = {
-        "ene": "01",
-        "feb": "02",
-        "mar": "03",
-        "abr": "04",
-        "may": "05",
-        "jun": "06",
-        "jul": "07",
-        "ago": "08",
-        "sept": "09",
-        "sep": "09",
-        "oct": "10",
-        "nov": "11",
-        "dic": "12"
+        "ene":1,
+        "feb":2,
+        "mar":3,
+        "abr":4,
+        "may":5,
+        "jun":6,
+        "jul":7,
+        "ago":8,
+        "sep":9,
+        "sept":9,
+        "oct":10,
+        "nov":11,
+        "dic":12
     }
 
-    fechas_separadas = df["DATE"].astype(str).str.lower().str.strip().str.split("-", expand=True)
+    fechas = df["DATE"].astype(str).str.lower().str.split("-")
 
-    df["Mes"] = fechas_separadas[0].replace(meses)
-    df["Año"] = fechas_separadas[1].astype(str)
-
-    df["Año"] = df["Año"].apply(
-        lambda x: "20" + x if len(x) == 2 else x
-    )
+    df["Mes"] = fechas.str[0].map(meses)
+    df["Año"] = fechas.str[1].astype(int) + 2000
 
     df["Fecha"] = pd.to_datetime(
-        df["Año"] + "-" + df["Mes"] + "-01",
-        errors="coerce"
+        dict(
+            year=df["Año"],
+            month=df["Mes"],
+            day=1
+        )
     )
 
-    df = df.dropna(subset=["Fecha"]).sort_values("Fecha")
+    # ----------------------------
+    # Indicadores disponibles
+    # ----------------------------
+
+    excluir = [
+        "DATE",
+        "Fecha",
+        "Mes",
+        "Año"
+    ]
 
     indicadores = [
-        columna for columna in df.columns
-        if columna not in ["DATE", "Fecha", "Mes", "Año"]
+        c for c in df.columns
+        if c not in excluir
     ]
 
     indicador = st.selectbox(
-        "Selecciona un indicador:",
+        "Selecciona un indicador",
         indicadores
     )
 
-    # Convertir porcentajes y números escritos con coma
-    df["Valor"] = (
+    # ----------------------------
+    # Convertir valores
+    # ----------------------------
+
+    serie = (
         df[indicador]
         .astype(str)
-        .str.replace("%", "", regex=False)
-        .str.replace(".", "", regex=False)
-        .str.replace(",", ".", regex=False)
-        .str.strip()
+        .str.replace("%","",regex=False)
+        .str.replace(",",".",regex=False)
     )
 
-    df["Valor"] = pd.to_numeric(df["Valor"], errors="coerce")
+    df["Valor"] = pd.to_numeric(
+        serie,
+        errors="coerce"
+    )
 
-    datos_grafico = df.dropna(subset=["Valor"]).copy()
+    datos = df.dropna(subset=["Valor"])
 
-    if datos_grafico.empty:
-        st.warning("Este indicador no contiene datos disponibles.")
-    else:
-        fecha_minima = datos_grafico["Fecha"].min().date()
-        fecha_maxima = datos_grafico["Fecha"].max().date()
+    # ----------------------------
+    # Gráfico
+    # ----------------------------
 
-        rango_fechas = st.date_input(
-            "Selecciona el periodo:",
-            value=(fecha_minima, fecha_maxima),
-            min_value=fecha_minima,
-            max_value=fecha_maxima,
-            format="MM/YYYY"
-        )
+    fig = px.line(
+        datos,
+        x="Fecha",
+        y="Valor",
+        markers=True,
+        title=indicador
+    )
 
-        if len(rango_fechas) == 2:
-            fecha_inicio = pd.Timestamp(rango_fechas[0])
-            fecha_final = pd.Timestamp(rango_fechas[1])
+    fig.update_layout(
+        height=650,
+        hovermode="x unified"
+    )
 
-            datos_grafico = datos_grafico[
-                (datos_grafico["Fecha"] >= fecha_inicio)
-                & (datos_grafico["Fecha"] <= fecha_final)
-            ]
+    fig.update_xaxes(
+        rangeslider_visible=True
+    )
 
-        figura = px.line(
-            datos_grafico,
-            x="Fecha",
-            y="Valor",
-            markers=True,
-            title=f"Evolución histórica de {indicador}"
-        )
-
-        figura.update_layout(
-            xaxis_title="Fecha",
-            yaxis_title=indicador,
-            hovermode="x unified",
-            height=600
-        )
-
-        figura.update_xaxes(
-            rangeslider_visible=True,
-            tickformat="%b %Y"
-        )
-
-        figura.update_traces(
-            hovertemplate="%{x|%b %Y}<br>%{y:.2f}<extra></extra>"
-        )
-
-        st.plotly_chart(
-            figura,
-            use_container_width=True,
-            config={
-                "displaylogo": False,
-                "scrollZoom": True
-            }
-        )
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 except Exception as e:
-    st.error("No se pudo cargar el dashboard.")
+
+    st.error("Ha ocurrido un error.")
+
     st.exception(e)
