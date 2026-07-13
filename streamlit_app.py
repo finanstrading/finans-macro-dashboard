@@ -15,7 +15,7 @@ st.set_page_config(
 SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU"
 SHEET_NAME = "Dashboard_GBP"
 
-csv_url = (
+CSV_URL = (
     f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?"
     f"tqx=out:csv&sheet={SHEET_NAME}"
 )
@@ -34,7 +34,7 @@ st.markdown(
         }
 
         .dashboard-header {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.4rem;
         }
 
         .dashboard-title {
@@ -66,8 +66,12 @@ st.markdown(
         .section-title {
             font-size: 1.1rem;
             font-weight: 700;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
+            margin-top: 1.2rem;
+            margin-bottom: 0.4rem;
+        }
+
+        div[data-testid="stRadio"] > div {
+            gap: 0.6rem;
         }
     </style>
     """,
@@ -80,7 +84,26 @@ st.markdown(
 
 @st.cache_data(ttl=600)
 def cargar_datos():
-    return pd.read_csv(csv_url)
+    return pd.read_csv(CSV_URL)
+
+
+# ---------------------------------------------------
+# FUNCIONES AUXILIARES
+# ---------------------------------------------------
+
+def añadir_margen(valor_minimo, valor_maximo):
+    """Añade espacio visual arriba y abajo del gráfico."""
+
+    if valor_minimo == valor_maximo:
+        margen = max(abs(valor_minimo) * 0.10, 1)
+    else:
+        margen = (valor_maximo - valor_minimo) * 0.10
+
+    return valor_minimo - margen, valor_maximo + margen
+
+
+def formatear_valor(valor, sufijo):
+    return f"{valor:,.2f}{sufijo}"
 
 
 # ---------------------------------------------------
@@ -182,7 +205,7 @@ try:
     )
 
     # ---------------------------------------------------
-    # CONVERTIR VALORES
+    # CONVERTIR LOS VALORES
     # ---------------------------------------------------
 
     valores_limpios = (
@@ -198,36 +221,32 @@ try:
         errors="coerce"
     )
 
-    datos = (
+    datos_completos = (
         df[["Fecha", "Valor"]]
         .dropna()
         .sort_values("Fecha")
         .reset_index(drop=True)
     )
 
-    if datos.empty:
+    if datos_completos.empty:
         st.warning(
             "Este indicador todavía no contiene datos disponibles."
         )
         st.stop()
 
-    # ---------------------------------------------------
-    # FECHAS MÍNIMA Y MÁXIMA REALES
-    # ---------------------------------------------------
-
-    fecha_minima = datos["Fecha"].min()
-    fecha_maxima = datos["Fecha"].max()
+    fecha_minima = datos_completos["Fecha"].min()
+    fecha_maxima = datos_completos["Fecha"].max()
 
     # ---------------------------------------------------
-    # MÉTRICAS
+    # MÉTRICAS SUPERIORES
     # ---------------------------------------------------
 
-    ultimo_registro = datos.iloc[-1]
+    ultimo_registro = datos_completos.iloc[-1]
     ultimo_valor = ultimo_registro["Valor"]
     ultima_fecha = ultimo_registro["Fecha"]
 
-    if len(datos) >= 2:
-        valor_anterior = datos.iloc[-2]["Valor"]
+    if len(datos_completos) >= 2:
+        valor_anterior = datos_completos.iloc[-2]["Valor"]
         variacion = ultimo_valor - valor_anterior
     else:
         valor_anterior = None
@@ -246,14 +265,22 @@ try:
         "% Salario - Bonus"
     ]
 
-    usa_porcentaje = indicador in indicadores_porcentaje
-    sufijo = "%" if usa_porcentaje else ""
+    sufijo = "%" if indicador in indicadores_porcentaje else ""
 
-    ultimo_texto = f"{ultimo_valor:,.2f}{sufijo}"
+    ultimo_texto = formatear_valor(
+        ultimo_valor,
+        sufijo
+    )
 
     if valor_anterior is not None:
-        anterior_texto = f"{valor_anterior:,.2f}{sufijo}"
-        variacion_texto = f"{variacion:+.2f}{sufijo}"
+        anterior_texto = formatear_valor(
+            valor_anterior,
+            sufijo
+        )
+
+        variacion_texto = (
+            f"{variacion:+.2f}{sufijo}"
+        )
     else:
         anterior_texto = "Sin dato"
         variacion_texto = None
@@ -282,23 +309,150 @@ try:
         )
 
     # ---------------------------------------------------
-    # GRÁFICO
+    # CONTROLES DEL GRÁFICO
     # ---------------------------------------------------
 
     st.markdown(
-        f'<div class="section-title">Evolución histórica de {indicador}</div>',
+        f'<div class="section-title">'
+        f'Evolución histórica de {indicador}'
+        f'</div>',
         unsafe_allow_html=True
     )
+
+    columna_periodo, columna_escala = st.columns([1.3, 1])
+
+    with columna_periodo:
+        periodo = st.radio(
+            "Periodo",
+            options=[
+                "1A",
+                "3A",
+                "5A",
+                "10A",
+                "Todo"
+            ],
+            index=1,
+            horizontal=True
+        )
+
+    with columna_escala:
+        modo_escala = st.radio(
+            "Escala vertical",
+            options=[
+                "Automática",
+                "Sin extremos",
+                "Manual"
+            ],
+            index=0,
+            horizontal=True
+        )
+
+    # ---------------------------------------------------
+    # FILTRAR EL PERIODO
+    # ---------------------------------------------------
+
+    años_por_periodo = {
+        "1A": 1,
+        "3A": 3,
+        "5A": 5,
+        "10A": 10
+    }
+
+    if periodo == "Todo":
+        fecha_inicio = fecha_minima
+    else:
+        años = años_por_periodo[periodo]
+        fecha_inicio = fecha_maxima - pd.DateOffset(years=años)
+
+    datos_visibles = datos_completos[
+        (datos_completos["Fecha"] >= fecha_inicio)
+        & (datos_completos["Fecha"] <= fecha_maxima)
+    ].copy()
+
+    if datos_visibles.empty:
+        datos_visibles = datos_completos.copy()
+
+    # ---------------------------------------------------
+    # CALCULAR LA ESCALA VERTICAL
+    # ---------------------------------------------------
+
+    minimo_real = float(datos_visibles["Valor"].min())
+    maximo_real = float(datos_visibles["Valor"].max())
+
+    if modo_escala == "Automática":
+
+        eje_minimo, eje_maximo = añadir_margen(
+            minimo_real,
+            maximo_real
+        )
+
+    elif modo_escala == "Sin extremos":
+
+        if len(datos_visibles) >= 10:
+            limite_inferior = float(
+                datos_visibles["Valor"].quantile(0.05)
+            )
+
+            limite_superior = float(
+                datos_visibles["Valor"].quantile(0.95)
+            )
+        else:
+            limite_inferior = minimo_real
+            limite_superior = maximo_real
+
+        eje_minimo, eje_maximo = añadir_margen(
+            limite_inferior,
+            limite_superior
+        )
+
+        st.caption(
+            "La escala ignora visualmente el 5 % de los valores "
+            "más bajos y el 5 % de los más altos. "
+            "Los datos originales no se eliminan."
+        )
+
+    else:
+
+        valor_sugerido_minimo, valor_sugerido_maximo = añadir_margen(
+            minimo_real,
+            maximo_real
+        )
+
+        manual_1, manual_2 = st.columns(2)
+
+        with manual_1:
+            eje_minimo = st.number_input(
+                "Mínimo del eje vertical",
+                value=float(round(valor_sugerido_minimo, 2)),
+                step=1.0
+            )
+
+        with manual_2:
+            eje_maximo = st.number_input(
+                "Máximo del eje vertical",
+                value=float(round(valor_sugerido_maximo, 2)),
+                step=1.0
+            )
+
+        if eje_minimo >= eje_maximo:
+            st.warning(
+                "El máximo debe ser superior al mínimo."
+            )
+            st.stop()
+
+    # ---------------------------------------------------
+    # CREAR EL GRÁFICO
+    # ---------------------------------------------------
 
     figura = go.Figure()
 
     figura.add_trace(
         go.Scatter(
-            x=datos["Fecha"],
-            y=datos["Valor"],
+            x=datos_visibles["Fecha"],
+            y=datos_visibles["Valor"],
             mode="lines",
             name=indicador,
-            line=dict(width=2.4),
+            line=dict(width=2.5),
             hovertemplate=(
                 "%{x|%b %Y}"
                 "<br><b>%{y:.2f}</b>"
@@ -316,12 +470,12 @@ try:
     )
 
     figura.update_layout(
-        height=620,
+        height=610,
         margin=dict(
             l=30,
             r=30,
-            t=45,
-            b=20
+            t=30,
+            b=25
         ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -330,57 +484,31 @@ try:
         xaxis_title="",
         yaxis_title=indicador,
         font=dict(size=14),
-        dragmode="zoom"
+        dragmode=False
     )
 
     figura.update_xaxes(
         type="date",
-        range=[fecha_minima, fecha_maxima],
+        range=[
+            datos_visibles["Fecha"].min(),
+            fecha_maxima
+        ],
         minallowed=fecha_minima,
         maxallowed=fecha_maxima,
         rangeslider_visible=False,
         showgrid=False,
-        tickformat="%Y",
-        rangeselector=dict(
-            buttons=[
-                dict(
-                    count=1,
-                    label="1A",
-                    step="year",
-                    stepmode="backward"
-                ),
-                dict(
-                    count=3,
-                    label="3A",
-                    step="year",
-                    stepmode="backward"
-                ),
-                dict(
-                    count=5,
-                    label="5A",
-                    step="year",
-                    stepmode="backward"
-                ),
-                dict(
-                    count=10,
-                    label="10A",
-                    step="year",
-                    stepmode="backward"
-                ),
-                dict(
-                    label="Todo",
-                    step="all"
-                )
-            ],
-            x=0,
-            y=1.10
-        )
+        tickformat="%b %Y",
+        fixedrange=True
     )
 
     figura.update_yaxes(
+        range=[
+            eje_minimo,
+            eje_maximo
+        ],
         gridcolor="rgba(120, 130, 150, 0.15)",
         zeroline=False,
-        autorange=True
+        fixedrange=True
     )
 
     st.plotly_chart(
@@ -389,12 +517,7 @@ try:
         config={
             "displaylogo": False,
             "scrollZoom": False,
-            "doubleClick": "reset",
-            "modeBarButtonsToRemove": [
-                "select2d",
-                "lasso2d",
-                "pan2d"
-            ]
+            "displayModeBar": False
         }
     )
 
