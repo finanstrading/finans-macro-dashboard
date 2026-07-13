@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from urllib.parse import quote
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -14,12 +15,14 @@ st.set_page_config(
 )
 
 SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU"
-SHEET_NAME = "Dashboard_GBP"
 
-CSV_URL = (
-    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?"
-    f"tqx=out:csv&sheet={SHEET_NAME}"
-)
+# Cada divisa se conecta exclusivamente con su pestaña.
+# Se incluye una alternativa con espacio para Dashboard_USD,
+# porque el archivo original tenía accidentalmente ese espacio.
+MERCADOS = {
+    "GBP": ["Dashboard_GBP"],
+    "USD": ["Dashboard_USD", " Dashboard_USD"],
+}
 
 COLOR_DORADO = "#C9A227"
 COLOR_DORADO_CLARO = "#E3C85B"
@@ -31,7 +34,7 @@ COLOR_BORDE = "#E5E7EB"
 
 
 # ===================================================
-# ESTILOS
+# ESTILOS — DISEÑO ORIGINAL CONSERVADO
 # ===================================================
 
 st.markdown(
@@ -102,6 +105,10 @@ st.markdown(
         div[role="option"] {{
             color: #111111 !important;
             background: white !important;
+        }}
+
+        div[role="option"] * {{
+            color: #111111 !important;
         }}
 
         div[role="option"]:hover {{
@@ -315,9 +322,133 @@ st.markdown(
 # FUNCIONES
 # ===================================================
 
-@st.cache_data(ttl=600)
-def cargar_datos():
-    return pd.read_csv(CSV_URL)
+def construir_url(nombre_hoja):
+    nombre_codificado = quote(nombre_hoja, safe="")
+    return (
+        f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?"
+        f"tqx=out:csv&sheet={nombre_codificado}"
+    )
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_datos_mercado(nombres_posibles):
+    errores = []
+
+    for nombre_hoja in nombres_posibles:
+        try:
+            df = pd.read_csv(construir_url(nombre_hoja))
+            df.columns = [str(columna).strip() for columna in df.columns]
+
+            # Elimina columnas vacías o creadas accidentalmente.
+            columnas_validas = [
+                columna
+                for columna in df.columns
+                if columna
+                and not columna.lower().startswith("unnamed")
+            ]
+            df = df[columnas_validas].dropna(axis=0, how="all")
+
+            if "DATE" not in df.columns:
+                raise ValueError("No contiene una columna llamada DATE.")
+
+            return df, nombre_hoja
+
+        except Exception as error:
+            errores.append(f"{nombre_hoja}: {error}")
+
+    raise ValueError(
+        "No se pudo cargar ninguna pestaña válida. "
+        + " | ".join(errores)
+    )
+
+
+def convertir_fechas(serie):
+    """
+    Admite tanto las fechas originales tipo ene-24 como fechas
+    reales procedentes de Google Sheets: 01/01/2024, 2024-01-01, etc.
+    Nunca interpreta números aislados como fechas del año 0001.
+    """
+    meses = {
+        "ene": 1, "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "abr": 4, "apr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "ago": 8, "aug": 8,
+        "sep": 9, "sept": 9,
+        "oct": 10,
+        "nov": 11,
+        "dic": 12, "dec": 12
+    }
+
+    texto = serie.astype(str).str.lower().str.strip()
+
+    partes = texto.str.extract(
+        r"^([a-záéíóúñ]+)[\-/\s](\d{2,4})$"
+    )
+
+    mes = partes[0].map(meses)
+    año = pd.to_numeric(partes[1], errors="coerce")
+    año = año.where(año >= 100, año + 2000)
+
+    fecha_mes_año = pd.to_datetime(
+        {
+            "year": año,
+            "month": mes,
+            "day": 1
+        },
+        errors="coerce"
+    )
+
+    # Excluye números sueltos para evitar años 0001.
+    texto_fecha = texto.where(
+        ~texto.str.fullmatch(r"\d+([.,]\d+)?")
+    )
+
+    fecha_general = pd.to_datetime(
+        texto_fecha,
+        errors="coerce",
+        dayfirst=True
+    )
+
+    return fecha_mes_año.fillna(fecha_general)
+
+
+def convertir_valores(serie):
+    texto = (
+        serie
+        .astype(str)
+        .str.strip()
+        .str.replace("%", "", regex=False)
+        .str.replace("\u00a0", "", regex=False)
+        .str.replace(" ", "", regex=False)
+        .str.replace(",", ".", regex=False)
+    )
+
+    texto = texto.replace(
+        {
+            "": None,
+            "nan": None,
+            "None": None,
+            "-": None,
+            "—": None
+        }
+    )
+
+    return pd.to_numeric(texto, errors="coerce")
+
+
+def obtener_indicadores(df):
+    columnas_excluidas = {"DATE", "Fecha"}
+
+    return [
+        columna
+        for columna in df.columns
+        if columna not in columnas_excluidas
+        and convertir_valores(df[columna]).notna().any()
+    ]
 
 
 def añadir_margen(valor_minimo, valor_maximo):
@@ -356,10 +487,51 @@ def determinar_sufijo(nombre_indicador):
         "wage",
         "% change",
         "gdp",
-        "pmi"
+        "pce",
+        "ppi",
+        "earnings"
     ]
 
-    return "%" if any(palabra in nombre for palabra in palabras_porcentaje) else ""
+    # Los PMI son índices, por tanto no llevan %.
+    return "%" if any(
+        palabra in nombre
+        for palabra in palabras_porcentaje
+    ) else ""
+
+
+# ===================================================
+# BARRA LATERAL — MERCADO
+# ===================================================
+
+with st.sidebar:
+    st.markdown(
+        """
+        <div class="brand-box">
+            <div class="brand-name">
+                FINANS <span class="brand-accent">TRADING</span>
+            </div>
+            <div class="brand-subtitle">
+                Macro FX
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.divider()
+
+    st.markdown(
+        '<div class="control-title">Mercado</div>',
+        unsafe_allow_html=True
+    )
+
+    divisa = st.selectbox(
+        "Divisa",
+        options=list(MERCADOS.keys()),
+        index=0,
+        label_visibility="collapsed",
+        key="selector_divisa"
+    )
 
 
 # ===================================================
@@ -367,59 +539,11 @@ def determinar_sufijo(nombre_indicador):
 # ===================================================
 
 try:
-    df = cargar_datos()
-
-    if "DATE" not in df.columns:
-        st.error("No se encontró la columna DATE en la hoja de Google Sheets.")
-        st.stop()
-
-    meses = {
-        "ene": 1,
-        "feb": 2,
-        "mar": 3,
-        "abr": 4,
-        "may": 5,
-        "jun": 6,
-        "jul": 7,
-        "ago": 8,
-        "sep": 9,
-        "sept": 9,
-        "oct": 10,
-        "nov": 11,
-        "dic": 12
-    }
-
-    fecha_separada = (
-        df["DATE"]
-        .astype(str)
-        .str.lower()
-        .str.strip()
-        .str.split("-", expand=True)
+    df, hoja_cargada = cargar_datos_mercado(
+        tuple(MERCADOS[divisa])
     )
 
-    if fecha_separada.shape[1] < 2:
-        st.error(
-            "Las fechas de la columna DATE deben tener un formato similar a ene-24."
-        )
-        st.stop()
-
-    df["Mes"] = fecha_separada[0].map(meses)
-    df["Año"] = pd.to_numeric(fecha_separada[1], errors="coerce")
-
-    df["Año"] = df["Año"].apply(
-        lambda año: año + 2000
-        if pd.notna(año) and año < 100
-        else año
-    )
-
-    df["Fecha"] = pd.to_datetime(
-        {
-            "year": df["Año"],
-            "month": df["Mes"],
-            "day": 1
-        },
-        errors="coerce"
-    )
+    df["Fecha"] = convertir_fechas(df["DATE"])
 
     df = (
         df
@@ -428,52 +552,26 @@ try:
         .reset_index(drop=True)
     )
 
-    columnas_excluidas = ["DATE", "Fecha", "Mes", "Año"]
+    if df.empty:
+        st.error(
+            f"No se encontraron fechas válidas en la hoja {hoja_cargada}."
+        )
+        st.stop()
 
-    indicadores = [
-        columna
-        for columna in df.columns
-        if columna not in columnas_excluidas
-    ]
+    indicadores = obtener_indicadores(df)
 
     if not indicadores:
-        st.error("No se encontraron indicadores en la hoja Dashboard_GBP.")
+        st.error(
+            f"No se encontraron indicadores con datos en la hoja {hoja_cargada}."
+        )
         st.stop()
 
 
     # ===================================================
-    # BARRA LATERAL
+    # RESTO DE CONTROLES
     # ===================================================
 
     with st.sidebar:
-        st.markdown(
-            """
-            <div class="brand-box">
-                <div class="brand-name">
-                    FINANS <span class="brand-accent">TRADING</span>
-                </div>
-                <div class="brand-subtitle">
-                    Macro FX
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.divider()
-
-        st.markdown(
-            '<div class="control-title">Mercado</div>',
-            unsafe_allow_html=True
-        )
-
-        divisa = st.selectbox(
-            "Divisa",
-            options=["GBP"],
-            index=0,
-            label_visibility="collapsed"
-        )
-
         st.markdown(
             '<div class="control-title">Indicador</div>',
             unsafe_allow_html=True
@@ -482,7 +580,8 @@ try:
         indicador = st.selectbox(
             "Indicador",
             indicadores,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key=f"indicador_{divisa}"
         )
 
         st.markdown(
@@ -495,7 +594,8 @@ try:
             options=["1A", "3A", "5A", "10A", "Todo"],
             index=1,
             horizontal=False,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key=f"periodo_{divisa}_{indicador}"
         )
 
         st.markdown(
@@ -508,7 +608,8 @@ try:
             options=["Automática", "Sin extremos", "Manual"],
             index=0,
             horizontal=False,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key=f"escala_{divisa}_{indicador}"
         )
 
         st.markdown(
@@ -526,15 +627,7 @@ try:
     # CONVERSIÓN DE VALORES
     # ===================================================
 
-    valores_limpios = (
-        df[indicador]
-        .astype(str)
-        .str.replace("%", "", regex=False)
-        .str.replace(" ", "", regex=False)
-        .str.replace(",", ".", regex=False)
-    )
-
-    df["Valor"] = pd.to_numeric(valores_limpios, errors="coerce")
+    df["Valor"] = convertir_valores(df[indicador])
 
     datos_completos = (
         df[["Fecha", "Valor"]]
@@ -564,6 +657,7 @@ try:
     sufijo = determinar_sufijo(indicador)
 
     ultimo_texto = formatear_valor(ultimo_valor, sufijo)
+
     anterior_texto = (
         formatear_valor(valor_anterior, sufijo)
         if valor_anterior is not None
@@ -578,15 +672,21 @@ try:
         clase_variacion = "metric-neutral"
         signo_variacion = ""
     elif variacion > 0:
-        variacion_texto = f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        variacion_texto = (
+            f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        )
         clase_variacion = "metric-positive"
         signo_variacion = "▲"
     elif variacion < 0:
-        variacion_texto = f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        variacion_texto = (
+            f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        )
         clase_variacion = "metric-negative"
         signo_variacion = "▼"
     else:
-        variacion_texto = f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        variacion_texto = (
+            f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        )
         clase_variacion = "metric-neutral"
         signo_variacion = "—"
 
@@ -738,14 +838,16 @@ try:
             eje_minimo = st.number_input(
                 "Mínimo",
                 value=float(round(valor_sugerido_minimo, 2)),
-                step=0.5
+                step=0.5,
+                key=f"minimo_{divisa}_{indicador}"
             )
 
         with manual_2:
             eje_maximo = st.number_input(
                 "Máximo",
                 value=float(round(valor_sugerido_maximo, 2)),
-                step=0.5
+                step=0.5,
+                key=f"maximo_{divisa}_{indicador}"
             )
 
         if eje_minimo >= eje_maximo:
