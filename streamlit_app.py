@@ -1,1093 +1,874 @@
+import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit as st
-from urllib.parse import quote
 
-
-# ============================================================
+# ===================================================
 # CONFIGURACIÓN GENERAL
-# ============================================================
+# ===================================================
 
 st.set_page_config(
-    page_title="Macro FX",
-    page_icon="📊",
+    page_title="Finans Trading | Fundamental Dashboard",
+    page_icon="📈",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded"
 )
-
 
 SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU"
+SHEET_NAME = "Dashboard_GBP"
+
+CSV_URL = (
+    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?"
+    f"tqx=out:csv&sheet={SHEET_NAME}"
+)
+
+COLOR_DORADO = "#C9A227"
+COLOR_DORADO_CLARO = "#E3C85B"
+COLOR_NEGRO = "#111111"
+COLOR_TEXTO_SECUNDARIO = "#6B7280"
+COLOR_FONDO = "#F6F7F9"
+COLOR_TARJETA = "#FFFFFF"
+COLOR_BORDE = "#E5E7EB"
 
 
-# Se incluyen varias posibilidades por si alguna pestaña
-# tiene accidentalmente un espacio delante o detrás.
-MERCADOS = {
-    "GBP": [
-        "Dashboard_GBP",
-        " Dashboard_GBP",
-        "Dashboard_GBP ",
-    ],
-    "USD": [
-        "Dashboard_USD",
-        " Dashboard_USD",
-        "Dashboard_USD ",
-    ],
-}
-
-
-# ============================================================
-# ESTILOS Y DISEÑO
-# ============================================================
+# ===================================================
+# ESTILOS
+# ===================================================
 
 st.markdown(
-    """
+    f"""
     <style>
-    :root {
-        --macro-bg: #071321;
-        --macro-panel: #0d1d2d;
-        --macro-panel-2: #112438;
-        --macro-gold: #c7a55b;
-        --macro-gold-light: #e4cc92;
-        --macro-white: #f7f9fc;
-        --macro-muted: #aebbd0;
-        --macro-border: rgba(199, 165, 91, 0.32);
-    }
+        html, body, [class*="css"] {{
+            font-family: Inter, Arial, sans-serif;
+        }}
 
-    html,
-    body,
-    [class*="css"] {
-        font-family: Arial, Helvetica, sans-serif;
-    }
+        .stApp {{
+            background: {COLOR_FONDO};
+        }}
 
-    .stApp {
-        background:
-            radial-gradient(
-                circle at top right,
-                rgba(31, 66, 99, 0.16),
-                transparent 35%
-            ),
-            #071321;
-    }
+        .block-container {{
+            max-width: 1550px;
+            padding-top: 1.6rem;
+            padding-bottom: 3rem;
+            padding-left: 2.2rem;
+            padding-right: 2.2rem;
+        }}
 
-    .block-container {
-        max-width: 1280px;
-        padding-top: 2.2rem;
-        padding-bottom: 3rem;
-    }
+        section[data-testid="stSidebar"] {{
+            background: {COLOR_NEGRO};
+            border-right: 1px solid #252525;
+        }}
 
-    #MainMenu {
-        visibility: hidden;
-    }
+        section[data-testid="stSidebar"] > div {{
+            padding-top: 1.3rem;
+        }}
 
-    footer {
-        visibility: hidden;
-    }
+        section[data-testid="stSidebar"] * {{
+            color: white;
+        }}
 
-    header[data-testid="stHeader"] {
-        background: transparent;
-    }
+        section[data-testid="stSidebar"] label {{
+            color: #D1D5DB !important;
+            font-size: 0.82rem !important;
+            font-weight: 650 !important;
+            letter-spacing: 0.02em;
+        }}
 
-    div[data-testid="stToolbar"] {
-        visibility: hidden;
-        height: 0%;
-        position: fixed;
-    }
+        section[data-testid="stSidebar"] div[data-baseweb="select"] > div {{
+            background-color: white;
+            border-color: #E5E7EB;
+            color: #111111 !important;
+            border-radius: 9px;
+        }}
 
-    h1,
-    h2,
-    h3,
-    h4 {
-        color: var(--macro-white);
-    }
+        section[data-testid="stSidebar"] div[data-baseweb="select"] span {{
+            color: #111111 !important;
+            font-weight: 700 !important;
+        }}
 
-    p,
-    label,
-    span {
-        color: var(--macro-muted);
-    }
+        section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+        }}
 
-    /* Etiquetas de los controles */
-    div[data-testid="stWidgetLabel"] p {
-        color: #dbe4ef !important;
-        font-weight: 600 !important;
-        font-size: 0.88rem !important;
-    }
+        section[data-testid="stSidebar"] div[data-baseweb="select"] svg {{
+            fill: #111111 !important;
+            color: #111111 !important;
+        }}
 
-    /* Selectores cerrados */
-    div[data-baseweb="select"] > div {
-        background-color: #ffffff !important;
-        border: 1px solid #d5b66e !important;
-        border-radius: 8px !important;
-        min-height: 42px !important;
-        box-shadow: none !important;
-    }
+        div[role="listbox"] {{
+            background: white !important;
+        }}
 
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] input {
-        color: #111111 !important;
-        -webkit-text-fill-color: #111111 !important;
-        font-weight: 500 !important;
-    }
+        div[role="option"] {{
+            color: #111111 !important;
+            background: white !important;
+        }}
 
-    div[data-baseweb="select"] svg {
-        fill: #111111 !important;
-        color: #111111 !important;
-    }
+        div[role="option"]:hover {{
+            background: #F3F4F6 !important;
+        }}
 
-    /* Menú desplegable */
-    ul[role="listbox"] {
-        background-color: #ffffff !important;
-        border: 1px solid #d5b66e !important;
-    }
+        section[data-testid="stSidebar"] div[role="radiogroup"] label {{
+            background: #1B1B1B;
+            border: 1px solid #353535;
+            border-radius: 8px;
+            padding: 0.35rem 0.55rem;
+        }}
 
-    li[role="option"] {
-        background-color: #ffffff !important;
-        color: #111111 !important;
-    }
+        section[data-testid="stSidebar"] hr {{
+            border-color: #333333;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }}
 
-    li[role="option"] span {
-        color: #111111 !important;
-        -webkit-text-fill-color: #111111 !important;
-    }
+        .brand-box {{
+            padding: 0.35rem 0 1.2rem 0;
+        }}
 
-    li[role="option"]:hover,
-    li[role="option"][aria-selected="true"] {
-        background-color: #f2e6ca !important;
-        color: #111111 !important;
-    }
+        .brand-name {{
+            color: white;
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            line-height: 1.1;
+        }}
 
-    /* Campos de fecha */
-    div[data-baseweb="input"] {
-        background-color: #ffffff !important;
-        border-radius: 8px !important;
-    }
+        .brand-accent {{
+            color: {COLOR_DORADO};
+        }}
 
-    div[data-baseweb="input"] input {
-        background-color: #ffffff !important;
-        color: #111111 !important;
-        -webkit-text-fill-color: #111111 !important;
-    }
+        .brand-subtitle {{
+            color: #9CA3AF;
+            font-size: 0.77rem;
+            margin-top: 0.35rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }}
 
-    div[data-baseweb="input"] svg {
-        fill: #111111 !important;
-        color: #111111 !important;
-    }
+        .dashboard-header {{
+            background: linear-gradient(135deg, #111111 0%, #202020 100%);
+            border: 1px solid #2C2C2C;
+            border-radius: 18px;
+            padding: 1.6rem 1.8rem;
+            margin-bottom: 1.2rem;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.09);
+        }}
 
-    /* Métricas */
-    div[data-testid="stMetric"] {
-        background:
-            linear-gradient(
-                145deg,
-                rgba(17, 36, 56, 0.98),
-                rgba(10, 25, 40, 0.98)
-            );
-        border: 1px solid var(--macro-border);
-        border-radius: 12px;
-        padding: 18px 20px;
-        min-height: 112px;
-    }
+        .dashboard-eyebrow {{
+            color: {COLOR_DORADO_CLARO};
+            font-size: 0.74rem;
+            font-weight: 750;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
+        }}
 
-    div[data-testid="stMetricLabel"] p {
-        color: var(--macro-muted) !important;
-        font-weight: 600 !important;
-    }
+        .dashboard-title {{
+            color: white;
+            font-size: 2.05rem;
+            line-height: 1.1;
+            font-weight: 800;
+            margin: 0;
+        }}
 
-    div[data-testid="stMetricValue"] {
-        color: var(--macro-white) !important;
-    }
+        .dashboard-subtitle {{
+            color: #BFC3CA;
+            font-size: 0.95rem;
+            margin-top: 0.55rem;
+        }}
 
-    div[data-testid="stMetricDelta"] {
-        color: var(--macro-gold-light) !important;
-    }
+        .metric-card {{
+            background: {COLOR_TARJETA};
+            border: 1px solid {COLOR_BORDE};
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            min-height: 112px;
+            box-shadow: 0 5px 18px rgba(17, 24, 39, 0.045);
+        }}
 
-    /* Checkbox */
-    div[data-testid="stCheckbox"] label p {
-        color: #dbe4ef !important;
-    }
+        .metric-label {{
+            color: {COLOR_TEXTO_SECUNDARIO};
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }}
 
-    /* Expander */
-    details {
-        background-color: rgba(13, 29, 45, 0.85) !important;
-        border: 1px solid var(--macro-border) !important;
-        border-radius: 10px !important;
-    }
+        .metric-value {{
+            color: {COLOR_NEGRO};
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.05;
+        }}
 
-    details summary p {
-        color: #ffffff !important;
-        font-weight: 600 !important;
-    }
+        .metric-note {{
+            color: {COLOR_TEXTO_SECUNDARIO};
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }}
 
-    /* Alertas */
-    div[data-testid="stAlert"] {
-        border-radius: 10px;
-    }
+        .metric-positive {{
+            color: #16803B;
+            font-weight: 700;
+        }}
 
-    hr {
-        border-color: rgba(199, 165, 91, 0.24);
-        margin-top: 1.2rem;
-        margin-bottom: 1.2rem;
-    }
+        .metric-negative {{
+            color: #C62828;
+            font-weight: 700;
+        }}
 
-    /* Tabla */
-    div[data-testid="stDataFrame"] {
-        border: 1px solid rgba(199, 165, 91, 0.22);
-        border-radius: 9px;
-        overflow: hidden;
-    }
+        .metric-neutral {{
+            color: {COLOR_TEXTO_SECUNDARIO};
+            font-weight: 700;
+        }}
+
+        .chart-card {{
+            background: {COLOR_TARJETA};
+            border: 1px solid {COLOR_BORDE};
+            border-radius: 16px;
+            padding: 1.1rem 1.2rem 0.7rem 1.2rem;
+            margin-top: 1.2rem;
+            box-shadow: 0 5px 18px rgba(17, 24, 39, 0.045);
+        }}
+
+        .chart-title {{
+            color: {COLOR_NEGRO};
+            font-size: 1.08rem;
+            font-weight: 800;
+            margin-bottom: 0.1rem;
+        }}
+
+        .chart-subtitle {{
+            color: {COLOR_TEXTO_SECUNDARIO};
+            font-size: 0.82rem;
+            margin-bottom: 0.5rem;
+        }}
+
+        .control-title {{
+            color: #D1D5DB;
+            font-size: 0.74rem;
+            font-weight: 750;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-top: 0.35rem;
+            margin-bottom: 0.25rem;
+        }}
+
+        .sidebar-info {{
+            background: #191919;
+            border: 1px solid #303030;
+            border-radius: 10px;
+            padding: 0.8rem;
+            color: #BFC3CA;
+            font-size: 0.76rem;
+            line-height: 1.45;
+            margin-top: 1rem;
+        }}
+
+        .sidebar-info strong {{
+            color: {COLOR_DORADO_CLARO};
+        }}
+
+        div[data-testid="stNumberInput"] input {{
+            border-radius: 9px;
+        }}
+
+        div[data-testid="stAlert"] {{
+            border-radius: 12px;
+        }}
+
+        #MainMenu {{
+            visibility: hidden;
+        }}
+
+        footer {{
+            visibility: hidden;
+        }}
+
+        header[data-testid="stHeader"] {{
+            background: transparent;
+        }}
+
+        @media (max-width: 900px) {{
+            .block-container {{
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-top: 1rem;
+            }}
+
+            .dashboard-title {{
+                font-size: 1.55rem;
+            }}
+
+            .metric-value {{
+                font-size: 1.4rem;
+            }}
+        }}
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 
-# ============================================================
-# ENCABEZADO
-# ============================================================
+# ===================================================
+# FUNCIONES
+# ===================================================
 
-st.markdown(
-    """
-    <div style="
-        width:100%;
-        box-sizing:border-box;
-        padding:24px 28px;
-        margin-bottom:24px;
-        border:1px solid rgba(199,165,91,0.42);
-        border-radius:14px;
-        background:linear-gradient(
-            135deg,
-            rgba(16,36,56,0.98),
-            rgba(7,19,33,0.98)
-        );
-        box-shadow:0 12px 30px rgba(0,0,0,0.16);
-    ">
-        <div style="
-            margin:0 0 5px 0;
-            color:#c7a55b;
-            font-size:13px;
-            line-height:1.2;
-            font-weight:800;
-            letter-spacing:2.2px;
-        ">
-            FINANS TRADING
-        </div>
-        <div style="
-            margin:0;
-            color:#ffffff;
-            font-size:36px;
-            line-height:1.15;
-            font-weight:800;
-        ">
-            Macro FX
-        </div>
-        <div style="
-            margin-top:7px;
-            color:#aebbd0;
-            font-size:16px;
-            line-height:1.5;
-        ">
-            Evolución histórica de los principales indicadores macroeconómicos
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+@st.cache_data(ttl=600)
+def cargar_datos():
+    return pd.read_csv(CSV_URL)
 
 
-# ============================================================
-# FUNCIONES DE CARGA
-# ============================================================
-
-def construir_url(nombre_hoja: str) -> str:
-    hoja_codificada = quote(
-        nombre_hoja,
-        safe="",
-    )
-
-    return (
-        f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq"
-        f"?tqx=out:csv&sheet={hoja_codificada}"
-    )
-
-
-def limpiar_columnas(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-
-    df.columns = [
-        str(columna).strip()
-        if str(columna).strip().lower() != "nan"
-        else ""
-        for columna in df.columns
-    ]
-
-    columnas_validas = [
-        columna
-        for columna in df.columns
-        if columna
-        and not columna.lower().startswith("unnamed")
-    ]
-
-    df = df[columnas_validas]
-
-    df = df.dropna(
-        axis=0,
-        how="all",
-    )
-
-    df = df.dropna(
-        axis=1,
-        how="all",
-    )
-
-    return df
-
-
-def convertir_a_numero(serie: pd.Series) -> pd.Series:
-    if pd.api.types.is_numeric_dtype(serie):
-        return pd.to_numeric(
-            serie,
-            errors="coerce",
-        )
-
-    texto = serie.astype(str).str.strip()
-
-    texto = texto.replace(
-        {
-            "": None,
-            "nan": None,
-            "None": None,
-            "-": None,
-            "—": None,
-        }
-    )
-
-    texto = (
-        texto
-        .str.replace("%", "", regex=False)
-        .str.replace("\u00a0", "", regex=False)
-        .str.replace(" ", "", regex=False)
-    )
-
-    tiene_coma = texto.str.contains(
-        ",",
-        regex=False,
-        na=False,
-    )
-
-    tiene_punto = texto.str.contains(
-        ".",
-        regex=False,
-        na=False,
-    )
-
-    ambos_separadores = tiene_coma & tiene_punto
-
-    texto.loc[ambos_separadores] = (
-        texto.loc[ambos_separadores]
-        .str.replace(".", "", regex=False)
-        .str.replace(",", ".", regex=False)
-    )
-
-    solo_coma = tiene_coma & ~tiene_punto
-
-    texto.loc[solo_coma] = (
-        texto.loc[solo_coma]
-        .str.replace(",", ".", regex=False)
-    )
-
-    return pd.to_numeric(
-        texto,
-        errors="coerce",
-    )
-
-
-def detectar_indicadores(df: pd.DataFrame) -> list[str]:
-    indicadores = []
-
-    for columna in df.columns:
-        if columna == "DATE":
-            continue
-
-        valores = convertir_a_numero(
-            df[columna]
-        )
-
-        if valores.notna().any():
-            indicadores.append(columna)
-
-    return indicadores
-
-
-@st.cache_data(
-    ttl=300,
-    show_spinner=False,
-)
-def cargar_mercado(
-    nombres_posibles: tuple[str, ...],
-) -> tuple[pd.DataFrame, str]:
-    errores = []
-
-    for nombre_hoja in nombres_posibles:
-        try:
-            url = construir_url(nombre_hoja)
-
-            df = pd.read_csv(url)
-
-            df = limpiar_columnas(df)
-
-            if df.empty or len(df.columns) < 2:
-                raise ValueError(
-                    "La pestaña no contiene una tabla válida."
-                )
-
-            primera_columna = df.columns[0]
-
-            df = df.rename(
-                columns={
-                    primera_columna: "DATE",
-                }
-            )
-
-            df["DATE"] = pd.to_datetime(
-                df["DATE"],
-                errors="coerce",
-            )
-
-            df = df.dropna(
-                subset=["DATE"],
-            )
-
-            if df.empty:
-                raise ValueError(
-                    "No se detectaron fechas válidas."
-                )
-
-            indicadores = detectar_indicadores(df)
-
-            if not indicadores:
-                raise ValueError(
-                    "No se detectaron columnas numéricas."
-                )
-
-            df = df.sort_values(
-                "DATE",
-            )
-
-            df = df.drop_duplicates(
-                subset=["DATE"],
-                keep="last",
-            )
-
-            return df, nombre_hoja
-
-        except Exception as error:
-            errores.append(
-                f"{repr(nombre_hoja)}: {error}"
-            )
-
-    detalle = "\n".join(errores)
-
-    raise ValueError(
-        "No se pudo encontrar una pestaña válida.\n"
-        + detalle
-    )
-
-
-# ============================================================
-# FUNCIONES DE FORMATO
-# ============================================================
-
-def es_porcentual(
-    nombre: str,
-    serie_original: pd.Series,
-) -> bool:
-    nombre_normalizado = nombre.lower()
-
-    contiene_signo_porcentaje = (
-        serie_original
-        .astype(str)
-        .str.contains(
-            "%",
-            regex=False,
-            na=False,
-        )
-        .any()
-    )
-
-    if contiene_signo_porcentaje:
-        return True
-
-    palabras_porcentuales = [
-        "cpi",
-        "ppi",
-        "pce",
-        "inflation",
-        "inflación",
-        "inflacion",
-        "%desempleo",
-        "% salario",
-        "unemployment",
-        "earnings",
-        "wage",
-        "retail sales",
-        "ventas minoristas",
-        "interest rate",
-        "bank rate",
-        "tipo de interés",
-        "tipo de interes",
-        "gdp",
-        "pib",
-    ]
-
-    return any(
-        palabra in nombre_normalizado
-        for palabra in palabras_porcentuales
-    )
-
-
-def formatear_valor(
-    valor: float,
-    porcentual: bool,
-) -> str:
-    if pd.isna(valor):
-        return "Sin dato"
-
-    if porcentual:
-        return f"{valor:.2%}"
-
-    if abs(valor) >= 1_000_000:
-        return f"{valor / 1_000_000:,.2f} M"
-
-    if abs(valor) >= 1_000:
-        return f"{valor:,.0f}"
-
-    return f"{valor:,.2f}"
-
-
-def formatear_variacion(
-    variacion: float,
-    porcentual: bool,
-) -> str:
-    if pd.isna(variacion):
-        return "Sin dato"
-
-    if porcentual:
-        return f"{variacion * 100:+.2f} puntos"
-
-    if abs(variacion) >= 1_000:
-        return f"{variacion:+,.0f}"
-
-    return f"{variacion:+,.2f}"
-
-
-def calcular_rango_vertical(
-    serie: pd.Series,
-) -> list[float] | None:
-    minimo = serie.min()
-    maximo = serie.max()
-
-    if pd.isna(minimo) or pd.isna(maximo):
-        return None
-
-    diferencia = maximo - minimo
-
-    if diferencia == 0:
-        margen = abs(maximo) * 0.08
-
-        if margen == 0:
-            margen = 1
+def añadir_margen(valor_minimo, valor_maximo):
+    if valor_minimo == valor_maximo:
+        margen = max(abs(valor_minimo) * 0.10, 1)
     else:
-        margen = diferencia * 0.08
+        margen = (valor_maximo - valor_minimo) * 0.10
 
-    return [
-        minimo - margen,
-        maximo + margen,
+    return valor_minimo - margen, valor_maximo + margen
+
+
+def formatear_valor(valor, sufijo):
+    return f"{valor:,.2f}{sufijo}"
+
+
+def crear_tarjeta(titulo, valor, nota="", clase_nota="metric-neutral"):
+    return f"""
+        <div class="metric-card">
+            <div class="metric-label">{titulo}</div>
+            <div class="metric-value">{valor}</div>
+            <div class="metric-note {clase_nota}">{nota}</div>
+        </div>
+    """
+
+
+def determinar_sufijo(nombre_indicador):
+    nombre = nombre_indicador.lower()
+
+    palabras_porcentaje = [
+        "cpi",
+        "inflation",
+        "retail sales",
+        "unemployment",
+        "desempleo",
+        "salario",
+        "wage",
+        "% change",
+        "gdp",
+        "pmi"
     ]
 
+    return "%" if any(palabra in nombre for palabra in palabras_porcentaje) else ""
 
-# ============================================================
-# SELECTORES DE MERCADO E INDICADOR
-# ============================================================
 
-col_mercado, col_indicador = st.columns(
-    [1, 2.2],
-    gap="large",
-)
-
-with col_mercado:
-    mercado = st.selectbox(
-        "Mercado",
-        options=list(MERCADOS.keys()),
-        index=0,
-        key="mercado",
-    )
-
+# ===================================================
+# CARGA Y PREPARACIÓN DE DATOS
+# ===================================================
 
 try:
-    datos, hoja_detectada = cargar_mercado(
-        tuple(MERCADOS[mercado])
+    df = cargar_datos()
+
+    if "DATE" not in df.columns:
+        st.error("No se encontró la columna DATE en la hoja de Google Sheets.")
+        st.stop()
+
+    meses = {
+        "ene": 1,
+        "feb": 2,
+        "mar": 3,
+        "abr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "ago": 8,
+        "sep": 9,
+        "sept": 9,
+        "oct": 10,
+        "nov": 11,
+        "dic": 12
+    }
+
+    fecha_separada = (
+        df["DATE"]
+        .astype(str)
+        .str.lower()
+        .str.strip()
+        .str.split("-", expand=True)
     )
 
-except Exception as error:
-    st.error(
-        f"No se pudieron cargar los datos de {mercado}."
+    if fecha_separada.shape[1] < 2:
+        st.error(
+            "Las fechas de la columna DATE deben tener un formato similar a ene-24."
+        )
+        st.stop()
+
+    df["Mes"] = fecha_separada[0].map(meses)
+    df["Año"] = pd.to_numeric(fecha_separada[1], errors="coerce")
+
+    df["Año"] = df["Año"].apply(
+        lambda año: año + 2000
+        if pd.notna(año) and año < 100
+        else año
     )
 
-    st.info(
-        "Comprueba que la pestaña exista en el mismo Google Sheets "
-        "y que el documento pueda consultarse mediante el enlace."
+    df["Fecha"] = pd.to_datetime(
+        {
+            "year": df["Año"],
+            "month": df["Mes"],
+            "day": 1
+        },
+        errors="coerce"
     )
 
-    st.code(
-        str(error)
+    df = (
+        df
+        .dropna(subset=["Fecha"])
+        .sort_values("Fecha")
+        .reset_index(drop=True)
     )
 
-    st.stop()
+    columnas_excluidas = ["DATE", "Fecha", "Mes", "Año"]
 
-
-indicadores = detectar_indicadores(
-    datos
-)
-
-
-with col_indicador:
-    indicador = st.selectbox(
-        "Indicador",
-        options=indicadores,
-        index=0,
-        key=f"indicador_{mercado}",
-    )
-
-
-# ============================================================
-# PREPARACIÓN DE LOS DATOS
-# ============================================================
-
-serie_original = datos[indicador].copy()
-
-indicador_porcentual = es_porcentual(
-    indicador,
-    serie_original,
-)
-
-grafico = datos[
-    [
-        "DATE",
-        indicador,
+    indicadores = [
+        columna
+        for columna in df.columns
+        if columna not in columnas_excluidas
     ]
-].copy()
 
-grafico[indicador] = convertir_a_numero(
-    grafico[indicador]
-)
-
-grafico = grafico.dropna(
-    subset=[indicador]
-)
-
-grafico = grafico.sort_values(
-    "DATE"
-)
+    if not indicadores:
+        st.error("No se encontraron indicadores en la hoja Dashboard_GBP.")
+        st.stop()
 
 
-if grafico.empty:
-    st.warning(
-        f"El indicador «{indicador}» no contiene datos válidos."
-    )
+    # ===================================================
+    # BARRA LATERAL
+    # ===================================================
 
-    st.stop()
-
-
-# ============================================================
-# SELECCIÓN DEL PERIODO
-# ============================================================
-
-fecha_minima = grafico["DATE"].min().date()
-fecha_maxima = grafico["DATE"].max().date()
-
-st.markdown("---")
-
-
-col_periodo, col_desde, col_hasta = st.columns(
-    [1.25, 1, 1],
-    gap="large",
-)
-
-
-with col_periodo:
-    periodo = st.selectbox(
-        "Periodo",
-        options=[
-            "Todo",
-            "Últimos 12 meses",
-            "Últimos 3 años",
-            "Últimos 5 años",
-            "Últimos 10 años",
-            "Personalizado",
-        ],
-        index=0,
-        key=f"periodo_{mercado}_{indicador}",
-    )
-
-
-if periodo == "Últimos 12 meses":
-    fecha_inicio = (
-        pd.Timestamp(fecha_maxima)
-        - pd.DateOffset(months=12)
-    ).date()
-
-elif periodo == "Últimos 3 años":
-    fecha_inicio = (
-        pd.Timestamp(fecha_maxima)
-        - pd.DateOffset(years=3)
-    ).date()
-
-elif periodo == "Últimos 5 años":
-    fecha_inicio = (
-        pd.Timestamp(fecha_maxima)
-        - pd.DateOffset(years=5)
-    ).date()
-
-elif periodo == "Últimos 10 años":
-    fecha_inicio = (
-        pd.Timestamp(fecha_maxima)
-        - pd.DateOffset(years=10)
-    ).date()
-
-else:
-    fecha_inicio = fecha_minima
-
-
-if fecha_inicio < fecha_minima:
-    fecha_inicio = fecha_minima
-
-
-if periodo == "Personalizado":
-    with col_desde:
-        fecha_inicio = st.date_input(
-            "Desde",
-            value=fecha_minima,
-            min_value=fecha_minima,
-            max_value=fecha_maxima,
-            format="DD/MM/YYYY",
-            key=f"desde_{mercado}_{indicador}",
+    with st.sidebar:
+        st.markdown(
+            """
+            <div class="brand-box">
+                <div class="brand-name">
+                    FINANS <span class="brand-accent">TRADING</span>
+                </div>
+                <div class="brand-subtitle">
+                    Macro FX
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-    with col_hasta:
-        fecha_fin = st.date_input(
-            "Hasta",
-            value=fecha_maxima,
-            min_value=fecha_minima,
-            max_value=fecha_maxima,
-            format="DD/MM/YYYY",
-            key=f"hasta_{mercado}_{indicador}",
+        st.divider()
+
+        st.markdown(
+            '<div class="control-title">Mercado</div>',
+            unsafe_allow_html=True
         )
 
-else:
-    fecha_fin = fecha_maxima
-
-    with col_desde:
-        st.date_input(
-            "Desde",
-            value=fecha_inicio,
-            min_value=fecha_minima,
-            max_value=fecha_maxima,
-            format="DD/MM/YYYY",
-            disabled=True,
-            key=f"desde_fijo_{mercado}_{indicador}_{periodo}",
+        divisa = st.selectbox(
+            "Divisa",
+            options=["GBP"],
+            index=0,
+            label_visibility="collapsed"
         )
 
-    with col_hasta:
-        st.date_input(
-            "Hasta",
-            value=fecha_fin,
-            min_value=fecha_minima,
-            max_value=fecha_maxima,
-            format="DD/MM/YYYY",
-            disabled=True,
-            key=f"hasta_fijo_{mercado}_{indicador}_{periodo}",
+        st.markdown(
+            '<div class="control-title">Indicador</div>',
+            unsafe_allow_html=True
+        )
+
+        indicador = st.selectbox(
+            "Indicador",
+            indicadores,
+            label_visibility="collapsed"
+        )
+
+        st.markdown(
+            '<div class="control-title">Periodo</div>',
+            unsafe_allow_html=True
+        )
+
+        periodo = st.radio(
+            "Periodo",
+            options=["1A", "3A", "5A", "10A", "Todo"],
+            index=1,
+            horizontal=False,
+            label_visibility="collapsed"
+        )
+
+        st.markdown(
+            '<div class="control-title">Escala vertical</div>',
+            unsafe_allow_html=True
+        )
+
+        modo_escala = st.radio(
+            "Escala vertical",
+            options=["Automática", "Sin extremos", "Manual"],
+            index=0,
+            horizontal=False,
+            label_visibility="collapsed"
+        )
+
+        st.markdown(
+            """
+            <div class="sidebar-info">
+                <strong>Datos:</strong> Google Sheets<br>
+                <strong>Actualización:</strong> automática cada 10 minutos
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
 
-if fecha_inicio > fecha_fin:
-    st.error(
-        "La fecha inicial no puede ser posterior a la fecha final."
+    # ===================================================
+    # CONVERSIÓN DE VALORES
+    # ===================================================
+
+    valores_limpios = (
+        df[indicador]
+        .astype(str)
+        .str.replace("%", "", regex=False)
+        .str.replace(" ", "", regex=False)
+        .str.replace(",", ".", regex=False)
     )
 
-    st.stop()
+    df["Valor"] = pd.to_numeric(valores_limpios, errors="coerce")
 
-
-grafico_filtrado = grafico[
-    (
-        grafico["DATE"].dt.date >= fecha_inicio
-    )
-    &
-    (
-        grafico["DATE"].dt.date <= fecha_fin
-    )
-].copy()
-
-
-if grafico_filtrado.empty:
-    st.warning(
-        "No existen datos para el periodo seleccionado."
+    datos_completos = (
+        df[["Fecha", "Valor"]]
+        .dropna()
+        .sort_values("Fecha")
+        .reset_index(drop=True)
     )
 
-    st.stop()
+    if datos_completos.empty:
+        st.warning("Este indicador todavía no contiene datos disponibles.")
+        st.stop()
 
+    fecha_minima = datos_completos["Fecha"].min()
+    fecha_maxima = datos_completos["Fecha"].max()
 
-# ============================================================
-# CONTROLES DEL GRÁFICO
-# ============================================================
+    ultimo_registro = datos_completos.iloc[-1]
+    ultimo_valor = float(ultimo_registro["Valor"])
+    ultima_fecha = ultimo_registro["Fecha"]
 
-col_comprimir, col_cero, col_espacio = st.columns(
-    [1.35, 1.25, 3],
-)
+    if len(datos_completos) >= 2:
+        valor_anterior = float(datos_completos.iloc[-2]["Valor"])
+        variacion = ultimo_valor - valor_anterior
+    else:
+        valor_anterior = None
+        variacion = None
 
-with col_comprimir:
-    comprimir_eje = st.checkbox(
-        "Comprimir eje vertical",
-        value=False,
-        key=f"comprimir_{mercado}_{indicador}",
-        help=(
-            "Reduce el espacio vertical vacío para apreciar "
-            "mejor las variaciones pequeñas."
-        ),
+    sufijo = determinar_sufijo(indicador)
+
+    ultimo_texto = formatear_valor(ultimo_valor, sufijo)
+    anterior_texto = (
+        formatear_valor(valor_anterior, sufijo)
+        if valor_anterior is not None
+        else "Sin dato"
     )
 
-with col_cero:
-    mostrar_cero = st.checkbox(
-        "Mostrar línea de cero",
-        value=True,
-        key=f"cero_{mercado}_{indicador}",
-    )
+    fecha_texto = ultima_fecha.strftime("%m/%Y")
+    publicaciones_texto = f"{len(datos_completos):,}"
+
+    if variacion is None:
+        variacion_texto = "Sin comparación"
+        clase_variacion = "metric-neutral"
+        signo_variacion = ""
+    elif variacion > 0:
+        variacion_texto = f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        clase_variacion = "metric-positive"
+        signo_variacion = "▲"
+    elif variacion < 0:
+        variacion_texto = f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        clase_variacion = "metric-negative"
+        signo_variacion = "▼"
+    else:
+        variacion_texto = f"{variacion:+.2f}{sufijo} frente al dato anterior"
+        clase_variacion = "metric-neutral"
+        signo_variacion = "—"
 
 
-# ============================================================
-# MÉTRICAS
-# ============================================================
+    # ===================================================
+    # CABECERA
+    # ===================================================
 
-primer_registro = grafico_filtrado.iloc[0]
-ultimo_registro = grafico_filtrado.iloc[-1]
-
-primer_valor = primer_registro[indicador]
-ultimo_valor = ultimo_registro[indicador]
-
-variacion = ultimo_valor - primer_valor
-
-
-col_metrica_1, col_metrica_2, col_metrica_3 = st.columns(
-    3,
-    gap="large",
-)
-
-
-with col_metrica_1:
-    st.metric(
-        "Último dato",
-        formatear_valor(
-            ultimo_valor,
-            indicador_porcentual,
-        ),
-    )
-
-
-with col_metrica_2:
-    st.metric(
-        "Última publicación",
-        ultimo_registro["DATE"].strftime(
-            "%m/%Y"
-        ),
-    )
-
-
-with col_metrica_3:
-    st.metric(
-        "Cambio en el periodo",
-        formatear_variacion(
-            variacion,
-            indicador_porcentual,
-        ),
+    st.markdown(
+        f"""
+        <div class="dashboard-header">
+            <div class="dashboard-eyebrow">
+                Finans Trading · Fundamental Dashboard
+            </div>
+            <div class="dashboard-title">
+                {divisa} · {indicador}
+            </div>
+            <div class="dashboard-subtitle">
+                Evolución histórica y lectura del último dato macroeconómico
+                disponible · Actualizado {fecha_texto}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-# ============================================================
-# GRÁFICO
-# ============================================================
+    # ===================================================
+    # TARJETAS DE MÉTRICAS
+    # ===================================================
 
-fig = go.Figure()
+    columna_1, columna_2, columna_3, columna_4 = st.columns(4)
 
-
-if indicador_porcentual:
-    texto_hover = "%{y:.2%}"
-    formato_eje_y = ".1%"
-
-else:
-    texto_hover = "%{y:,.2f}"
-    formato_eje_y = ",.2f"
-
-
-fig.add_trace(
-    go.Scatter(
-        x=grafico_filtrado["DATE"],
-        y=grafico_filtrado[indicador],
-        mode="lines+markers",
-        name=indicador,
-        line=dict(
-            color="#c7a55b",
-            width=2.7,
-        ),
-        marker=dict(
-            color="#e4cc92",
-            size=5.5,
-            line=dict(
-                color="#c7a55b",
-                width=1,
+    with columna_1:
+        st.markdown(
+            crear_tarjeta(
+                "Último dato",
+                ultimo_texto,
+                f"Publicación {fecha_texto}"
             ),
-        ),
-        hovertemplate=(
-            "<b>%{x|%m/%Y}</b><br>"
-            + indicador
-            + ": "
-            + texto_hover
-            + "<extra></extra>"
-        ),
+            unsafe_allow_html=True
+        )
+
+    with columna_2:
+        st.markdown(
+            crear_tarjeta(
+                "Dato anterior",
+                anterior_texto,
+                "Registro inmediatamente anterior"
+            ),
+            unsafe_allow_html=True
+        )
+
+    with columna_3:
+        st.markdown(
+            crear_tarjeta(
+                "Variación",
+                signo_variacion if signo_variacion else "—",
+                variacion_texto,
+                clase_variacion
+            ),
+            unsafe_allow_html=True
+        )
+
+    with columna_4:
+        st.markdown(
+            crear_tarjeta(
+                "Publicaciones",
+                publicaciones_texto,
+                f"Desde {fecha_minima.strftime('%m/%Y')}"
+            ),
+            unsafe_allow_html=True
+        )
+
+
+    # ===================================================
+    # FILTRO TEMPORAL
+    # ===================================================
+
+    años_por_periodo = {
+        "1A": 1,
+        "3A": 3,
+        "5A": 5,
+        "10A": 10
+    }
+
+    if periodo == "Todo":
+        fecha_inicio = fecha_minima
+    else:
+        fecha_inicio = fecha_maxima - pd.DateOffset(
+            years=años_por_periodo[periodo]
+        )
+
+    datos_visibles = datos_completos[
+        (datos_completos["Fecha"] >= fecha_inicio)
+        & (datos_completos["Fecha"] <= fecha_maxima)
+    ].copy()
+
+    if datos_visibles.empty:
+        datos_visibles = datos_completos.copy()
+
+
+    # ===================================================
+    # ESCALA VERTICAL
+    # ===================================================
+
+    minimo_real = float(datos_visibles["Valor"].min())
+    maximo_real = float(datos_visibles["Valor"].max())
+
+    if modo_escala == "Automática":
+        eje_minimo, eje_maximo = añadir_margen(
+            minimo_real,
+            maximo_real
+        )
+
+    elif modo_escala == "Sin extremos":
+        if len(datos_visibles) >= 10:
+            limite_inferior = float(
+                datos_visibles["Valor"].quantile(0.05)
+            )
+            limite_superior = float(
+                datos_visibles["Valor"].quantile(0.95)
+            )
+        else:
+            limite_inferior = minimo_real
+            limite_superior = maximo_real
+
+        eje_minimo, eje_maximo = añadir_margen(
+            limite_inferior,
+            limite_superior
+        )
+
+        st.info(
+            "La escala vertical ignora visualmente el 5 % de los valores "
+            "más bajos y el 5 % de los más altos. Los datos no se eliminan."
+        )
+
+    else:
+        valor_sugerido_minimo, valor_sugerido_maximo = añadir_margen(
+            minimo_real,
+            maximo_real
+        )
+
+        st.markdown("#### Ajuste manual del eje vertical")
+
+        manual_1, manual_2 = st.columns(2)
+
+        with manual_1:
+            eje_minimo = st.number_input(
+                "Mínimo",
+                value=float(round(valor_sugerido_minimo, 2)),
+                step=0.5
+            )
+
+        with manual_2:
+            eje_maximo = st.number_input(
+                "Máximo",
+                value=float(round(valor_sugerido_maximo, 2)),
+                step=0.5
+            )
+
+        if eje_minimo >= eje_maximo:
+            st.warning("El máximo debe ser superior al mínimo.")
+            st.stop()
+
+
+    # ===================================================
+    # GRÁFICO
+    # ===================================================
+
+    st.markdown(
+        f"""
+        <div class="chart-card">
+            <div class="chart-title">
+                Evolución histórica de {indicador}
+            </div>
+            <div class="chart-subtitle">
+                Periodo seleccionado: {periodo} ·
+                Desde {datos_visibles["Fecha"].min().strftime("%m/%Y")}
+                hasta {fecha_maxima.strftime("%m/%Y")}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
-)
 
+    figura = go.Figure()
 
-if mostrar_cero:
-    fig.add_hline(
-        y=0,
-        line_width=1,
-        line_dash="dot",
-        line_color="rgba(255,255,255,0.30)",
+    figura.add_trace(
+        go.Scatter(
+            x=datos_visibles["Fecha"],
+            y=datos_visibles["Valor"],
+            mode="lines",
+            name=indicador,
+            line=dict(
+                color=COLOR_DORADO,
+                width=3
+            ),
+            fill="tozeroy",
+            fillcolor="rgba(201, 162, 39, 0.08)",
+            hovertemplate=(
+                "<b>%{x|%b %Y}</b>"
+                "<br>"
+                + indicador
+                + ": <b>%{y:.2f}"
+                + sufijo
+                + "</b>"
+                "<extra></extra>"
+            )
+        )
     )
 
+    if eje_minimo <= 0 <= eje_maximo:
+        figura.add_hline(
+            y=0,
+            line_width=1,
+            line_dash="dot",
+            line_color="rgba(107, 114, 128, 0.55)"
+        )
 
-rango_vertical = None
-
-if comprimir_eje:
-    rango_vertical = calcular_rango_vertical(
-        grafico_filtrado[indicador]
-    )
-
-
-fig.update_layout(
-    title=dict(
-        text=f"{mercado} · {indicador}",
-        x=0.015,
-        xanchor="left",
+    figura.update_layout(
+        height=690,
+        margin=dict(l=35, r=25, t=20, b=30),
+        paper_bgcolor=COLOR_TARJETA,
+        plot_bgcolor=COLOR_TARJETA,
+        hovermode="x unified",
+        showlegend=False,
+        xaxis_title="",
+        yaxis_title="",
         font=dict(
-            size=22,
-            color="#ffffff",
+            family="Inter, Arial, sans-serif",
+            size=13,
+            color=COLOR_NEGRO
         ),
-    ),
-    height=610,
-    paper_bgcolor="#071321",
-    plot_bgcolor="#0b1b2b",
-    font=dict(
-        color="#dce4ef",
-        family="Arial, Helvetica, sans-serif",
-    ),
-    margin=dict(
-        l=42,
-        r=25,
-        t=75,
-        b=42,
-    ),
-    hovermode="x unified",
-    showlegend=False,
-    dragmode=False,
-    xaxis=dict(
-        title="",
-        showgrid=True,
-        gridcolor="rgba(255,255,255,0.065)",
-        linecolor="rgba(255,255,255,0.18)",
-        tickformat="%m/%Y",
-        fixedrange=True,
-        rangeslider=dict(
-            visible=False,
-        ),
-    ),
-    yaxis=dict(
-        title="",
-        showgrid=True,
-        gridcolor="rgba(255,255,255,0.075)",
-        linecolor="rgba(255,255,255,0.18)",
+        dragmode=False,
+        hoverlabel=dict(
+            bgcolor="#111111",
+            font_size=13,
+            font_color="white",
+            bordercolor="#111111"
+        )
+    )
+
+    figura.update_xaxes(
+        type="date",
+        range=[
+            datos_visibles["Fecha"].min(),
+            fecha_maxima
+        ],
+        minallowed=fecha_minima,
+        maxallowed=fecha_maxima,
+        rangeslider_visible=False,
+        showgrid=False,
+        showline=True,
+        linecolor="#D1D5DB",
+        tickformat="%b %Y",
+        tickfont=dict(color=COLOR_TEXTO_SECUNDARIO),
+        fixedrange=True
+    )
+
+    figura.update_yaxes(
+        range=[eje_minimo, eje_maximo],
+        gridcolor="rgba(107, 114, 128, 0.14)",
+        showline=False,
         zeroline=False,
-        tickformat=formato_eje_y,
-        range=rango_vertical,
-        fixedrange=False,
-    ),
-)
-
-
-st.plotly_chart(
-    fig,
-    use_container_width=True,
-    config={
-        "displayModeBar": False,
-        "scrollZoom": False,
-        "doubleClick": False,
-        "responsive": True,
-    },
-)
-
-
-# ============================================================
-# TABLA HISTÓRICA
-# ============================================================
-
-with st.expander(
-    "Ver datos históricos",
-):
-    tabla = grafico_filtrado.copy()
-
-    tabla = tabla.sort_values(
-        "DATE",
-        ascending=False,
+        tickfont=dict(color=COLOR_TEXTO_SECUNDARIO),
+        ticksuffix=sufijo,
+        fixedrange=True
     )
 
-    tabla["DATE"] = tabla["DATE"].dt.strftime(
-        "%m/%Y"
-    )
-
-    tabla = tabla.rename(
-        columns={
-            "DATE": "Fecha",
+    st.plotly_chart(
+        figura,
+        use_container_width=True,
+        config={
+            "displaylogo": False,
+            "scrollZoom": False,
+            "displayModeBar": False,
+            "responsive": True
         }
     )
 
-    if indicador_porcentual:
-        tabla[indicador] = tabla[indicador].map(
-            lambda valor: f"{valor:.2%}"
-            if pd.notna(valor)
-            else ""
-        )
 
-    st.dataframe(
-        tabla,
-        use_container_width=True,
-        hide_index=True,
-    )
-
-
-# ============================================================
-# PIE DE PÁGINA
-# ============================================================
-
-st.markdown(
-    """
-    <div style="
-        margin-top:28px;
-        padding-top:16px;
-        border-top:1px solid rgba(199,165,91,0.18);
-        text-align:center;
-        color:#718096;
-        font-size:12px;
-    ">
-        Macro FX · Finans Trading
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+except Exception as error:
+    st.error("No se pudo cargar el dashboard.")
+    st.exception(error)
