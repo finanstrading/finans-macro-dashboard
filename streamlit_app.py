@@ -74,10 +74,38 @@ st.markdown(
         }}
 
         section[data-testid="stSidebar"] div[data-baseweb="select"] > div {{
-            background-color: #1B1B1B;
-            border-color: #353535;
-            color: white;
+            background-color: white;
+            border-color: #E5E7EB;
+            color: #111111 !important;
             border-radius: 9px;
+        }}
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"] span {{
+            color: #111111 !important;
+            font-weight: 700 !important;
+        }}
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+        }}
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"] svg {{
+            fill: #111111 !important;
+            color: #111111 !important;
+        }}
+
+        div[role="listbox"] {{
+            background: white !important;
+        }}
+
+        div[role="option"] {{
+            color: #111111 !important;
+            background: white !important;
+        }}
+
+        div[role="option"]:hover {{
+            background: #F3F4F6 !important;
         }}
 
         section[data-testid="stSidebar"] div[role="radiogroup"] label {{
@@ -425,7 +453,7 @@ try:
                     FINANS <span class="brand-accent">TRADING</span>
                 </div>
                 <div class="brand-subtitle">
-                    Fundamental Intelligence
+                    Macro FX
                 </div>
             </div>
             """,
