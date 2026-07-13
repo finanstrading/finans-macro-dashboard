@@ -24,36 +24,35 @@ MERCADOS = {
 
 
 # =========================================================
-# DISEÑO
+# ESTILOS
 # =========================================================
 
 st.markdown(
     """
     <style>
 
-    /* Fondo general */
     .stApp {
         background-color: #07111f;
     }
 
-    /* Limitar ancho */
     .block-container {
         max-width: 1450px;
         padding-top: 2rem;
         padding-bottom: 3rem;
     }
 
-    /* Títulos */
-    h1, h2, h3 {
+    h1,
+    h2,
+    h3 {
         color: #ffffff;
     }
 
-    /* Texto general */
-    p, label, .stMarkdown {
+    p,
+    label,
+    .stMarkdown {
         color: #dce4ef;
     }
 
-    /* Ocultar elementos de Streamlit */
     #MainMenu {
         visibility: hidden;
     }
@@ -66,7 +65,6 @@ st.markdown(
         background-color: transparent;
     }
 
-    /* Selectbox cerrado */
     div[data-baseweb="select"] > div {
         background-color: #ffffff !important;
         border: 1px solid #c7a55b !important;
@@ -74,19 +72,21 @@ st.markdown(
         color: #000000 !important;
     }
 
-    /* Texto seleccionado dentro del selector */
     div[data-baseweb="select"] span {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
     }
 
-    /* Flecha del selector */
+    div[data-baseweb="select"] input {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+
     div[data-baseweb="select"] svg {
         fill: #000000 !important;
         color: #000000 !important;
     }
 
-    /* Opciones desplegadas */
     ul[role="listbox"] {
         background-color: #ffffff !important;
     }
@@ -106,14 +106,25 @@ st.markdown(
         color: #000000 !important;
     }
 
-    /* Campo de fechas */
+    div[data-baseweb="input"] {
+        background-color: #ffffff !important;
+    }
+
     div[data-baseweb="input"] input {
         background-color: #ffffff !important;
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
     }
 
-    /* Botones */
+    div[data-baseweb="input"] svg {
+        fill: #000000 !important;
+        color: #000000 !important;
+    }
+
+    button[data-baseweb="button"] {
+        color: #000000 !important;
+    }
+
     .stButton > button {
         background-color: #c7a55b;
         color: #07111f;
@@ -122,12 +133,25 @@ st.markdown(
         font-weight: 700;
     }
 
-    /* Cajas informativas */
     div[data-testid="stAlert"] {
         border-radius: 10px;
     }
 
-    /* Separador */
+    div[data-testid="stMetric"] {
+        background-color: #0b1929;
+        border: 1px solid rgba(199, 165, 91, 0.3);
+        border-radius: 12px;
+        padding: 18px;
+    }
+
+    div[data-testid="stMetricLabel"] {
+        color: #aebbd0;
+    }
+
+    div[data-testid="stMetricValue"] {
+        color: #ffffff;
+    }
+
     hr {
         border-color: rgba(199, 165, 91, 0.35);
     }
@@ -145,7 +169,8 @@ st.markdown(
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_hoja(nombre_hoja: str) -> pd.DataFrame:
     """
-    Descarga una pestaña concreta del Google Sheets en formato CSV.
+    Descarga una pestaña concreta del Google Sheets
+    en formato CSV.
     """
 
     hoja_codificada = quote(nombre_hoja)
@@ -157,32 +182,48 @@ def cargar_hoja(nombre_hoja: str) -> pd.DataFrame:
 
     df = pd.read_csv(url)
 
-    # Eliminar columnas totalmente vacías
-    df = df.dropna(axis=1, how="all")
+    df.columns = [
+        str(columna).strip()
+        for columna in df.columns
+    ]
+
+    df = df.dropna(
+        axis=1,
+        how="all",
+    )
+
+    df = df.dropna(
+        axis=0,
+        how="all",
+    )
 
     if df.empty:
         raise ValueError(
             f"La pestaña {nombre_hoja} no contiene datos."
         )
 
-    # La primera columna debe ser la fecha
     primera_columna = df.columns[0]
 
-    df = df.rename(columns={primera_columna: "DATE"})
+    df = df.rename(
+        columns={
+            primera_columna: "DATE",
+        }
+    )
 
     df["DATE"] = pd.to_datetime(
         df["DATE"],
         errors="coerce",
-        dayfirst=False,
+        dayfirst=True,
     )
 
-    # Eliminar filas sin fecha válida
-    df = df.dropna(subset=["DATE"])
+    df = df.dropna(
+        subset=["DATE"],
+    )
 
-    # Ordenar cronológicamente
-    df = df.sort_values("DATE")
+    df = df.sort_values(
+        by="DATE",
+    )
 
-    # Eliminar fechas duplicadas, conservando la última
     df = df.drop_duplicates(
         subset=["DATE"],
         keep="last",
@@ -197,29 +238,60 @@ def cargar_hoja(nombre_hoja: str) -> pd.DataFrame:
 
 def convertir_a_numero(serie: pd.Series) -> pd.Series:
     """
-    Convierte los datos de una columna a valores numéricos.
-    También admite porcentajes escritos como texto.
+    Convierte una columna a valores numéricos.
+    Admite números, comas decimales y porcentajes.
     """
 
     if pd.api.types.is_numeric_dtype(serie):
-        return pd.to_numeric(serie, errors="coerce")
+        return pd.to_numeric(
+            serie,
+            errors="coerce",
+        )
 
-    texto = serie.astype(str).str.strip()
+    texto_original = serie.astype(str).str.strip()
 
-    contiene_porcentaje = texto.str.contains(
+    contiene_porcentaje = texto_original.str.contains(
         "%",
         regex=False,
         na=False,
     ).any()
 
     texto = (
-        texto
+        texto_original
         .str.replace("%", "", regex=False)
         .str.replace(" ", "", regex=False)
-        .str.replace(",", ".", regex=False)
     )
 
-    valores = pd.to_numeric(texto, errors="coerce")
+    tiene_coma = texto.str.contains(
+        ",",
+        regex=False,
+        na=False,
+    ).any()
+
+    tiene_punto = texto.str.contains(
+        ".",
+        regex=False,
+        na=False,
+    ).any()
+
+    if tiene_coma and tiene_punto:
+        texto = (
+            texto
+            .str.replace(".", "", regex=False)
+            .str.replace(",", ".", regex=False)
+        )
+
+    elif tiene_coma:
+        texto = texto.str.replace(
+            ",",
+            ".",
+            regex=False,
+        )
+
+    valores = pd.to_numeric(
+        texto,
+        errors="coerce",
+    )
 
     if contiene_porcentaje:
         valores = valores / 100
@@ -227,54 +299,105 @@ def convertir_a_numero(serie: pd.Series) -> pd.Series:
     return valores
 
 
-def es_indicador_porcentual(nombre: str) -> bool:
+def es_indicador_porcentual(
+    nombre_indicador: str,
+    serie_original: pd.Series,
+) -> bool:
     """
-    Detecta indicadores que normalmente deben mostrarse como porcentaje.
+    Detecta si un indicador debe visualizarse como porcentaje.
     """
 
-    nombre = nombre.lower()
+    texto_nombre = nombre_indicador.lower()
+
+    if (
+        serie_original.astype(str)
+        .str.contains("%", regex=False, na=False)
+        .any()
+    ):
+        return True
 
     palabras_porcentuales = [
         "cpi",
+        "inflation",
         "inflación",
         "inflacion",
-        "retail sales",
-        "desempleo",
         "unemployment",
-        "salario",
-        "wage",
-        "earnings",
-        "gdp",
+        "desempleo",
+        "interest rate",
+        "bank rate",
+        "tasa",
+        "tipo de interés",
+        "tipo de interes",
         "pce",
         "ppi",
+        "earnings",
+        "wages",
+        "salarios",
+        "retail sales",
         "ventas minoristas",
-        "%",
+        "gdp",
+        "pib",
+        "house price",
+        "precios de vivienda",
     ]
 
     return any(
-        palabra in nombre
+        palabra in texto_nombre
         for palabra in palabras_porcentuales
     )
 
 
-def formato_ultimo_valor(
+def formato_valor(
     valor: float,
-    indicador: str,
+    indicador_porcentual: bool,
 ) -> str:
     """
-    Da formato al último dato mostrado.
+    Formatea el valor mostrado en las métricas.
     """
 
     if pd.isna(valor):
         return "Sin dato"
 
-    if es_indicador_porcentual(indicador):
+    if indicador_porcentual:
         return f"{valor:.2%}"
 
-    if abs(valor) >= 1000:
+    if abs(valor) >= 1_000_000:
+        return f"{valor / 1_000_000:,.2f} M"
+
+    if abs(valor) >= 1_000:
         return f"{valor:,.0f}"
 
     return f"{valor:,.2f}"
+
+
+def obtener_rango_vertical(
+    serie: pd.Series,
+) -> list | None:
+    """
+    Calcula un rango vertical ajustado a los datos.
+    """
+
+    minimo = serie.min()
+    maximo = serie.max()
+
+    if pd.isna(minimo) or pd.isna(maximo):
+        return None
+
+    diferencia = maximo - minimo
+
+    if diferencia == 0:
+        margen = abs(maximo) * 0.05
+
+        if margen == 0:
+            margen = 1
+
+    else:
+        margen = diferencia * 0.08
+
+    return [
+        minimo - margen,
+        maximo + margen,
+    ]
 
 
 # =========================================================
@@ -282,17 +405,15 @@ def formato_ultimo_valor(
 # =========================================================
 
 st.markdown(
-    """
-    <div style="
+    """<div style="
         padding: 20px 24px;
         border: 1px solid rgba(199, 165, 91, 0.45);
         border-radius: 14px;
-        background:
-            linear-gradient(
-                135deg,
-                rgba(13, 30, 50, 0.97),
-                rgba(7, 17, 31, 0.97)
-            );
+        background: linear-gradient(
+            135deg,
+            rgba(13, 30, 50, 0.97),
+            rgba(7, 17, 31, 0.97)
+        );
         margin-bottom: 25px;
     ">
         <div style="
@@ -300,28 +421,21 @@ st.markdown(
             font-size: 14px;
             font-weight: 700;
             letter-spacing: 2px;
-        ">
-            FINANS TRADING
-        </div>
+        ">FINANS TRADING</div>
 
         <div style="
             color: #ffffff;
             font-size: 34px;
             font-weight: 800;
             margin-top: 4px;
-        ">
-            Macro FX
-        </div>
+        ">Macro FX</div>
 
         <div style="
             color: #aebbd0;
             font-size: 16px;
             margin-top: 5px;
-        ">
-            Evolución histórica de los principales indicadores macroeconómicos
-        </div>
-    </div>
-    """,
+        ">Evolución histórica de los principales indicadores macroeconómicos</div>
+    </div>""",
     unsafe_allow_html=True,
 )
 
@@ -330,7 +444,9 @@ st.markdown(
 # SELECTOR DE MERCADO
 # =========================================================
 
-col_mercado, col_indicador = st.columns([1, 2])
+col_mercado, col_indicador = st.columns(
+    [1, 2],
+)
 
 with col_mercado:
     mercado = st.selectbox(
@@ -344,11 +460,13 @@ nombre_hoja = MERCADOS[mercado]
 
 
 # =========================================================
-# CARGAR EL MERCADO SELECCIONADO
+# CARGAR DATOS DEL MERCADO
 # =========================================================
 
 try:
-    datos = cargar_hoja(nombre_hoja)
+    datos = cargar_hoja(
+        nombre_hoja,
+    )
 
 except Exception as error:
     st.error(
@@ -356,12 +474,14 @@ except Exception as error:
     )
 
     st.info(
-        "Comprueba que el nombre de la pestaña sea exacto, "
-        "que no tenga espacios delante o detrás y que el "
-        "Google Sheets esté compartido para lectura."
+        "Comprueba que la pestaña exista, que el nombre sea "
+        "exactamente correcto y que no tenga espacios delante "
+        "o detrás."
     )
 
-    st.code(str(error))
+    st.code(
+        str(error),
+    )
 
     st.stop()
 
@@ -376,17 +496,22 @@ for columna in datos.columns:
     if columna == "DATE":
         continue
 
-    serie_numerica = convertir_a_numero(datos[columna])
+    serie_numerica = convertir_a_numero(
+        datos[columna],
+    )
 
     if serie_numerica.notna().any():
-        indicadores.append(columna)
+        indicadores.append(
+            columna,
+        )
 
 
 if not indicadores:
     st.warning(
-        f"No se encontraron indicadores con datos numéricos "
-        f"en la pestaña {nombre_hoja}."
+        f"No se encontraron indicadores numéricos en "
+        f"la pestaña {nombre_hoja}."
     )
+
     st.stop()
 
 
@@ -403,25 +528,44 @@ with col_indicador:
 # PREPARAR EL INDICADOR
 # =========================================================
 
-grafico = datos[["DATE", indicador]].copy()
+serie_original = datos[indicador].copy()
+
+indicador_porcentual = es_indicador_porcentual(
+    indicador,
+    serie_original,
+)
+
+grafico = datos[
+    [
+        "DATE",
+        indicador,
+    ]
+].copy()
 
 grafico[indicador] = convertir_a_numero(
-    grafico[indicador]
+    grafico[indicador],
 )
 
 grafico = grafico.dropna(
-    subset=[indicador]
+    subset=[
+        indicador,
+    ],
+)
+
+grafico = grafico.sort_values(
+    by="DATE",
 )
 
 if grafico.empty:
     st.warning(
         f"El indicador «{indicador}» no contiene datos válidos."
     )
+
     st.stop()
 
 
 # =========================================================
-# SELECTOR DE FECHAS
+# SELECTOR DE PERIODO
 # =========================================================
 
 fecha_minima = grafico["DATE"].min().date()
@@ -429,7 +573,9 @@ fecha_maxima = grafico["DATE"].max().date()
 
 st.markdown("---")
 
-col_periodo, col_inicio, col_fin = st.columns([1.2, 1, 1])
+col_periodo, col_inicio, col_fin = st.columns(
+    [1.2, 1, 1],
+)
 
 with col_periodo:
     periodo = st.selectbox(
@@ -443,89 +589,111 @@ with col_periodo:
             "Personalizado",
         ],
         index=0,
+        key="selector_periodo",
     )
 
 
 if periodo == "Últimos 12 meses":
-    fecha_inicio = (
+    fecha_inicio_calculada = (
         pd.Timestamp(fecha_maxima)
         - pd.DateOffset(months=12)
     ).date()
 
 elif periodo == "Últimos 3 años":
-    fecha_inicio = (
+    fecha_inicio_calculada = (
         pd.Timestamp(fecha_maxima)
         - pd.DateOffset(years=3)
     ).date()
 
 elif periodo == "Últimos 5 años":
-    fecha_inicio = (
+    fecha_inicio_calculada = (
         pd.Timestamp(fecha_maxima)
         - pd.DateOffset(years=5)
     ).date()
 
 elif periodo == "Últimos 10 años":
-    fecha_inicio = (
+    fecha_inicio_calculada = (
         pd.Timestamp(fecha_maxima)
         - pd.DateOffset(years=10)
     ).date()
 
 else:
-    fecha_inicio = fecha_minima
+    fecha_inicio_calculada = fecha_minima
 
 
-if fecha_inicio < fecha_minima:
-    fecha_inicio = fecha_minima
+if fecha_inicio_calculada < fecha_minima:
+    fecha_inicio_calculada = fecha_minima
 
 
-with col_inicio:
-    if periodo == "Personalizado":
+if periodo == "Personalizado":
+    with col_inicio:
         fecha_inicio = st.date_input(
             "Desde",
             value=fecha_minima,
             min_value=fecha_minima,
             max_value=fecha_maxima,
-            format="MM/YYYY",
+            format="DD/MM/YYYY",
+            key="fecha_inicio_personalizada",
         )
-    else:
+
+    with col_fin:
+        fecha_fin = st.date_input(
+            "Hasta",
+            value=fecha_maxima,
+            min_value=fecha_minima,
+            max_value=fecha_maxima,
+            format="DD/MM/YYYY",
+            key="fecha_fin_personalizada",
+        )
+
+else:
+    fecha_inicio = fecha_inicio_calculada
+    fecha_fin = fecha_maxima
+
+    with col_inicio:
         st.date_input(
             "Desde",
             value=fecha_inicio,
             min_value=fecha_minima,
             max_value=fecha_maxima,
-            format="MM/YYYY",
+            format="DD/MM/YYYY",
             disabled=True,
+            key=f"fecha_inicio_{periodo}",
         )
 
-
-with col_fin:
-    fecha_fin = st.date_input(
-        "Hasta",
-        value=fecha_maxima,
-        min_value=fecha_minima,
-        max_value=fecha_maxima,
-        format="MM/YYYY",
-        disabled=periodo != "Personalizado",
-    )
+    with col_fin:
+        st.date_input(
+            "Hasta",
+            value=fecha_fin,
+            min_value=fecha_minima,
+            max_value=fecha_maxima,
+            format="DD/MM/YYYY",
+            disabled=True,
+            key=f"fecha_fin_{periodo}",
+        )
 
 
 if fecha_inicio > fecha_fin:
     st.error(
         "La fecha inicial no puede ser posterior a la fecha final."
     )
+
     st.stop()
 
 
 # =========================================================
-# FILTRAR FECHAS
+# FILTRAR POR FECHAS
 # =========================================================
 
 grafico_filtrado = grafico[
     (
-        grafico["DATE"].dt.date >= fecha_inicio
+        grafico["DATE"].dt.date
+        >= fecha_inicio
     )
-    & (
-        grafico["DATE"].dt.date <= fecha_fin
+    &
+    (
+        grafico["DATE"].dt.date
+        <= fecha_fin
     )
 ].copy()
 
@@ -534,6 +702,7 @@ if grafico_filtrado.empty:
     st.warning(
         "No existen datos para el periodo seleccionado."
     )
+
     st.stop()
 
 
@@ -541,15 +710,17 @@ if grafico_filtrado.empty:
 # OPCIONES DEL GRÁFICO
 # =========================================================
 
-col_ajuste, col_cero, col_espacio = st.columns([1.2, 1.2, 3])
+col_ajuste, col_cero, col_vacio = st.columns(
+    [1.2, 1.2, 3],
+)
 
 with col_ajuste:
-    ajustar_eje = st.checkbox(
+    comprimir_eje = st.checkbox(
         "Comprimir eje vertical",
         value=False,
         help=(
-            "Reduce el espacio vacío del eje vertical para "
-            "observar mejor variaciones pequeñas."
+            "Permite observar mejor las variaciones pequeñas "
+            "del indicador."
         ),
     )
 
@@ -561,43 +732,56 @@ with col_cero:
 
 
 # =========================================================
-# DATOS DESTACADOS
+# MÉTRICAS
 # =========================================================
 
-ultimo_registro = grafico_filtrado.iloc[-1]
 primer_registro = grafico_filtrado.iloc[0]
+ultimo_registro = grafico_filtrado.iloc[-1]
 
-ultimo_valor = ultimo_registro[indicador]
 primer_valor = primer_registro[indicador]
+ultimo_valor = ultimo_registro[indicador]
 
-variacion_periodo = ultimo_valor - primer_valor
+variacion_periodo = (
+    ultimo_valor
+    - primer_valor
+)
 
-col_dato, col_fecha, col_variacion = st.columns(3)
+col_dato, col_fecha, col_variacion = st.columns(
+    3,
+)
 
 with col_dato:
     st.metric(
         label="Último dato",
-        value=formato_ultimo_valor(
+        value=formato_valor(
             ultimo_valor,
-            indicador,
+            indicador_porcentual,
         ),
     )
 
 with col_fecha:
     st.metric(
         label="Última publicación",
-        value=ultimo_registro["DATE"].strftime("%m/%Y"),
+        value=ultimo_registro["DATE"].strftime(
+            "%m/%Y"
+        ),
     )
 
 with col_variacion:
-    if es_indicador_porcentual(indicador):
+    if indicador_porcentual:
         variacion_texto = (
             f"{variacion_periodo * 100:+.2f} puntos"
         )
-    elif abs(variacion_periodo) >= 1000:
-        variacion_texto = f"{variacion_periodo:+,.0f}"
+
+    elif abs(variacion_periodo) >= 1_000:
+        variacion_texto = (
+            f"{variacion_periodo:+,.0f}"
+        )
+
     else:
-        variacion_texto = f"{variacion_periodo:+,.2f}"
+        variacion_texto = (
+            f"{variacion_periodo:+,.2f}"
+        )
 
     st.metric(
         label="Cambio en el periodo",
@@ -644,32 +828,18 @@ if mostrar_linea_cero:
     )
 
 
-# Ajuste vertical opcional
-rango_y = None
+rango_vertical = None
 
-if ajustar_eje:
-    minimo = grafico_filtrado[indicador].min()
-    maximo = grafico_filtrado[indicador].max()
-
-    diferencia = maximo - minimo
-
-    if diferencia == 0:
-        margen = abs(maximo) * 0.05
-
-        if margen == 0:
-            margen = 1
-    else:
-        margen = diferencia * 0.08
-
-    rango_y = [
-        minimo - margen,
-        maximo + margen,
-    ]
+if comprimir_eje:
+    rango_vertical = obtener_rango_vertical(
+        grafico_filtrado[indicador],
+    )
 
 
-formato_eje_y = ".1%"
+if indicador_porcentual:
+    formato_eje_y = ".1%"
 
-if not es_indicador_porcentual(indicador):
+else:
     formato_eje_y = ",.2f"
 
 
@@ -714,7 +884,7 @@ fig.update_layout(
         gridcolor="rgba(255,255,255,0.08)",
         zeroline=False,
         tickformat=formato_eje_y,
-        range=rango_y,
+        range=rango_vertical,
         fixedrange=False,
     ),
 )
@@ -732,10 +902,12 @@ st.plotly_chart(
 
 
 # =========================================================
-# TABLA OPCIONAL
+# TABLA DE DATOS
 # =========================================================
 
-with st.expander("Ver datos históricos"):
+with st.expander(
+    "Ver datos históricos",
+):
     tabla = grafico_filtrado.copy()
 
     tabla["DATE"] = tabla["DATE"].dt.strftime(
@@ -748,30 +920,27 @@ with st.expander("Ver datos históricos"):
         }
     )
 
+    tabla = tabla.sort_index(
+        ascending=False,
+    )
+
     st.dataframe(
-        tabla.sort_values(
-            "Fecha",
-            ascending=False,
-        ),
+        tabla,
         use_container_width=True,
         hide_index=True,
     )
 
 
 # =========================================================
-# PIE
+# PIE DE PÁGINA
 # =========================================================
 
 st.markdown(
-    """
-    <div style="
+    """<div style="
         text-align: center;
         color: #718096;
         font-size: 12px;
         margin-top: 28px;
-    ">
-        Macro FX · Finans Trading
-    </div>
-    """,
+    ">Macro FX · Finans Trading</div>""",
     unsafe_allow_html=True,
 )
