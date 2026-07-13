@@ -131,13 +131,16 @@ try:
     )
 
     df["Mes"] = fecha_separada[0].map(meses)
+
     df["Año"] = pd.to_numeric(
         fecha_separada[1],
         errors="coerce"
     )
 
     df["Año"] = df["Año"].apply(
-        lambda año: año + 2000 if pd.notna(año) and año < 100 else año
+        lambda año: año + 2000
+        if pd.notna(año) and año < 100
+        else año
     )
 
     df["Fecha"] = pd.to_datetime(
@@ -179,7 +182,7 @@ try:
     )
 
     # ---------------------------------------------------
-    # CONVERTIR VALORES NUMÉRICOS
+    # CONVERTIR VALORES
     # ---------------------------------------------------
 
     valores_limpios = (
@@ -207,6 +210,13 @@ try:
             "Este indicador todavía no contiene datos disponibles."
         )
         st.stop()
+
+    # ---------------------------------------------------
+    # FECHAS MÍNIMA Y MÁXIMA REALES
+    # ---------------------------------------------------
+
+    fecha_minima = datos["Fecha"].min()
+    fecha_maxima = datos["Fecha"].max()
 
     # ---------------------------------------------------
     # MÉTRICAS
@@ -310,7 +320,7 @@ try:
         margin=dict(
             l=30,
             r=30,
-            t=30,
+            t=45,
             b=20
         ),
         paper_bgcolor="rgba(0,0,0,0)",
@@ -319,12 +329,18 @@ try:
         showlegend=False,
         xaxis_title="",
         yaxis_title=indicador,
-        font=dict(size=14)
+        font=dict(size=14),
+        dragmode="zoom"
     )
 
     figura.update_xaxes(
-        showgrid=False,
+        type="date",
+        range=[fecha_minima, fecha_maxima],
+        minallowed=fecha_minima,
+        maxallowed=fecha_maxima,
         rangeslider_visible=False,
+        showgrid=False,
+        tickformat="%Y",
         rangeselector=dict(
             buttons=[
                 dict(
@@ -357,14 +373,14 @@ try:
                 )
             ],
             x=0,
-            y=1.12
-        ),
-        tickformat="%Y"
+            y=1.10
+        )
     )
 
     figura.update_yaxes(
         gridcolor="rgba(120, 130, 150, 0.15)",
-        zeroline=False
+        zeroline=False,
+        autorange=True
     )
 
     st.plotly_chart(
@@ -372,10 +388,12 @@ try:
         use_container_width=True,
         config={
             "displaylogo": False,
-            "scrollZoom": True,
+            "scrollZoom": False,
+            "doubleClick": "reset",
             "modeBarButtonsToRemove": [
                 "select2d",
-                "lasso2d"
+                "lasso2d",
+                "pan2d"
             ]
         }
     )
