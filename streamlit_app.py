@@ -24,6 +24,10 @@ MERCADOS = {
     "USD": ["Dashboard_USD", " Dashboard_USD"],
     "EUR": ["Dashboard_EUR", " Dashboard_EUR"],
     "CAD": ["Dashboard_CAD", " Dashboard_CAD"],
+    "JPY": ["Dashboard_JPY", " Dashboard_JPY"],
+    "AUD": ["Dashboard_AUD", " Dashboard_AUD"],
+    "NZD": ["Dashboard_NZD", " Dashboard_NZD"],
+    "CHF": ["Dashboard_CHF", " Dashboard_CHF"],
 }
 
 COLOR_DORADO = "#C9A227"
