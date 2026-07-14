@@ -22,6 +22,7 @@ SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU"
 MERCADOS = {
     "GBP": ["Dashboard_GBP"],
     "USD": ["Dashboard_USD", " Dashboard_USD"],
+    "EUR": ["Dashboard_EUR", " Dashboard_EUR"],
 }
 
 COLOR_DORADO = "#C9A227"
