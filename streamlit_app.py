@@ -23,6 +23,7 @@ MERCADOS = {
     "GBP": ["Dashboard_GBP"],
     "USD": ["Dashboard_USD", " Dashboard_USD"],
     "EUR": ["Dashboard_EUR", " Dashboard_EUR"],
+    "CAD": ["Dashboard_CAD", " Dashboard_CAD"],
 }
 
 COLOR_DORADO = "#C9A227"
