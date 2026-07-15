@@ -430,6 +430,8 @@ def convertir_valores(serie):
         .str.replace("%", "", regex=False)
         .str.replace("\u00a0", "", regex=False)
         .str.replace(" ", "", regex=False)
+        .str.replace("'", "", regex=False)
+        .str.replace("’", "", regex=False)
         .str.replace(",", ".", regex=False)
     )
 
