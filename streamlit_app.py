@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from urllib.parse import quote
 
-# ===================================================
+# =================================================== 
 # CONFIGURACIÓN GENERAL
 # ===================================================  
 
