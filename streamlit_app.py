@@ -5,7 +5,7 @@ from urllib.parse import quote
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
-# ===================================================
+# =================================================== 
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
