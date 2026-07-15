@@ -427,11 +427,14 @@ def convertir_valores(serie):
         serie
         .astype(str)
         .str.strip()
+        .str.replace("\u00a0", "", regex=False)   # espacio no separable
+        .str.replace(" ", "", regex=False)        # espacios
+        .str.replace("−", "-", regex=False)       # signo menos Unicode
+        .str.replace("–", "-", regex=False)       # guion largo
+        .str.replace("—", "-", regex=False)       # em dash
+        .str.replace("'", "", regex=False)        # apóstrofo
+        .str.replace("’", "", regex=False)        # apóstrofo tipográfico
         .str.replace("%", "", regex=False)
-        .str.replace("\u00a0", "", regex=False)
-        .str.replace(" ", "", regex=False)
-        .str.replace("'", "", regex=False)
-        .str.replace("’", "", regex=False)
         .str.replace(",", ".", regex=False)
     )
 
@@ -441,7 +444,7 @@ def convertir_valores(serie):
             "nan": None,
             "None": None,
             "-": None,
-            "—": None
+            "--": None,
         }
     )
 
