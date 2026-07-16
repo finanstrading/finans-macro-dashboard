@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from urllib.parse import quote
 
+from auth import require_authenticated_user, render_logout
+
 # ===================================================  
 # CONFIGURACIÓN GENERAL
 # ===================================================  
@@ -13,6 +15,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+AUTH_PROFILE = require_authenticated_user()
 
 SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU" 
 
@@ -632,6 +636,8 @@ try:
             """,
             unsafe_allow_html=True
         )
+
+        render_logout(AUTH_PROFILE)
 
 
     # ===================================================
