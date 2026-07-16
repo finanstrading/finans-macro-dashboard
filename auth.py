@@ -132,9 +132,7 @@ def _perform_login(email, password):
         if "email not confirmed" in message:
             return False, "Confirma tu correo antes de entrar."
 
-        return False, (
-            "No se pudo iniciar sesión. Revisa los datos."
-        )
+        return False, f"Error Supabase: {error}"
 
 
 def _render_login():
