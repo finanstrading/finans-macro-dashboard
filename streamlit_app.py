@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from urllib.parse import quote
 
 from auth import require_authenticated_user, render_logout
+from macro_intelligence import analizar_indicador
 
 # ===================================================  
 # CONFIGURACIÓN GENERAL
@@ -656,6 +657,13 @@ try:
     if datos_completos.empty:
         st.warning("Este indicador todavía no contiene datos disponibles.")
         st.stop()
+
+    analisis = analizar_indicador(
+        datos_completos["Fecha"],
+        datos_completos["Valor"],
+        indicador,
+        divisa
+    )
 
     fecha_minima = datos_completos["Fecha"].min()
     fecha_maxima = datos_completos["Fecha"].max()
