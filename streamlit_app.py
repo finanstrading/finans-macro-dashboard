@@ -1004,24 +1004,69 @@ try:
     )
 
 
-    st.markdown("### 🧠 Macro Intelligence")
-    st.caption("Automatic quantitative analysis")
+st.markdown("### Macro Intelligence")
+st.caption("Automatic quantitative macro analysis")
 
-    col1,col2,col3,col4=st.columns(4)
-    with col1:
-        st.metric("Trend (12)", analisis["tendencia_12"])
-        st.metric("Momentum (3)", str(analisis["momentum_3"]))
-    with col2:
-        st.metric("Percentile", f'{analisis["percentil"]}%')
-        st.metric("Z-Score", str(analisis["zscore"]))
-    with col3:
-        st.metric("Volatility", str(analisis["volatilidad"]))
-        st.metric("Distance ATH", str(analisis["distancia_maximo"]))
-    with col4:
-        st.metric("Distance ATL", str(analisis["distancia_minimo"]))
-        st.metric("Category", analisis["categoria_percentil"])
+columna_inteligencia_1, columna_inteligencia_2, columna_inteligencia_3, columna_inteligencia_4 = st.columns(4)
 
-    st.info(analisis["summary"])
+with columna_inteligencia_1:
+    st.markdown(
+        crear_tarjeta_inteligencia(
+            "Historical Position",
+            f'{analisis["percentil"]:.1f}%',
+            analisis["categoria_percentil"]
+        ),
+        unsafe_allow_html=True
+    )
+
+with columna_inteligencia_2:
+    st.markdown(
+        crear_tarjeta_inteligencia(
+            "Trend",
+            analisis["tendencia_12"],
+            "12-period trend"
+        ),
+        unsafe_allow_html=True
+    )
+
+with columna_inteligencia_3:
+    momentum_3 = analisis["momentum_3"]
+
+    if momentum_3 is None:
+        momentum_texto = "Sin datos"
+        momentum_nota = "No hay suficientes publicaciones"
+    elif momentum_3 > 0:
+        momentum_texto = "Improving"
+        momentum_nota = f"{momentum_3:+.2f} over 3 periods"
+    elif momentum_3 < 0:
+        momentum_texto = "Weakening"
+        momentum_nota = f"{momentum_3:+.2f} over 3 periods"
+    else:
+        momentum_texto = "Stable"
+        momentum_nota = "No change over 3 periods"
+
+    st.markdown(
+        crear_tarjeta_inteligencia(
+            "Momentum",
+            momentum_texto,
+            momentum_nota
+        ),
+        unsafe_allow_html=True
+    )
+
+with columna_inteligencia_4:
+    zscore = analisis["zscore"]
+
+    st.markdown(
+        crear_tarjeta_inteligencia(
+            "Z-Score",
+            f"{zscore:.2f}σ" if zscore is not None else "Sin datos",
+            "Distance from historical mean"
+        ),
+        unsafe_allow_html=True
+    )
+
+st.info(analisis["summary"])
 
 
 except Exception as error:
