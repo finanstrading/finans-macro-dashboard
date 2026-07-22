@@ -1019,40 +1019,40 @@ try:
             unsafe_allow_html=True
         )
 
-with columna_inteligencia_2:
-    st.markdown(
-        crear_tarjeta_inteligencia(
-            "Trend",
-            analisis["tendencia_12"],
-            "12-period trend"
-        ),
-        unsafe_allow_html=True
-    )
+    with columna_inteligencia_2:
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Trend",
+                analisis["tendencia_12"],
+                "12-period trend"
+            ),
+            unsafe_allow_html=True
+        )
 
-with columna_inteligencia_3:
-    momentum_3 = analisis["momentum_3"]
+    with columna_inteligencia_3:
+        momentum_3 = analisis["momentum_3"]
 
-    if momentum_3 is None:
-        momentum_texto = "Sin datos"
-        momentum_nota = "No hay suficientes publicaciones"
-    elif momentum_3 > 0:
-        momentum_texto = "Improving"
-        momentum_nota = f"{momentum_3:+.2f} over 3 periods"
-    elif momentum_3 < 0:
-        momentum_texto = "Weakening"
-        momentum_nota = f"{momentum_3:+.2f} over 3 periods"
-    else:
-        momentum_texto = "Stable"
-        momentum_nota = "No change over 3 periods"
+        if momentum_3 is None:
+            momentum_texto = "Sin datos"
+            momentum_nota = "No hay suficientes publicaciones"
+        elif momentum_3 > 0:
+            momentum_texto = "Improving"
+            momentum_nota = f"{momentum_3:+.2f} over 3 periods"
+        elif momentum_3 < 0:
+            momentum_texto = "Weakening"
+            momentum_nota = f"{momentum_3:+.2f} over 3 periods"
+        else:
+            momentum_texto = "Stable"
+            momentum_nota = "No change over 3 periods"
 
-    st.markdown(
-        crear_tarjeta_inteligencia(
-            "Momentum",
-            momentum_texto,
-            momentum_nota
-        ),
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Momentum",
+                momentum_texto,
+                momentum_nota
+            ),
+            unsafe_allow_html=True
+        )
 
     with columna_inteligencia_4:
         zscore = analisis["zscore"]
