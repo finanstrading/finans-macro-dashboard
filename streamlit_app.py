@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from urllib.parse import quote
 
 from auth import require_authenticated_user, render_logout
-from macro_intelligence import analizar_indicador
+from macro_intelligence import analizar_indicador, ENGINE_VERSION
 
 # ===================================================  
 # CONFIGURACIÓN GENERAL
@@ -1016,6 +1016,7 @@ try:
 
     st.markdown("### Macro Intelligence")
     st.caption("Análisis cuantitativo automático del indicador")
+    st.caption(f"Motor activo: {ENGINE_VERSION}")
 
     columna_inteligencia_1, columna_inteligencia_2, columna_inteligencia_3, columna_inteligencia_4 = st.columns(4)
 
