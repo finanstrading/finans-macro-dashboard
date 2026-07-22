@@ -1004,20 +1004,20 @@ try:
     )
 
 
-st.markdown("### Macro Intelligence")
-st.caption("Automatic quantitative macro analysis")
+    st.markdown("### Macro Intelligence")
+    st.caption("Automatic quantitative macro analysis")
 
-columna_inteligencia_1, columna_inteligencia_2, columna_inteligencia_3, columna_inteligencia_4 = st.columns(4)
+    columna_inteligencia_1, columna_inteligencia_2, columna_inteligencia_3, columna_inteligencia_4 = st.columns(4)
 
-with columna_inteligencia_1:
-    st.markdown(
-        crear_tarjeta_inteligencia(
-            "Historical Position",
-            f'{analisis["percentil"]:.1f}%',
-            analisis["categoria_percentil"]
-        ),
-        unsafe_allow_html=True
-    )
+    with columna_inteligencia_1:
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Historical Position",
+                f'{analisis["percentil"]:.1f}%',
+                analisis["categoria_percentil"]
+            ),
+            unsafe_allow_html=True
+        )
 
 with columna_inteligencia_2:
     st.markdown(
@@ -1054,19 +1054,19 @@ with columna_inteligencia_3:
         unsafe_allow_html=True
     )
 
-with columna_inteligencia_4:
-    zscore = analisis["zscore"]
+    with columna_inteligencia_4:
+        zscore = analisis["zscore"]
 
-    st.markdown(
-        crear_tarjeta_inteligencia(
-            "Z-Score",
-            f"{zscore:.2f}σ" if zscore is not None else "Sin datos",
-            "Distance from historical mean"
-        ),
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Z-Score",
+                f"{zscore:.2f}σ" if zscore is not None else "Sin datos",
+                "Distance from historical mean"
+            ),
+            unsafe_allow_html=True
+        )
 
-st.info(analisis["summary"])
+    st.info(analisis["summary"])
 
 
 except Exception as error:
