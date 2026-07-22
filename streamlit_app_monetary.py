@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from urllib.parse import quote
 
 from auth import require_authenticated_user, render_logout
-from macro_intelligence import analizar_indicador, ENGINE_VERSION
+from monetary_engine import analizar_indicador, ENGINE_VERSION
 
 # ===================================================  
 # CONFIGURACIÓN GENERAL
