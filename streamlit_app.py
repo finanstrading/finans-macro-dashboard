@@ -306,6 +306,90 @@ st.markdown(
             border-radius: 12px;
         }}
 
+        .score-detail-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin: 0.35rem 0 1rem 0;
+        }}
+
+        .score-detail-card {{
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 0.85rem 0.95rem;
+        }}
+
+        .score-detail-label {{
+            color: #6B7280;
+            font-size: 0.7rem;
+            font-weight: 750;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+        }}
+
+        .score-detail-value {{
+            color: #111111;
+            font-size: 1.05rem;
+            font-weight: 800;
+        }}
+
+        .score-component {{
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 0.8rem 0.95rem;
+            margin-bottom: 0.65rem;
+        }}
+
+        .score-component-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 0.45rem;
+        }}
+
+        .score-component-name {{
+            color: #111111;
+            font-size: 0.88rem;
+            font-weight: 750;
+        }}
+
+        .score-component-meta {{
+            color: #6B7280;
+            font-size: 0.76rem;
+            white-space: nowrap;
+        }}
+
+        .score-bar-track {{
+            width: 100%;
+            height: 8px;
+            background: #ECEFF3;
+            border-radius: 999px;
+            overflow: hidden;
+        }}
+
+        .score-bar-fill {{
+            height: 100%;
+            background: linear-gradient(90deg, #C9A227 0%, #E3C85B 100%);
+            border-radius: 999px;
+        }}
+
+        .score-formula-note {{
+            color: #6B7280;
+            font-size: 0.76rem;
+            line-height: 1.5;
+            margin-top: 0.85rem;
+        }}
+
+        @media (max-width: 900px) {{
+            .score-detail-grid {{
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }}
+        }}
+
         #MainMenu {{
             visibility: hidden;
         }}
@@ -1079,17 +1163,95 @@ try:
 
     componentes_score = analisis.get("componentes_score", {})
     if componentes_score:
-        with st.expander("Cómo se calcula la presión monetaria"):
-            st.caption(
-                f'Familia: {analisis.get("tipo_indicador", "—").capitalize()} · '
-                f'Relevancia para {analisis.get("banco_central", "el banco central")}: '
-                f'{analisis.get("relevancia_texto", "—")}'
+        with st.expander("Ver desglose de la presión monetaria", expanded=False):
+            pesos_score = analisis.get("pesos_score", {})
+            score_base = analisis.get("macro_score_base")
+            score_final = analisis.get("macro_score")
+            relevancia = analisis.get("relevancia")
+            tipo_indicador = analisis.get("tipo_indicador", "—").replace("_", " ").capitalize()
+            banco_central = analisis.get("banco_central", "—")
+            relevancia_label = analisis.get("relevancia_texto", "—")
+
+            relevancia_porcentaje = (
+                f"{relevancia * 100:.0f}%"
+                if isinstance(relevancia, (int, float))
+                else "—"
             )
+            score_base_texto = (
+                f"{score_base:.1f}/100"
+                if isinstance(score_base, (int, float))
+                else "—"
+            )
+            score_final_texto = (
+                f"{score_final:.1f}/100"
+                if isinstance(score_final, (int, float))
+                else "—"
+            )
+
+            st.markdown(
+                f"""
+                <div class="score-detail-grid">
+                    <div class="score-detail-card">
+                        <div class="score-detail-label">Familia</div>
+                        <div class="score-detail-value">{tipo_indicador}</div>
+                    </div>
+                    <div class="score-detail-card">
+                        <div class="score-detail-label">Banco central</div>
+                        <div class="score-detail-value">{banco_central}</div>
+                    </div>
+                    <div class="score-detail-card">
+                        <div class="score-detail-label">Score base</div>
+                        <div class="score-detail-value">{score_base_texto}</div>
+                    </div>
+                    <div class="score-detail-card">
+                        <div class="score-detail-label">Relevancia</div>
+                        <div class="score-detail-value">
+                            {relevancia_label} · {relevancia_porcentaje}
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
             for nombre_componente, valor_componente in componentes_score.items():
-                st.progress(
-                    int(max(0, min(100, round(valor_componente)))),
-                    text=f"{nombre_componente}: {valor_componente:.1f}/100"
+                peso = float(pesos_score.get(nombre_componente, 0.0))
+                contribucion = float(valor_componente) * peso
+                porcentaje_barra = int(max(0, min(100, round(valor_componente))))
+
+                st.markdown(
+                    f"""
+                    <div class="score-component">
+                        <div class="score-component-header">
+                            <div class="score-component-name">{nombre_componente}</div>
+                            <div class="score-component-meta">
+                                {valor_componente:.1f}/100 ·
+                                Peso {peso * 100:.0f}% ·
+                                Aporta {contribucion:.1f} pts
+                            </div>
+                        </div>
+                        <div class="score-bar-track">
+                            <div class="score-bar-fill"
+                                 style="width: {porcentaje_barra}%;">
+                            </div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
+
+            st.markdown(
+                f"""
+                <div class="score-formula-note">
+                    <strong>Resultado:</strong> los componentes generan un score base de
+                    {score_base_texto}. Después, su distancia respecto al punto neutral
+                    de 50 se ajusta según la relevancia de este indicador para
+                    {banco_central}, dando un resultado final de
+                    <strong>{score_final_texto}</strong>.
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 
 except Exception as error:
