@@ -984,6 +984,7 @@ try:
         fixedrange=True
     )
 
+
     st.plotly_chart(
         figura,
         use_container_width=True,
@@ -995,25 +996,179 @@ try:
         }
     )
 
+    # ===================================================
+    # MACRO INTELLIGENCE — V3.0 / PASO 1
+    # ===================================================
 
-    st.markdown("### 🧠 Macro Intelligence")
-    st.caption("Automatic quantitative analysis")
+    def valor_seguro(valor, decimales=2, sufijo_valor=""):
+        if valor is None:
+            return "Sin datos"
+        if isinstance(valor, (int, float)):
+            return f"{valor:.{decimales}f}{sufijo_valor}"
+        return str(valor)
 
-    col1,col2,col3,col4=st.columns(4)
-    with col1:
-        st.metric("Trend (12)", analisis["tendencia_12"])
-        st.metric("Momentum (3)", str(analisis["momentum_3"]))
-    with col2:
-        st.metric("Percentile", f'{analisis["percentil"]}%')
-        st.metric("Z-Score", str(analisis["zscore"]))
-    with col3:
-        st.metric("Volatility", str(analisis["volatilidad"]))
-        st.metric("Distance ATH", str(analisis["distancia_maximo"]))
-    with col4:
-        st.metric("Distance ATL", str(analisis["distancia_minimo"]))
-        st.metric("Category", analisis["categoria_percentil"])
+    percentil = analisis.get("percentil")
+    percentil_barra = max(0, min(100, float(percentil or 0)))
 
-    st.info(analisis["summary"])
+    tendencia = analisis.get("tendencia_12", "Sin datos")
+    momentum_3 = analisis.get("momentum_3")
+    zscore = analisis.get("zscore")
+    volatilidad = analisis.get("volatilidad")
+    distancia_maximo = analisis.get("distancia_maximo")
+    distancia_minimo = analisis.get("distancia_minimo")
+    categoria = analisis.get("categoria_percentil", "Sin datos")
+    resumen = analisis.get("summary", "No hay interpretación disponible.")
+
+    tendencia_icono = "↗" if tendencia == "Alcista" else "↘" if tendencia == "Bajista" else "→"
+    momentum_texto = (
+        "Improving" if isinstance(momentum_3, (int, float)) and momentum_3 > 0
+        else "Weakening" if isinstance(momentum_3, (int, float)) and momentum_3 < 0
+        else "Stable"
+    )
+    momentum_icono = "↗" if momentum_texto == "Improving" else "↘" if momentum_texto == "Weakening" else "→"
+
+    st.markdown(
+        f"""
+        <div style="
+            background:#FFFFFF;
+            border:1px solid {COLOR_BORDE};
+            border-radius:18px;
+            padding:1.35rem 1.4rem;
+            margin-top:1.25rem;
+            box-shadow:0 5px 18px rgba(17,24,39,.045);
+        ">
+            <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.15rem;">
+                <div>
+                    <div style="font-size:1.15rem;font-weight:800;color:{COLOR_NEGRO};">
+                        Macro Intelligence
+                    </div>
+                    <div style="font-size:.84rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.2rem;">
+                        Automatic quantitative macro analysis
+                    </div>
+                </div>
+                <div style="
+                    background:#F8F5E8;
+                    border:1px solid #E8DDA8;
+                    color:#806915;
+                    border-radius:999px;
+                    padding:.35rem .7rem;
+                    font-size:.73rem;
+                    font-weight:750;
+                    white-space:nowrap;
+                ">
+                    {divisa} · {indicador}
+                </div>
+            </div>
+
+            <div style="
+                display:grid;
+                grid-template-columns:repeat(4,minmax(0,1fr));
+                gap:.8rem;
+            ">
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Historical Position
+                    </div>
+                    <div style="font-size:1.45rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {valor_seguro(percentil, 1, "%")}
+                    </div>
+                    <div style="height:7px;background:#E5E7EB;border-radius:999px;margin-top:.55rem;overflow:hidden;">
+                        <div style="width:{percentil_barra}%;height:100%;background:{COLOR_DORADO};border-radius:999px;"></div>
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.45rem;">{categoria}</div>
+                </div>
+
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Trend
+                    </div>
+                    <div style="font-size:1.45rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {tendencia_icono} {tendencia}
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.6rem;">12-period trend</div>
+                </div>
+
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Momentum
+                    </div>
+                    <div style="font-size:1.45rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {momentum_icono} {momentum_texto}
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.6rem;">
+                        3-period change: {valor_seguro(momentum_3)}
+                    </div>
+                </div>
+
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Z-Score
+                    </div>
+                    <div style="font-size:1.45rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {valor_seguro(zscore, 2, "σ")}
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.6rem;">Distance from historical mean</div>
+                </div>
+
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Volatility
+                    </div>
+                    <div style="font-size:1.3rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {valor_seguro(volatilidad)}
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.6rem;">Historical standard deviation</div>
+                </div>
+
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Distance to ATH
+                    </div>
+                    <div style="font-size:1.3rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {valor_seguro(distancia_maximo)}
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.6rem;">Below historical maximum</div>
+                </div>
+
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Distance to ATL
+                    </div>
+                    <div style="font-size:1.3rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {valor_seguro(distancia_minimo)}
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.6rem;">Above historical minimum</div>
+                </div>
+
+                <div style="border:1px solid {COLOR_BORDE};border-radius:13px;padding:.95rem;background:#FBFBFC;">
+                    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:{COLOR_TEXTO_SECUNDARIO};font-weight:750;">
+                        Latest Change
+                    </div>
+                    <div style="font-size:1.3rem;font-weight:800;color:{COLOR_NEGRO};margin-top:.35rem;">
+                        {valor_seguro(analisis.get("variacion"), 2, sufijo)}
+                    </div>
+                    <div style="font-size:.76rem;color:{COLOR_TEXTO_SECUNDARIO};margin-top:.6rem;">Versus previous release</div>
+                </div>
+            </div>
+
+            <div style="
+                margin-top:.9rem;
+                background:#111111;
+                border:1px solid #2B2B2B;
+                border-radius:13px;
+                padding:1rem 1.05rem;
+            ">
+                <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:{COLOR_DORADO_CLARO};font-weight:800;">
+                    Quantitative Interpretation
+                </div>
+                <div style="font-size:.91rem;line-height:1.65;color:#E5E7EB;margin-top:.45rem;">
+                    {resumen}
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 except Exception as error:
