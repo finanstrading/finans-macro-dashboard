@@ -323,26 +323,6 @@ st.markdown(
                 font-size: 1.4rem;
             }}
         }}
-    
-        .intelligence-card {
-            background: #FFFFFF;
-            border: 1px solid #E5E7EB;
-            border-radius: 16px;
-            padding: 1.2rem;
-            margin-top: 1.2rem;
-            box-shadow: 0 5px 18px rgba(17,24,39,.045);
-        }
-        .intelligence-title{
-            font-size:1.1rem;
-            font-weight:800;
-            color:#111111;
-        }
-        .intelligence-subtitle{
-            color:#6B7280;
-            margin-bottom:1rem;
-            font-size:.85rem;
-        }
-
     </style>
     """,
     unsafe_allow_html=True
@@ -1004,7 +984,6 @@ try:
         fixedrange=True
     )
 
-
     st.plotly_chart(
         figura,
         use_container_width=True,
@@ -1016,25 +995,22 @@ try:
         }
     )
 
-    st.markdown("""
-    <div class='intelligence-card'>
-        <div class='intelligence-title'>Macro Intelligence</div>
-        <div class='intelligence-subtitle'>Automatic quantitative analysis</div>
-    </div>
-    """, unsafe_allow_html=True)
 
-    c1,c2,c3,c4 = st.columns(4)
-    with c1:
+    st.markdown("### 🧠 Macro Intelligence")
+    st.caption("Automatic quantitative analysis")
+
+    col1,col2,col3,col4=st.columns(4)
+    with col1:
         st.metric("Trend (12)", analisis["tendencia_12"])
-        st.metric("Momentum (3)", analisis["momentum_3"])
-    with c2:
+        st.metric("Momentum (3)", str(analisis["momentum_3"]))
+    with col2:
         st.metric("Percentile", f'{analisis["percentil"]}%')
-        st.metric("Z-Score", analisis["zscore"])
-    with c3:
-        st.metric("Volatility", analisis["volatilidad"])
-        st.metric("Distance ATH", analisis["distancia_maximo"])
-    with c4:
-        st.metric("Distance ATL", analisis["distancia_minimo"])
+        st.metric("Z-Score", str(analisis["zscore"]))
+    with col3:
+        st.metric("Volatility", str(analisis["volatilidad"]))
+        st.metric("Distance ATH", str(analisis["distancia_maximo"]))
+    with col4:
+        st.metric("Distance ATL", str(analisis["distancia_minimo"]))
         st.metric("Category", analisis["categoria_percentil"])
 
     st.info(analisis["summary"])
