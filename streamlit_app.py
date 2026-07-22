@@ -489,6 +489,14 @@ def crear_tarjeta(titulo, valor, nota="", clase_nota="metric-neutral"):
         </div>
     """
 
+def crear_tarjeta_inteligencia(titulo, valor, nota=""):
+    return f"""
+        <div class="metric-card">
+            <div class="metric-label">{titulo}</div>
+            <div class="metric-value">{valor}</div>
+            <div class="metric-note">{nota}</div>
+        </div>
+    """
 
 def determinar_sufijo(nombre_indicador):
     nombre = nombre_indicador.lower()
