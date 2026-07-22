@@ -1015,7 +1015,7 @@ try:
 
         st.markdown(
             crear_tarjeta_inteligencia(
-                "Macro Score",
+                "Presión monetaria",
                 macro_score_texto,
                 analisis.get("macro_rating", "Sin evaluación")
             ),
@@ -1052,10 +1052,10 @@ try:
             momentum_texto = "Sin datos"
             momentum_nota = "No hay suficientes publicaciones"
         elif momentum_3 > 0:
-            momentum_texto = "Mejorando"
+            momentum_texto = "Presión al alza"
             momentum_nota = f"{momentum_3:+.2f} en 3 periodos"
         elif momentum_3 < 0:
-            momentum_texto = "Debilitándose"
+            momentum_texto = "Presión a la baja"
             momentum_nota = f"{momentum_3:+.2f} en 3 periodos"
         else:
             momentum_texto = "Estable"
@@ -1063,7 +1063,7 @@ try:
 
         st.markdown(
             crear_tarjeta_inteligencia(
-                "Momentum",
+                "Impulso reciente",
                 momentum_texto,
                 momentum_nota
             ),
