@@ -1005,63 +1005,67 @@ try:
 
 
     st.markdown("### Macro Intelligence")
-    st.caption("Automatic quantitative macro analysis")
+    st.caption("Análisis cuantitativo automático del indicador")
 
     columna_inteligencia_1, columna_inteligencia_2, columna_inteligencia_3, columna_inteligencia_4 = st.columns(4)
 
     with columna_inteligencia_1:
+        macro_score = analisis.get("macro_score")
+        macro_score_texto = f"{macro_score}/100" if macro_score is not None else "Pendiente"
+
         st.markdown(
             crear_tarjeta_inteligencia(
-                "Historical Position",
-                f'{analisis["percentil"]:.1f}%',
-                analisis["categoria_percentil"]
+                "Macro Score",
+                macro_score_texto,
+                analisis.get("macro_rating", "Sin evaluación")
             ),
             unsafe_allow_html=True
         )
 
     with columna_inteligencia_2:
+        percentil = analisis.get("percentil")
+        percentil_texto = f"{percentil:.1f}%" if percentil is not None else "Sin datos"
+
         st.markdown(
             crear_tarjeta_inteligencia(
-                "Trend",
-                analisis["tendencia_12"],
-                "12-period trend"
+                "Posición histórica",
+                percentil_texto,
+                analisis["categoria_percentil"]
             ),
             unsafe_allow_html=True
         )
 
     with columna_inteligencia_3:
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Tendencia",
+                analisis["tendencia_12"],
+                "Tendencia de los últimos 12 periodos"
+            ),
+            unsafe_allow_html=True
+        )
+
+    with columna_inteligencia_4:
         momentum_3 = analisis["momentum_3"]
 
         if momentum_3 is None:
             momentum_texto = "Sin datos"
             momentum_nota = "No hay suficientes publicaciones"
         elif momentum_3 > 0:
-            momentum_texto = "Improving"
-            momentum_nota = f"{momentum_3:+.2f} over 3 periods"
+            momentum_texto = "Mejorando"
+            momentum_nota = f"{momentum_3:+.2f} en 3 periodos"
         elif momentum_3 < 0:
-            momentum_texto = "Weakening"
-            momentum_nota = f"{momentum_3:+.2f} over 3 periods"
+            momentum_texto = "Debilitándose"
+            momentum_nota = f"{momentum_3:+.2f} en 3 periodos"
         else:
-            momentum_texto = "Stable"
-            momentum_nota = "No change over 3 periods"
+            momentum_texto = "Estable"
+            momentum_nota = "Sin cambios en 3 periodos"
 
         st.markdown(
             crear_tarjeta_inteligencia(
                 "Momentum",
                 momentum_texto,
                 momentum_nota
-            ),
-            unsafe_allow_html=True
-        )
-
-    with columna_inteligencia_4:
-        zscore = analisis["zscore"]
-
-        st.markdown(
-            crear_tarjeta_inteligencia(
-                "Z-Score",
-                f"{zscore:.2f}σ" if zscore is not None else "Sin datos",
-                "Distance from historical mean"
             ),
             unsafe_allow_html=True
         )
