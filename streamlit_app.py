@@ -3,9 +3,12 @@ import pandas as pd
 import plotly.graph_objects as go
 from urllib.parse import quote
 
-# ===================================================
+from auth import require_authenticated_user, render_logout
+from macro_intelligence import analizar_indicador
+
+# ===================================================  
 # CONFIGURACIÓN GENERAL
-# ===================================================
+# ===================================================  
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
@@ -14,7 +17,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU"
+AUTH_PROFILE = require_authenticated_user()
+
+SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU" 
 
 # Cada divisa se conecta exclusivamente con su pestaña.
 # Se incluye una alternativa con espacio para Dashboard_USD,
@@ -22,6 +27,12 @@ SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU"
 MERCADOS = {
     "GBP": ["Dashboard_GBP"],
     "USD": ["Dashboard_USD", " Dashboard_USD"],
+    "EUR": ["Dashboard_EUR", " Dashboard_EUR"],
+    "CAD": ["Dashboard_CAD", " Dashboard_CAD"],
+    "JPY": ["Dashboard_JPY", " Dashboard_JPY"],
+    "AUD": ["Dashboard_AUD", " Dashboard_AUD"],
+    "NZD": ["Dashboard_NZD", " Dashboard_NZD"],
+    "CHF": ["Dashboard_CHF", " Dashboard_CHF"],
 }
 
 COLOR_DORADO = "#C9A227"
@@ -86,6 +97,16 @@ st.markdown(
         section[data-testid="stSidebar"] div[data-baseweb="select"] span {{
             color: #111111 !important;
             font-weight: 700 !important;
+        }}
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"] * {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+        }}
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"] div {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
         }}
 
         section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
@@ -421,9 +442,14 @@ def convertir_valores(serie):
         serie
         .astype(str)
         .str.strip()
+        .str.replace("\u00a0", "", regex=False)   # espacio no separable
+        .str.replace(" ", "", regex=False)        # espacios
+        .str.replace("−", "-", regex=False)       # signo menos Unicode
+        .str.replace("–", "-", regex=False)       # guion largo
+        .str.replace("—", "-", regex=False)       # em dash
+        .str.replace("'", "", regex=False)        # apóstrofo
+        .str.replace("’", "", regex=False)        # apóstrofo tipográfico
         .str.replace("%", "", regex=False)
-        .str.replace("\u00a0", "", regex=False)
-        .str.replace(" ", "", regex=False)
         .str.replace(",", ".", regex=False)
     )
 
@@ -433,7 +459,7 @@ def convertir_valores(serie):
             "nan": None,
             "None": None,
             "-": None,
-            "—": None
+            "--": None,
         }
     )
 
@@ -473,6 +499,14 @@ def crear_tarjeta(titulo, valor, nota="", clase_nota="metric-neutral"):
         </div>
     """
 
+def crear_tarjeta_inteligencia(titulo, valor, nota=""):
+    return f"""
+        <div class="metric-card">
+            <div class="metric-label">{titulo}</div>
+            <div class="metric-value">{valor}</div>
+            <div class="metric-note">{nota}</div>
+        </div>
+    """
 
 def determinar_sufijo(nombre_indicador):
     nombre = nombre_indicador.lower()
@@ -622,6 +656,8 @@ try:
             unsafe_allow_html=True
         )
 
+        render_logout(AUTH_PROFILE)
+
 
     # ===================================================
     # CONVERSIÓN DE VALORES
@@ -639,6 +675,13 @@ try:
     if datos_completos.empty:
         st.warning("Este indicador todavía no contiene datos disponibles.")
         st.stop()
+
+    analisis = analizar_indicador(
+        datos_completos["Fecha"],
+        datos_completos["Valor"],
+        indicador,
+        divisa
+    )
 
     fecha_minima = datos_completos["Fecha"].min()
     fecha_maxima = datos_completos["Fecha"].max()
@@ -969,6 +1012,83 @@ try:
             "responsive": True
         }
     )
+
+
+    st.markdown("### Macro Intelligence")
+    st.caption("Análisis cuantitativo automático del indicador")
+
+    columna_inteligencia_1, columna_inteligencia_2, columna_inteligencia_3, columna_inteligencia_4 = st.columns(4)
+
+    with columna_inteligencia_1:
+        macro_score = analisis.get("macro_score")
+        macro_score_texto = f"{macro_score}/100" if macro_score is not None else "Pendiente"
+
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Presión monetaria",
+                macro_score_texto,
+                analisis.get("macro_rating", "Sin evaluación")
+            ),
+            unsafe_allow_html=True
+        )
+
+    with columna_inteligencia_2:
+        percentil = analisis.get("percentil")
+        percentil_texto = f"{percentil:.1f}%" if percentil is not None else "Sin datos"
+
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Posición histórica",
+                percentil_texto,
+                analisis["categoria_percentil"]
+            ),
+            unsafe_allow_html=True
+        )
+
+    with columna_inteligencia_3:
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Tendencia",
+                analisis["tendencia_12"],
+                "Tendencia de los últimos 12 periodos"
+            ),
+            unsafe_allow_html=True
+        )
+
+    with columna_inteligencia_4:
+        momentum_3 = analisis["momentum_3"]
+
+        if momentum_3 is None:
+            momentum_texto = "Sin datos"
+            momentum_nota = "No hay suficientes publicaciones"
+        else:
+            momentum_texto = analisis.get("impulso_monetario", "Sin evaluación")
+            momentum_nota = f"{momentum_3:+.2f} en 3 periodos"
+
+        st.markdown(
+            crear_tarjeta_inteligencia(
+                "Impulso reciente",
+                momentum_texto,
+                momentum_nota
+            ),
+            unsafe_allow_html=True
+        )
+
+    st.info(analisis["summary"])
+
+    componentes_score = analisis.get("componentes_score", {})
+    if componentes_score:
+        with st.expander("Cómo se calcula la presión monetaria"):
+            st.caption(
+                f'Familia: {analisis.get("tipo_indicador", "—").capitalize()} · '
+                f'Relevancia para {analisis.get("banco_central", "el banco central")}: '
+                f'{analisis.get("relevancia_texto", "—")}'
+            )
+            for nombre_componente, valor_componente in componentes_score.items():
+                st.progress(
+                    int(max(0, min(100, round(valor_componente)))),
+                    text=f"{nombre_componente}: {valor_componente:.1f}/100"
+                )
 
 
 except Exception as error:
