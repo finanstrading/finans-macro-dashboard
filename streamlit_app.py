@@ -8,7 +8,7 @@ from monetary_engine import analizar_indicador, ENGINE_VERSION
 
 # ===================================================   
 # CONFIGURACIÓN GENERAL
-# ===================================================  
+# ===================================================   
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
