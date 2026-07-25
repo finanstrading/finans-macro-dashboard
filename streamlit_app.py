@@ -468,15 +468,6 @@ def cargar_datos_mercado(nombres_posibles):
 
 
 @st.cache_data(ttl=600, show_spinner=False)
-def cargar_datos_mercado(nombres_posibles):
-    ...
-    raise ValueError(
-        "No se pudo cargar ninguna pestaña válida. "
-        + " | ".join(errores)
-    )
-
-
-@st.cache_data(ttl=600, show_spinner=False)
 def cargar_interpretaciones_ia():
     """
     Carga la hoja AI_Interpretations desde Google Sheets.
@@ -542,7 +533,7 @@ def obtener_interpretacion_ia(divisa, indicador):
         return None
 
     return coincidencia.iloc[0].to_dict()
-    
+
 
 def convertir_fechas(serie):
     """
@@ -1174,8 +1165,7 @@ try:
         }
     )
 
-
-        interpretacion_ia = obtener_interpretacion_ia(
+    interpretacion_ia = obtener_interpretacion_ia(
         divisa,
         indicador
     )
@@ -1187,7 +1177,6 @@ try:
         )
     else:
         st.markdown("### Interpretación IA")
-
         st.write(
             interpretacion_ia.get(
                 "Summary",
