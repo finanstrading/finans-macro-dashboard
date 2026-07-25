@@ -1334,23 +1334,44 @@ try:
                 unsafe_allow_html=True
             )
 
-st.markdown(
-    f"""
-    <div class="macro-summary-box">
-        <div class="macro-summary-label">
-            Executive Summary
-        </div>
+        st.markdown(
+            f"""
+            <div class="macro-summary-box">
+                <div class="macro-summary-label">
+                    Executive Summary
+                </div>
 
-        <div class="macro-summary-text">
-            {interpretacion_ia.get(
-                "Summary",
-                "Sin resumen disponible."
-            )}
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+                <div class="macro-summary-text">
+                    {interpretacion_ia.get(
+                        "Summary",
+                        "Sin resumen disponible."
+                    )}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        confianza_ia = interpretacion_ia.get(
+            "Confidence",
+            "Sin evaluación"
+        )
+
+        if str(confianza_ia).strip().lower() == "high":
+            clase_confianza = "confidence-high"
+        elif str(confianza_ia).strip().lower() == "low":
+            clase_confianza = "confidence-low"
+        else:
+            clase_confianza = "confidence-medium"
+
+        st.markdown(
+            f"""
+            <div class="confidence-badge {clase_confianza}">
+                Confidence: {confianza_ia}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
         confianza_ia = interpretacion_ia.get(
             "Confidence",
