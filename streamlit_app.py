@@ -498,6 +498,50 @@ def cargar_interpretaciones_ia():
     )
 
     return df_ia
+
+
+def obtener_interpretacion_ia(divisa, indicador):
+    """
+    Devuelve la interpretación IA correspondiente
+    a la divisa y al indicador seleccionados.
+    """
+    df_ia = cargar_interpretaciones_ia()
+
+    columnas_requeridas = {
+        "Currency",
+        "Indicator",
+        "Current Situation",
+        "Trend",
+        "Latest Release",
+        "Monetary Policy",
+        "FX Impact",
+        "Summary",
+        "Confidence",
+        "Last Updated",
+    }
+
+    columnas_faltantes = columnas_requeridas.difference(df_ia.columns)
+
+    if columnas_faltantes:
+        raise ValueError(
+            "Faltan columnas en AI_Interpretations: "
+            + ", ".join(sorted(columnas_faltantes))
+        )
+
+    coincidencia = df_ia[
+        df_ia["Currency"].astype(str).str.strip().str.upper().eq(
+            str(divisa).strip().upper()
+        )
+        &
+        df_ia["Indicator"].astype(str).str.strip().eq(
+            str(indicador).strip()
+        )
+    ]
+
+    if coincidencia.empty:
+        return None
+
+    return coincidencia.iloc[0].to_dict()
     
 
 def convertir_fechas(serie):
@@ -1130,6 +1174,26 @@ try:
         }
     )
 
+
+        interpretacion_ia = obtener_interpretacion_ia(
+        divisa,
+        indicador
+    )
+
+    if interpretacion_ia is None:
+        st.warning(
+            "Todavía no existe una interpretación IA "
+            "para este indicador."
+        )
+    else:
+        st.markdown("### Interpretación IA")
+
+        st.write(
+            interpretacion_ia.get(
+                "Summary",
+                "Sin resumen disponible."
+            )
+        )
 
     st.markdown("### Macro Intelligence")
     st.caption("Análisis cuantitativo automático del indicador")
