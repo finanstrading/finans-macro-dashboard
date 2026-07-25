@@ -467,6 +467,39 @@ def cargar_datos_mercado(nombres_posibles):
     )
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_datos_mercado(nombres_posibles):
+    ...
+    raise ValueError(
+        "No se pudo cargar ninguna pestaña válida. "
+        + " | ".join(errores)
+    )
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_interpretaciones_ia():
+    """
+    Carga la hoja AI_Interpretations desde Google Sheets.
+    """
+    nombre_hoja = "AI_Interpretations"
+
+    df_ia = pd.read_csv(
+        construir_url(nombre_hoja)
+    )
+
+    df_ia.columns = [
+        str(columna).strip()
+        for columna in df_ia.columns
+    ]
+
+    df_ia = df_ia.dropna(
+        axis=0,
+        how="all"
+    )
+
+    return df_ia
+    
+
 def convertir_fechas(serie):
     """
     Admite tanto las fechas originales tipo ene-24 como fechas
