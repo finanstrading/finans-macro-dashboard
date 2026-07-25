@@ -508,7 +508,7 @@ def obtener_interpretacion_ia(divisa, indicador):
         "FX Impact",
         "Summary",
         "Confidence",
-        "Last Updated",
+        "Updated At",
     }
 
     columnas_faltantes = columnas_requeridas.difference(df_ia.columns)
