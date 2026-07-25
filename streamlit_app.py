@@ -581,12 +581,18 @@ MAPA_INDICADORES_IA = {
     },
 
     "USD": {
+        "CPI": "CPI YoY",
+        "Core CPI": "Core CPI YoY",
+        "PPI MoM": "PPI MoM",
+        "Core PPI MoM": "Core PPI MoM",
         "Retail Sales": "Retail Sales MoM",
+        "Core Retail Sales": "Core Retail Sales",
         "NFP": "Non Farm Payrolls",
         "%Desempleo": "Unemployment Rate",
         "% Salario": "Average Hourly Earnings",
+        "JOLTS": "JOLTS",
         "ADP": "ADP Employment",
-        "PMI  Manufactura": "ISM Manufacturing",
+        "PMI Manufactura": "ISM Manufacturing",
         "PMI Servicios": "ISM Services",
         "Confianza CB": "Consumer Confidence CB",
     },
@@ -608,20 +614,11 @@ MAPA_INDICADORES_IA = {
         "Confianza del Consumidor": "Consumer Confidence",
     },
 
-    "CAD": {
-    },
-
-    "JPY": {
-    },
-
-    "AUD": {
-    },
-
-    "NZD": {
-    },
-
-    "CHF": {
-    },
+    "CAD": {},
+    "JPY": {},
+    "AUD": {},
+    "NZD": {},
+    "CHF": {},
 }
 
 
