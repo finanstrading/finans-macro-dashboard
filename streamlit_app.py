@@ -625,16 +625,67 @@ MAPA_INDICADORES_IA = {
 def obtener_interpretacion_ia(divisa, indicador):
     """
     Devuelve la interpretación IA correspondiente
-    a la divisa y al indicador seleccionados.
+    a la divisa y al indicador seleccionado.
     """
+
     df_ia = cargar_interpretaciones_ia()
 
-    indicador_ia = MAPA_INDICADORES_IA.get(
-        str(divisa).strip().upper(),
+    divisa_normalizada = str(divisa).strip().upper()
+    indicador_dashboard = str(indicador).strip()
+
+    aliases = {
+        "GBP": {
+            "PMI Manufactura": "Manufacturing PMI",
+            "PMI Servicios": "Services PMI",
+            "CPI": "CPI MoM",
+            "CPI YoY": "CPI YoY",
+            "Core CPI": "Core CPI MoM",
+            "Core CPI YoY": "Core CPI YoY",
+            "Retail Sales": "Retail Sales MoM",
+            "Core Retail Sales": "Core Retail Sales",
+            "Employment (3M/3M)": "Employment Change (3M/3M)",
+            "%Desempleo": "Unemployment Rate",
+            "% Salario + Bonus": "Average Earnings (+ Bonus)",
+            "% Salario - Bonus": "Average Earnings (- Bonus)",
+            "Confianza del Consumidor": "Consumer Confidence",
+        },
+
+        "EUR": {
+            "PMI Manufactura": "Manufacturing PMI",
+            "PMI Servicios": "Services PMI",
+            "CPI": "CPI MoM",
+            "CPI YoY": "CPI YoY",
+            "Core CPI": "Core CPI MoM",
+            "Core CPI YoY": "Core CPI YoY",
+            "Retail Sales": "Retail Sales MoM",
+            "Retail Sales YoY": "Retail Sales YoY",
+            "%Desempleo": "Unemployment Rate",
+            "Salario Eurozona": "Euro Area Wage Growth",
+            "ZEW": "ZEW Economic Sentiment",
+            "Clima Empresarial Eurozona": "Eurozone Business Climate",
+            "Producción Industrial": "Industrial Production YoY",
+            "Confianza del Consumidor": "Consumer Confidence",
+        },
+
+        "USD": {
+            "PMI Manufactura": "ISM Manufacturing",
+            "PMI  Manufactura": "ISM Manufacturing",
+            "PMI Servicios": "ISM Services",
+            "Retail Sales": "Retail Sales MoM",
+            "NFP": "Non Farm Payrolls",
+            "%Desempleo": "Unemployment Rate",
+            "% Salario": "Average Hourly Earnings",
+            "ADP": "ADP Employment",
+            "Confianza CB": "Consumer Confidence CB",
+        },
+    }
+
+    indicador_ia = aliases.get(
+        divisa_normalizada,
         {}
     ).get(
-        str(indicador).strip(),
-        str(indicador).strip()
+        indicador_dashboard,
+        indicador_dashboard
     )
 
     columnas_requeridas = {
@@ -650,7 +701,9 @@ def obtener_interpretacion_ia(divisa, indicador):
         "Updated At",
     }
 
-    columnas_faltantes = columnas_requeridas.difference(df_ia.columns)
+    columnas_faltantes = columnas_requeridas.difference(
+        df_ia.columns
+    )
 
     if columnas_faltantes:
         raise ValueError(
@@ -658,20 +711,28 @@ def obtener_interpretacion_ia(divisa, indicador):
             + ", ".join(sorted(columnas_faltantes))
         )
 
+    monedas = (
+        df_ia["Currency"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    indicadores_ia = (
+        df_ia["Indicator"]
+        .astype(str)
+        .str.strip()
+    )
+
     coincidencia = df_ia[
-        df_ia["Currency"].astype(str).str.strip().str.upper().eq(
-            str(divisa).strip().upper()
-        )
-        &
-        df_ia["Indicator"].astype(str).str.strip().eq(
-            indicador_ia
-        )
+        monedas.eq(divisa_normalizada)
+        & indicadores_ia.eq(indicador_ia)
     ]
 
     if coincidencia.empty:
         return None
 
-    return coincidencia.iloc[0].to_dict()
+    return coincidencia.iloc[-1].to_dict()
 
 
 def convertir_fechas(serie):
