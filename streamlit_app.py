@@ -444,7 +444,8 @@ st.markdown(
             padding: 0.32rem 0.7rem;
             font-size: 0.74rem;
             font-weight: 800;
-            margin-top: 0.65rem;
+            margin-top: 0.85rem;
+            margin-bottom: 0.35rem;
         }}
 
         .confidence-high {{
