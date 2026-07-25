@@ -390,7 +390,7 @@ st.markdown(
             }}
         }}
 
-                .macro-analysis-card {
+        .macro-analysis-card {
             background: #FFFFFF;
             border: 1px solid #E5E7EB;
             border-top: 3px solid #C9A227;
@@ -461,7 +461,7 @@ st.markdown(
             background: #FEE2E2;
             color: #991B1B;
         }
-        
+
         #MainMenu {{
             visibility: hidden;
         }}
