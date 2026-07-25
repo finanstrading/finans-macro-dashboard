@@ -76,8 +76,25 @@ st.markdown(
             padding-top: 1.3rem;
         }}
 
-        section[data-testid="stSidebar"] * {{
+        section[data-testid="stSidebar"] {{
             color: white;
+        }}
+
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] span {{
+            color: white;
+        }}
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"],
+        section[data-testid="stSidebar"] div[data-baseweb="select"] *,
+        section[data-testid="stSidebar"] div[role="combobox"],
+        section[data-testid="stSidebar"] div[role="combobox"] *,
+        section[data-testid="stSidebar"] input[aria-label="Divisa"],
+        section[data-testid="stSidebar"] input[aria-label="Indicador"] {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+            opacity: 1 !important;
         }}
 
         section[data-testid="stSidebar"] label {{
