@@ -526,6 +526,13 @@ def obtener_interpretacion_ia(divisa, indicador):
         "Updated At",
     }
 
+     indicador_ia = MAPA_INDICADORES_IA.get(
+        str(divisa).strip().upper(),
+        {}
+    ).get(
+        str(indicador).strip(),
+        str(indicador).strip()
+    )
     columnas_faltantes = columnas_requeridas.difference(df_ia.columns)
 
     if columnas_faltantes:
