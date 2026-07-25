@@ -683,6 +683,17 @@ def crear_tarjeta_inteligencia(titulo, valor, nota=""):
         </div>
     """
 
+
+def crear_tarjeta_interpretacion(titulo, contenido):
+    return f"""
+        <div class="metric-card">
+            <div class="metric-label">{titulo}</div>
+            <div class="metric-note">
+                {contenido}
+            </div>
+        </div>
+    """
+
 def determinar_sufijo(nombre_indicador):
     nombre = nombre_indicador.lower()
 
