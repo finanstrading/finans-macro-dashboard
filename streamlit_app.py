@@ -6,7 +6,7 @@ from urllib.parse import quote
 from auth import require_authenticated_user, render_logout
 from monetary_engine import analizar_indicador, ENGINE_VERSION
 
-# ===================================================     
+# ===================================================   
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
@@ -629,6 +629,21 @@ def obtener_interpretacion_ia(divisa, indicador):
     """
 
     df_ia = cargar_interpretaciones_ia().copy()
+
+    st.write("=== FILAS MANUFACTURING CARGADAS ===")
+
+    st.dataframe(
+        df_ia[
+            df_ia["Indicator"]
+            .astype(str)
+            .str.contains(
+                "Manufacturing",
+                case=False,
+                na=False
+            )
+        ][["Currency", "Indicator"]],
+        use_container_width=True
+    )
 
     divisa_normalizada = str(divisa).strip().upper()
     indicador_dashboard = str(indicador).strip()
