@@ -1334,14 +1334,23 @@ try:
                 unsafe_allow_html=True
             )
 
-        st.markdown("#### Resumen ejecutivo")
+st.markdown(
+    f"""
+    <div class="macro-summary-box">
+        <div class="macro-summary-label">
+            Executive Summary
+        </div>
 
-        st.info(
-            interpretacion_ia.get(
+        <div class="macro-summary-text">
+            {interpretacion_ia.get(
                 "Summary",
                 "Sin resumen disponible."
-            )
-        )
+            )}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
         confianza_ia = interpretacion_ia.get(
             "Confidence",
