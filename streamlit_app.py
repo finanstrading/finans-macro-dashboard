@@ -6,7 +6,7 @@ from urllib.parse import quote
 from auth import require_authenticated_user, render_logout
 from monetary_engine import analizar_indicador, ENGINE_VERSION
 
-# ===================================================    
+# ===================================================   
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
@@ -566,50 +566,35 @@ def cargar_interpretaciones_ia():
 MAPA_INDICADORES_IA = {
     "GBP": {
         "CPI": "CPI MoM",
-        "CPI YoY": "CPI YoY",
         "Core CPI": "Core CPI MoM",
-        "Core CPI YoY": "Core CPI YoY",
         "Retail Sales": "Retail Sales MoM",
-        "Core Retail Sales": "Core Retail Sales",
         "Employment (3M/3M)": "Employment Change (3M/3M)",
         "%Desempleo": "Unemployment Rate",
         "% Salario + Bonus": "Average Earnings (+ Bonus)",
         "% Salario - Bonus": "Average Earnings (- Bonus)",
-        "PMI Manufactura": "Manufacturing PMI",
-        "PMI Servicios": "Services PMI",
         "Confianza del Consumidor": "Consumer Confidence",
     },
 
-"USD": {
-    "CPI": "CPI YoY",
-    "Core CPI": "Core CPI YoY",
-    "PPI MoM": "PPI MoM",
-    "Core PPI MoM": "Core PPI MoM",
-    "Retail Sales": "Retail Sales MoM",
-    "Core Retail Sales": "Core Retail Sales",
-    "NFP": "Non Farm Payrolls",
-    "%Desempleo": "Unemployment Rate",
-    "% Salario": "Average Hourly Earnings",
-    "JOLTS": "JOLTS",
-    "ADP": "ADP Employment",
-    "PMI Manufactura": "ISM Manufacturing",
-    "PMI Servicios": "ISM Services",
-    "Confianza CB": "Consumer Confidence CB",
-},
+    "USD": {
+        "Retail Sales": "Retail Sales MoM",
+        "NFP": "Non Farm Payrolls",
+        "%Desempleo": "Unemployment Rate",
+        "% Salario": "Average Hourly Earnings",
+        "ADP": "ADP Employment",
+        "PMI  Manufactura": "ISM Manufacturing",
+        "PMI Servicios": "ISM Services",
+        "Confianza CB": "Consumer Confidence CB",
+    },
 
-"EUR": {
-    "CPI": "CPI MoM",
-    "CPI YoY": "CPI YoY",
-    "Core CPI": "Core CPI MoM",
-    "Core CPI YoY": "Core CPI YoY",
-    "Retail Sales": "Retail Sales MoM",
-    "%Desempleo": "Unemployment Rate",
-    "Salario Eurozona": "Euro Area Wage Growth",
-    "PMI Manufactura": "Manufacturing PMI",
-    "PMI Servicios": "Services PMI",
-    "ZEW": "ZEW Economic Sentiment",
-    "Producción Industrial": "Industrial Production YoY",
-},
+    "EUR": {
+        "CPI": "CPI MoM",
+        "Core CPI": "Core CPI MoM",
+        "Retail Sales": "Retail Sales MoM",
+        "%Desempleo": "Unemployment Rate",
+        "Salario Eurozona": "Euro Area Wage Growth",
+        "ZEW": "ZEW Economic Sentiment",
+        "Producción Industrial": "Industrial Production YoY",
+    },
 
     "CAD": {
     },
@@ -1319,42 +1304,53 @@ try:
         }
     )
 
-# ==========================================
-# DEPURACIÓN INTERPRETACIONES IA
-# ==========================================
+    # ==========================================
+    # DEPURACIÓN INTERPRETACIONES IA
+    # ==========================================
 
-indicador_ia = MAPA_INDICADORES_IA.get(
-    str(divisa).strip().upper(),
-    {}
-).get(
-    str(indicador).strip(),
-    str(indicador).strip()
-)
-
-st.write("Divisa:", repr(divisa))
-st.write("Indicador Dashboard:", repr(indicador))
-st.write("Indicador IA:", repr(indicador_ia))
-
-df_debug = cargar_interpretaciones_ia()
-
-coincidencias = df_debug[
-    df_debug["Currency"].astype(str).str.strip().str.upper().eq(
-        str(divisa).strip().upper()
+    indicador_ia = MAPA_INDICADORES_IA.get(
+        str(divisa).strip().upper(),
+        {}
+    ).get(
+        str(indicador).strip(),
+        str(indicador).strip()
     )
-]
 
-st.write("Indicadores existentes en AI para esa divisa:")
-st.write(sorted(coincidencias["Indicator"].astype(str).tolist()))
+    st.write("Divisa:", repr(divisa))
+    st.write("Indicador Dashboard:", repr(indicador))
+    st.write("Indicador IA:", repr(indicador_ia))
 
-interpretacion_ia = obtener_interpretacion_ia(
-    divisa,
-    indicador
-)
+    df_debug = cargar_interpretaciones_ia()
 
-if interpretacion_ia is None:
-    st.error("❌ No se encontró interpretación IA.")
-else:
-    st.success("✅ Interpretación IA encontrada.")
+    coincidencias = df_debug[
+        df_debug["Currency"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        .eq(str(divisa).strip().upper())
+    ]
+
+    st.write("Indicadores existentes en AI para esa divisa:")
+    st.write(
+        sorted(
+            coincidencias["Indicator"]
+            .astype(str)
+            .str.strip()
+            .tolist()
+        )
+    )
+
+    interpretacion_ia = obtener_interpretacion_ia(
+        divisa,
+        indicador
+    )
+
+    if interpretacion_ia is None:
+        st.error("❌ No se encontró interpretación IA.")
+
+    else:
+        st.success("✅ Interpretación IA encontrada.")
+
         st.markdown("### Macro Analysis")
 
         fila_ia_1_col_1, fila_ia_1_col_2 = st.columns(2)
@@ -1435,8 +1431,10 @@ else:
 
         if confianza_normalizada in {"alta", "high"}:
             clase_confianza = "confidence-high"
+
         elif confianza_normalizada in {"baja", "low"}:
             clase_confianza = "confidence-low"
+
         else:
             clase_confianza = "confidence-medium"
 
@@ -1448,7 +1446,6 @@ else:
             """,
             unsafe_allow_html=True
         )
-
     st.markdown("### Macro Intelligence")
     st.caption("Análisis cuantitativo automático del indicador")
     st.caption(f"Motor activo: {ENGINE_VERSION}")
