@@ -566,12 +566,17 @@ def cargar_interpretaciones_ia():
 MAPA_INDICADORES_IA = {
     "GBP": {
         "CPI": "CPI MoM",
+        "CPI YoY": "CPI YoY",
         "Core CPI": "Core CPI MoM",
+        "Core CPI YoY": "Core CPI YoY",
         "Retail Sales": "Retail Sales MoM",
+        "Core Retail Sales": "Core Retail Sales",
         "Employment (3M/3M)": "Employment Change (3M/3M)",
         "%Desempleo": "Unemployment Rate",
         "% Salario + Bonus": "Average Earnings (+ Bonus)",
-        "% Salario - Bonus": "Average Earnings (- Bonus)",
+        "% Salario - Bonus": "Average Earnings (- Bonus",
+        "PMI Manufactura": "Manufacturing PMI",
+        "PMI Servicios": "Services PMI",
         "Confianza del Consumidor": "Consumer Confidence",
     },
 
@@ -592,15 +597,19 @@ MAPA_INDICADORES_IA = {
     "Confianza CB": "Consumer Confidence CB",
 },
 
-    "EUR": {
-        "CPI": "CPI MoM",
-        "Core CPI": "Core CPI MoM",
-        "Retail Sales": "Retail Sales MoM",
-        "%Desempleo": "Unemployment Rate",
-        "Salario Eurozona": "Euro Area Wage Growth",
-        "ZEW": "ZEW Economic Sentiment",
-        "Producción Industrial": "Industrial Production YoY",
-    },
+"EUR": {
+    "CPI": "CPI MoM",
+    "CPI YoY": "CPI YoY",
+    "Core CPI": "Core CPI MoM",
+    "Core CPI YoY": "Core CPI YoY",
+    "Retail Sales": "Retail Sales MoM",
+    "%Desempleo": "Unemployment Rate",
+    "Salario Eurozona": "Euro Area Wage Growth",
+    "PMI Manufactura": "Manufacturing PMI",
+    "PMI Servicios": "Services PMI",
+    "ZEW": "ZEW Economic Sentiment",
+    "Producción Industrial": "Industrial Production YoY",
+},
 
     "CAD": {
     },
