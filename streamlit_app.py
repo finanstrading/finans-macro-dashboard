@@ -630,20 +630,6 @@ def obtener_interpretacion_ia(divisa, indicador):
 
     df_ia = cargar_interpretaciones_ia().copy()
 
-    st.write("=== FILAS MANUFACTURING CARGADAS ===")
-
-    st.dataframe(
-        df_ia[
-            df_ia["Indicator"]
-            .astype(str)
-            .str.contains(
-                "Manufacturing",
-                case=False,
-                na=False
-            )
-        ][["Currency", "Indicator"]],
-        use_container_width=True
-    )
 
     divisa_normalizada = str(divisa).strip().upper()
     indicador_dashboard = str(indicador).strip()
@@ -762,21 +748,6 @@ def obtener_interpretacion_ia(divisa, indicador):
     ].copy()
 
     if coincidencia.empty:
-        st.error(
-            "No se encontró la interpretación IA para "
-            f"{divisa_normalizada} · {indicador_ia_limpio}"
-        )
-
-        st.write("Indicador Dashboard:", repr(indicador_dashboard))
-        st.write("Indicador buscado en IA:", repr(indicador_ia_limpio))
-
-        disponibles = df_ia[
-            df_ia["_currency_clean"].eq(divisa_normalizada)
-        ][["Currency", "Indicator"]].copy()
-
-        st.write("Indicadores disponibles para esa divisa:")
-        st.dataframe(disponibles, use_container_width=True)
-
         return None
 
     if "Updated At" in coincidencia.columns:
