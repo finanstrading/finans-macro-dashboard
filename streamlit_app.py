@@ -390,6 +390,78 @@ st.markdown(
             }}
         }}
 
+                .macro-analysis-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-top: 3px solid #C9A227;
+            border-radius: 14px;
+            padding: 1.05rem 1.15rem;
+            min-height: 145px;
+            box-shadow: 0 5px 18px rgba(17, 24, 39, 0.045);
+        }
+
+        .macro-analysis-title {
+            color: #111111;
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 0.65rem;
+        }
+
+        .macro-analysis-text {
+            color: #4B5563;
+            font-size: 0.86rem;
+            line-height: 1.65;
+        }
+
+        .macro-summary-box {
+            background: linear-gradient(135deg, #111111 0%, #202020 100%);
+            border: 1px solid #2C2C2C;
+            border-radius: 14px;
+            padding: 1.05rem 1.2rem;
+            margin-top: 0.35rem;
+        }
+
+        .macro-summary-label {
+            color: #E3C85B;
+            font-size: 0.74rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
+        }
+
+        .macro-summary-text {
+            color: #F3F4F6;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 0.32rem 0.7rem;
+            font-size: 0.74rem;
+            font-weight: 800;
+            margin-top: 0.65rem;
+        }
+
+        .confidence-high {
+            background: #DCFCE7;
+            color: #166534;
+        }
+
+        .confidence-medium {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .confidence-low {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        
         #MainMenu {{
             visibility: hidden;
         }}
