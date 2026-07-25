@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd 
+import pandas as pd
 import plotly.graph_objects as go
 from urllib.parse import quote
 
@@ -628,7 +628,7 @@ def obtener_interpretacion_ia(divisa, indicador):
     a la divisa y al indicador seleccionado.
     """
 
-    df_ia = cargar_interpretaciones_ia()
+    df_ia = cargar_interpretaciones_ia().copy()
 
     divisa_normalizada = str(divisa).strip().upper()
     indicador_dashboard = str(indicador).strip()
@@ -668,14 +668,20 @@ def obtener_interpretacion_ia(divisa, indicador):
         },
 
         "USD": {
-            "PMI Manufactura": "ISM Manufacturing",
-            "PMI  Manufactura": "ISM Manufacturing",
-            "PMI Servicios": "ISM Services",
+            "CPI": "CPI YoY",
+            "Core CPI": "Core CPI YoY",
+            "PPI MoM": "PPI MoM",
+            "Core PPI MoM": "Core PPI MoM",
             "Retail Sales": "Retail Sales MoM",
+            "Core Retail Sales": "Core Retail Sales",
             "NFP": "Non Farm Payrolls",
             "%Desempleo": "Unemployment Rate",
             "% Salario": "Average Hourly Earnings",
+            "JOLTS": "JOLTS",
             "ADP": "ADP Employment",
+            "PMI Manufactura": "ISM Manufacturing",
+            "PMI  Manufactura": "ISM Manufacturing",
+            "PMI Servicios": "ISM Services",
             "Confianza CB": "Consumer Confidence CB",
         },
     }
@@ -701,9 +707,7 @@ def obtener_interpretacion_ia(divisa, indicador):
         "Updated At",
     }
 
-    columnas_faltantes = columnas_requeridas.difference(
-        df_ia.columns
-    )
+    columnas_faltantes = columnas_requeridas.difference(df_ia.columns)
 
     if columnas_faltantes:
         raise ValueError(
@@ -711,28 +715,73 @@ def obtener_interpretacion_ia(divisa, indicador):
             + ", ".join(sorted(columnas_faltantes))
         )
 
-    monedas = (
+    df_ia["_currency_clean"] = (
         df_ia["Currency"]
         .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.replace("\u200b", "", regex=False)
         .str.strip()
         .str.upper()
     )
 
-    indicadores_ia = (
+    df_ia["_indicator_clean"] = (
         df_ia["Indicator"]
         .astype(str)
+        .str.replace("\u00a0", " ", regex=False)
+        .str.replace("\u200b", "", regex=False)
+        .str.replace(r"\s+", " ", regex=True)
         .str.strip()
     )
 
+    indicador_ia_limpio = (
+        str(indicador_ia)
+        .replace("\u00a0", " ")
+        .replace("\u200b", "")
+        .strip()
+    )
+
     coincidencia = df_ia[
-        monedas.eq(divisa_normalizada)
-        & indicadores_ia.eq(indicador_ia)
-    ]
+        df_ia["_currency_clean"].eq(divisa_normalizada)
+        &
+        df_ia["_indicator_clean"].eq(indicador_ia_limpio)
+    ].copy()
 
     if coincidencia.empty:
+        st.error(
+            "No se encontró la interpretación IA para "
+            f"{divisa_normalizada} · {indicador_ia_limpio}"
+        )
+
+        st.write("Indicador Dashboard:", repr(indicador_dashboard))
+        st.write("Indicador buscado en IA:", repr(indicador_ia_limpio))
+
+        disponibles = df_ia[
+            df_ia["_currency_clean"].eq(divisa_normalizada)
+        ][["Currency", "Indicator"]].copy()
+
+        st.write("Indicadores disponibles para esa divisa:")
+        st.dataframe(disponibles, use_container_width=True)
+
         return None
 
-    return coincidencia.iloc[-1].to_dict()
+    if "Updated At" in coincidencia.columns:
+        coincidencia["_updated_at_order"] = pd.to_datetime(
+            coincidencia["Updated At"],
+            errors="coerce"
+        )
+
+        coincidencia = coincidencia.sort_values(
+            "_updated_at_order",
+            na_position="first"
+        )
+
+    resultado = coincidencia.iloc[-1].to_dict()
+
+    resultado.pop("_currency_clean", None)
+    resultado.pop("_indicator_clean", None)
+    resultado.pop("_updated_at_order", None)
+
+    return resultado
 
 
 def convertir_fechas(serie):
