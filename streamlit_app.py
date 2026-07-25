@@ -616,7 +616,9 @@ MAPA_INDICADORES_IA = {
 
     "CAD": {},
     "JPY": {},
-    "AUD": {},
+    "AUD": {
+    "Retail Sales": "Retail Sales MoM",
+    },
     "NZD": {},
     "CHF": {},
 }
@@ -684,6 +686,10 @@ def obtener_interpretacion_ia(divisa, indicador):
             "PMI  Manufactura": "ISM Manufacturing",
             "PMI Servicios": "ISM Services",
             "Confianza CB": "Consumer Confidence CB",
+        },
+
+        "AUD": {
+            "Retail Sales": "Retail Sales MoM",
         },
     }
 
