@@ -490,6 +490,21 @@ def cargar_interpretaciones_ia():
 
     return df_ia
 
+MAPA_INDICADORES_IA = {
+    "GBP": {
+        "CPI": "CPI MoM",
+        "Core CPI": "Core CPI MoM",
+        "Retail Sales": "Retail Sales MoM",
+        "Employment (3M/3M)": "Employment Change (3M/3M)",
+        "%Desempleo": "Unemployment Rate",
+        "% Salario + Bonus": "Average Earnings (+ Bonus)",
+        "% Salario - Bonus": "Average Earnings (- Bonus)",
+        "PMI  Manufactura": "Manufacturing PMI",
+        "PMI Servicios": "Services PMI",
+        "Confianza del Consumidor": "Consumer Confidence",
+    }
+}
+
 
 def obtener_interpretacion_ia(divisa, indicador):
     """
