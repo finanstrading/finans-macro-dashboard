@@ -617,7 +617,7 @@ MAPA_INDICADORES_IA = {
     "CAD": {},
     "JPY": {},
     "AUD": {
-    "Retail Sales MoM": "Retail Sales MoM",
+        "Household Spending MoM": "Household Spending MoM",
     },
     "NZD": {},
     "CHF": {},
