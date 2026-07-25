@@ -1343,7 +1343,7 @@ try:
         st.markdown(
             f"""
 <div class="macro-summary-box">
-    <div class="macro-summary-label">Executive Summary</div>
+    <div class="macro-summary-label">Resumen</div>
     <div class="macro-summary-text">{resumen_ia}</div>
 </div>
             """,
