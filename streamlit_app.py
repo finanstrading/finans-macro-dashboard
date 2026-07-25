@@ -593,12 +593,19 @@ MAPA_INDICADORES_IA = {
 
     "EUR": {
         "CPI": "CPI MoM",
+        "CPI YoY": "CPI YoY",
         "Core CPI": "Core CPI MoM",
+        "Core CPI YoY": "Core CPI YoY",
         "Retail Sales": "Retail Sales MoM",
+        "Retail Sales YoY": "Retail Sales YoY",
         "%Desempleo": "Unemployment Rate",
         "Salario Eurozona": "Euro Area Wage Growth",
+        "PMI Manufactura": "Manufacturing PMI",
+        "PMI Servicios": "Services PMI",
         "ZEW": "ZEW Economic Sentiment",
+        "Clima Empresarial Eurozona": "Eurozone Business Climate",
         "Producción Industrial": "Industrial Production YoY",
+        "Confianza del Consumidor": "Consumer Confidence",
     },
 
     "CAD": {
