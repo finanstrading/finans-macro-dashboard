@@ -1290,22 +1290,6 @@ try:
         )
     )
 
-    st.markdown("#### Resumen")
-    st.info(
-        interpretacion_ia.get(
-            "Summary",
-            "Sin resumen disponible."
-        )
-    )
-
-    confianza_ia = interpretacion_ia.get(
-        "Confidence",
-        "Sin evaluación"
-    )
-
-    st.caption(
-        f"Confianza de la interpretación: {confianza_ia}"
-    )
 
     st.markdown("### Macro Intelligence")
     st.caption("Análisis cuantitativo automático del indicador")
