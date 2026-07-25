@@ -1409,41 +1409,7 @@ try:
         }
     )
 
-    # ==========================================
-    # DEPURACIÓN INTERPRETACIONES IA
-    # ==========================================
-
-    indicador_ia = MAPA_INDICADORES_IA.get(
-        str(divisa).strip().upper(),
-        {}
-    ).get(
-        str(indicador).strip(),
-        str(indicador).strip()
-    )
-
-    st.write("Divisa:", repr(divisa))
-    st.write("Indicador Dashboard:", repr(indicador))
-    st.write("Indicador IA:", repr(indicador_ia))
-
-    df_debug = cargar_interpretaciones_ia()
-
-    coincidencias = df_debug[
-        df_debug["Currency"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-        .eq(str(divisa).strip().upper())
-    ]
-
-    st.write("Indicadores existentes en AI para esa divisa:")
-    st.write(
-        sorted(
-            coincidencias["Indicator"]
-            .astype(str)
-            .str.strip()
-            .tolist()
-        )
-    )
+    
 
     interpretacion_ia = obtener_interpretacion_ia(
         divisa,
@@ -1451,10 +1417,11 @@ try:
     )
 
     if interpretacion_ia is None:
-        st.error("❌ No se encontró interpretación IA.")
+    st.warning(
+        "Todavía no existe una interpretación IA para este indicador."
+    )
 
     else:
-        st.success("✅ Interpretación IA encontrada.")
 
         st.markdown("### Macro Analysis")
 
