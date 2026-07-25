@@ -513,6 +513,14 @@ def obtener_interpretacion_ia(divisa, indicador):
     """
     df_ia = cargar_interpretaciones_ia()
 
+    indicador_ia = MAPA_INDICADORES_IA.get(
+        str(divisa).strip().upper(),
+        {}
+    ).get(
+        str(indicador).strip(),
+        str(indicador).strip()
+    )
+
     columnas_requeridas = {
         "Currency",
         "Indicator",
@@ -540,7 +548,7 @@ def obtener_interpretacion_ia(divisa, indicador):
         )
         &
         df_ia["Indicator"].astype(str).str.strip().eq(
-            str(indicador).strip()
+            indicador_ia
         )
     ]
 
