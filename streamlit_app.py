@@ -689,7 +689,7 @@ def obtener_interpretacion_ia(divisa, indicador):
         },
 
         "AUD": {
-            "Retail Sales MoM": "Retail Sales MoM",
+            "Household Spending MoM": "Household Spending MoM",
         },
     }
 
