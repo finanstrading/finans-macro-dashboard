@@ -8,7 +8,7 @@ from monetary_engine import analizar_indicador, ENGINE_VERSION
 
 # ===================================================   
 # CONFIGURACIÓN GENERAL
-# ===================================================      
+# ===================================================    
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
@@ -118,6 +118,14 @@ st.markdown(
             fill: #111111 !important;
             color: #111111 !important;
         }}
+        
+        section[data-testid="stSidebar"] div[data-baseweb="select"] div[data-testid="stMarkdownContainer"] {
+            color: #111111 !important;
+        }
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"] div[data-testid="stMarkdownContainer"] p {
+           color: #111111 !important;
+        }
 
         div[role="listbox"] {{
             background: white !important;
