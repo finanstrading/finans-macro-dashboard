@@ -575,16 +575,22 @@ MAPA_INDICADORES_IA = {
         "Confianza del Consumidor": "Consumer Confidence",
     },
 
-    "USD": {
-        "Retail Sales": "Retail Sales MoM",
-        "NFP": "Non Farm Payrolls",
-        "%Desempleo": "Unemployment Rate",
-        "% Salario": "Average Hourly Earnings",
-        "ADP": "ADP Employment",
-        "PMI  Manufactura": "ISM Manufacturing",
-        "PMI Servicios": "ISM Services",
-        "Confianza CB": "Consumer Confidence CB",
-    },
+"USD": {
+    "CPI": "CPI YoY",
+    "Core CPI": "Core CPI YoY",
+    "PPI MoM": "PPI MoM",
+    "Core PPI MoM": "Core PPI MoM",
+    "Retail Sales": "Retail Sales MoM",
+    "Core Retail Sales": "Core Retail Sales",
+    "NFP": "Non Farm Payrolls",
+    "%Desempleo": "Unemployment Rate",
+    "% Salario": "Average Hourly Earnings",
+    "JOLTS": "JOLTS",
+    "ADP": "ADP Employment",
+    "PMI Manufactura": "ISM Manufacturing",
+    "PMI Servicios": "ISM Services",
+    "Confianza CB": "Consumer Confidence CB",
+},
 
     "EUR": {
         "CPI": "CPI MoM",
