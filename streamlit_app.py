@@ -1258,6 +1258,55 @@ else:
         f"Confianza de la interpretación: {confianza_ia}"
     )
 
+    st.markdown("#### Tendencia")
+    st.write(
+        interpretacion_ia.get(
+            "Trend",
+            "Sin información disponible."
+        )
+    )
+
+    st.markdown("#### Última publicación")
+    st.write(
+        interpretacion_ia.get(
+            "Latest Release",
+            "Sin información disponible."
+        )
+    )
+
+    st.markdown("#### Política monetaria")
+    st.write(
+        interpretacion_ia.get(
+            "Monetary Policy",
+            "Sin información disponible."
+        )
+    )
+
+    st.markdown("#### Impacto sobre la divisa")
+    st.write(
+        interpretacion_ia.get(
+            "FX Impact",
+            "Sin información disponible."
+        )
+    )
+
+    st.markdown("#### Resumen")
+    st.info(
+        interpretacion_ia.get(
+            "Summary",
+            "Sin resumen disponible."
+        )
+    )
+
+    confianza_ia = interpretacion_ia.get(
+        "Confidence",
+        "Sin evaluación"
+    )
+
+    st.caption(
+        f"Confianza de la interpretación: {confianza_ia}"
+    )
+
     st.markdown("### Macro Intelligence")
     st.caption("Análisis cuantitativo automático del indicador")
     st.caption(f"Motor activo: {ENGINE_VERSION}")
