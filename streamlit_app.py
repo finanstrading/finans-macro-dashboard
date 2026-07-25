@@ -758,11 +758,9 @@ def crear_tarjeta_inteligencia(titulo, valor, nota=""):
 
 def crear_tarjeta_interpretacion(titulo, contenido):
     return f"""
-        <div class="metric-card">
-            <div class="metric-label">{titulo}</div>
-            <div class="metric-note">
-                {contenido}
-            </div>
+        <div class="macro-analysis-card">
+            <div class="macro-analysis-title">{titulo}</div>
+            <div class="macro-analysis-text">{contenido}</div>
         </div>
     """
 
