@@ -617,7 +617,7 @@ MAPA_INDICADORES_IA = {
     "CAD": {},
     "JPY": {},
     "AUD": {
-    "Retail Sales": "Retail Sales MoM",
+    "Retail Sales MoM": "Retail Sales MoM",
     },
     "NZD": {},
     "CHF": {},
@@ -689,7 +689,7 @@ def obtener_interpretacion_ia(divisa, indicador):
         },
 
         "AUD": {
-            "Retail Sales": "Retail Sales MoM",
+            "Retail Sales MoM": "Retail Sales MoM",
         },
     }
 
