@@ -572,10 +572,44 @@ MAPA_INDICADORES_IA = {
         "%Desempleo": "Unemployment Rate",
         "% Salario + Bonus": "Average Earnings (+ Bonus)",
         "% Salario - Bonus": "Average Earnings (- Bonus)",
-        "PMI  Manufactura": "Manufacturing PMI",
-        "PMI Servicios": "Services PMI",
         "Confianza del Consumidor": "Consumer Confidence",
-    }
+    },
+
+    "USD": {
+        "Retail Sales": "Retail Sales MoM",
+        "NFP": "Non Farm Payrolls",
+        "%Desempleo": "Unemployment Rate",
+        "% Salario": "Average Hourly Earnings",
+        "ADP": "ADP Employment",
+        "PMI  Manufactura": "ISM Manufacturing",
+        "PMI Servicios": "ISM Services",
+        "Confianza CB": "Consumer Confidence CB",
+    },
+
+    "EUR": {
+        "CPI": "CPI MoM",
+        "Core CPI": "Core CPI MoM",
+        "Retail Sales": "Retail Sales MoM",
+        "%Desempleo": "Unemployment Rate",
+        "Salario Eurozona": "Euro Area Wage Growth",
+        "ZEW": "ZEW Economic Sentiment",
+        "Producción Industrial": "Industrial Production YoY",
+    },
+
+    "CAD": {
+    },
+
+    "JPY": {
+    },
+
+    "AUD": {
+    },
+
+    "NZD": {
+    },
+
+    "CHF": {
+    },
 }
 
 
