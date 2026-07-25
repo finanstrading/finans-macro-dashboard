@@ -1280,7 +1280,7 @@ try:
             "para este indicador."
         )
     else:
-        st.markdown("### Interpretación IA")
+        st.markdown("### Macro Analysis")
 
         fila_ia_1_col_1, fila_ia_1_col_2 = st.columns(2)
 
@@ -1334,52 +1334,44 @@ try:
                 unsafe_allow_html=True
             )
 
+        resumen_ia = interpretacion_ia.get(
+            "Summary",
+            "Sin resumen disponible."
+        )
+
         st.markdown(
             f"""
-            <div class="macro-summary-box">
-                <div class="macro-summary-label">
-                    Executive Summary
-                </div>
-
-                <div class="macro-summary-text">
-                    {interpretacion_ia.get(
-                        "Summary",
-                        "Sin resumen disponible."
-                    )}
-                </div>
-            </div>
+<div class="macro-summary-box">
+    <div class="macro-summary-label">Executive Summary</div>
+    <div class="macro-summary-text">{resumen_ia}</div>
+</div>
             """,
             unsafe_allow_html=True
         )
 
-        confianza_ia = interpretacion_ia.get(
-            "Confidence",
-            "Sin evaluación"
-        )
+        confianza_ia = str(
+            interpretacion_ia.get(
+                "Confidence",
+                "Sin evaluación"
+            )
+        ).strip()
 
-        if str(confianza_ia).strip().lower() == "high":
+        confianza_normalizada = confianza_ia.lower()
+
+        if confianza_normalizada in {"alta", "high"}:
             clase_confianza = "confidence-high"
-        elif str(confianza_ia).strip().lower() == "low":
+        elif confianza_normalizada in {"baja", "low"}:
             clase_confianza = "confidence-low"
         else:
             clase_confianza = "confidence-medium"
 
         st.markdown(
             f"""
-            <div class="confidence-badge {clase_confianza}">
-                Confidence: {confianza_ia}
-            </div>
+<div class="confidence-badge {clase_confianza}">
+    Confianza: {confianza_ia}
+</div>
             """,
             unsafe_allow_html=True
-        )
-
-        confianza_ia = interpretacion_ia.get(
-            "Confidence",
-            "Sin evaluación"
-        )
-
-        st.caption(
-            f"Confianza de la interpretación: {confianza_ia}"
         )
 
     st.markdown("### Macro Intelligence")
