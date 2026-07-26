@@ -1076,8 +1076,8 @@ try:
         st.markdown(
             """
             <div class="sidebar-info">
-                <strong>Datos:</strong> Google Sheets<br>
-                <strong>Actualización:</strong> automática cada 10 minutos
+                <strong>Datos:</strong> Macro FX Database<br>
+                <strong>Actualización:</strong> Automática
             </div>
             """,
             unsafe_allow_html=True
