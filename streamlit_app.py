@@ -1176,7 +1176,7 @@ try:
             </div>
             <div class="dashboard-subtitle">
                 Evolución histórica y lectura del último dato macroeconómico
-                disponible · Último dato disponible {fecha_texto}
+                 · Último dato disponible {fecha_texto}
             </div>
         </div>
         """,
