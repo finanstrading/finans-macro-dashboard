@@ -189,10 +189,17 @@ def calcular_zscore(valor, historico):
 
 
 def calcular_momentum(valores, periodos):
+    """
+    Impulso reciente = cambio entre la última publicación
+    y la inmediatamente anterior.
+    """
+
     serie = _serie(valores)
-    if len(serie) <= periodos:
+
+    if len(serie) < 2:
         return None
-    return round(float(serie.iloc[-1] - serie.iloc[-periodos - 1]), 2)
+
+    return round(float(serie.iloc[-1] - serie.iloc[-2]), 2)
 
 
 def calcular_volatilidad(valores):
