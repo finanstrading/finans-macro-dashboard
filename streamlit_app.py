@@ -8,7 +8,7 @@ from monetary_engine import analizar_indicador, ENGINE_VERSION
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
-# ===================================================     
+# ===================================================    
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
@@ -1597,7 +1597,7 @@ try:
             momentum_nota = "No hay suficientes publicaciones"
         else:
             momentum_texto = analisis.get("impulso_monetario", "Sin evaluación")
-            momentum_nota = f"{momentum_3:+.2f} en 3 periodos"
+            momentum_nota = f"{momentum_3:+.2f} respecto a la última publicación"
 
         st.markdown(
             crear_tarjeta_inteligencia(
