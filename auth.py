@@ -221,6 +221,22 @@ forgot = st.button(
     use_container_width=True,
 )
 
+if forgot:
+
+    if not email.strip():
+        st.warning("Introduce primero tu correo electrónico.")
+        st.stop()
+
+    if send_password_reset_request(email):
+        st.success(
+            "Si el correo existe en nuestro sistema, te hemos enviado una nueva contraseña temporal."
+        )
+    else:
+        st.error(
+            "No se ha podido procesar la solicitud. Inténtalo de nuevo."
+        )
+
+    st.stop()
     if submitted:
         if not email.strip() or not password:
             st.warning("Introduce tu correo y contraseña.")
