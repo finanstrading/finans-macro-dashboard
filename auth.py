@@ -21,7 +21,21 @@ def _client():
         st.stop()
 
     return create_client(url, anon_key)
+MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/kb9qxz8dx59rsf6c6x1ddt817fos519e"
 
+
+def send_password_reset_request(email: str):
+    try:
+        response = requests.post(
+            MAKE_WEBHOOK_URL,
+            json={"email": email},
+            timeout=15,
+        )
+
+        return response.status_code == 200
+
+    except Exception:
+        return False
 
 def _clear_session():
     for key in SESSION_KEYS:
