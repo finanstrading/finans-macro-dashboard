@@ -211,10 +211,15 @@ def _render_login():
     if st.session_state.pop("password_updated", False):
         st.success("Contraseña actualizada correctamente.")
 
-    with st.form("macro_fx_login"):
-        email = st.text_input("Correo electrónico")
-        password = st.text_input("Contraseña", type="password")
-        submitted = st.form_submit_button("Iniciar sesión")
+with st.form("macro_fx_login"):
+    email = st.text_input("Correo electrónico")
+    password = st.text_input("Contraseña", type="password")
+    submitted = st.form_submit_button("Iniciar sesión")
+
+forgot = st.button(
+    "¿Has olvidado tu contraseña?",
+    use_container_width=True,
+)
 
     if submitted:
         if not email.strip() or not password:
