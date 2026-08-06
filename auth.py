@@ -273,45 +273,23 @@ def _render_login():
 
     st.markdown(
         """
-        <div class="login-shell">
-            <div class="login-eyebrow">
-                Finans Trading
-            </div>
-
-            <div class="login-title">
-                Acceso privado a Macro FX
-            </div>
-
-            <div class="login-subtitle">
-                Inicia sesión con el correo y la
-                contraseña recibidos.
-            </div>
-        </div>
-        """,
+<div class="login-shell">
+<div class="login-eyebrow">FINANS TRADING</div>
+<div class="login-title">Acceso privado a Macro FX</div>
+<div class="login-subtitle">Inicia sesión con el correo y la contraseña recibidos.</div>
+</div>
+""",
         unsafe_allow_html=True,
     )
 
-    if st.session_state.pop(
-        "password_updated",
-        False,
-    ):
-        st.success(
-            "Contraseña actualizada correctamente."
-        )
+    if st.session_state.pop("password_updated", False):
+        st.success("Contraseña actualizada correctamente.")
 
     with st.form("macro_fx_login"):
-        email = st.text_input(
-            "Correo electrónico"
-        )
+        email = st.text_input("Correo electrónico")
+        password = st.text_input("Contraseña", type="password")
 
-        password = st.text_input(
-            "Contraseña",
-            type="password",
-        )
-
-        login_column, recovery_column = st.columns(
-            [1, 1]
-        )
+        login_column, recovery_column = st.columns([1, 1])
 
         with login_column:
             submitted = st.form_submit_button(
