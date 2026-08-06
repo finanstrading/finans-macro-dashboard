@@ -17,25 +17,43 @@ def _client():
         url = st.secrets["supabase"]["url"]
         anon_key = st.secrets["supabase"]["anon_key"]
     except Exception:
-        st.error("Falta configurar Supabase en los secretos de Streamlit.")
+        st.error(
+            "Falta configurar Supabase en los secretos de Streamlit."
+        )
         st.stop()
 
     return create_client(url, anon_key)
-MAKE_WEBHOOK_URL = "https://hook.eu1.make.com/kb9qxz8dx59rsf6c6x1ddt817fos519e"
 
 
-def send_password_reset_request(email: str):
+def _get_make_webhook_url():
+    try:
+        return st.secrets["make"]["resend_access_webhook"]
+    except Exception:
+        st.error(
+            "Falta configurar el webhook de recuperación "
+            "en los secretos de Streamlit."
+        )
+        st.stop()
+
+
+def send_password_reset_request(email: str) -> bool:
+    normalized_email = email.strip().lower()
+
+    if not normalized_email:
+        return False
+
     try:
         response = requests.post(
-            MAKE_WEBHOOK_URL,
-            json={"email": email},
+            _get_make_webhook_url(),
+            json={"email": normalized_email},
             timeout=15,
         )
 
-        return response.status_code == 200
+        return 200 <= response.status_code < 300
 
-    except Exception:
+    except requests.RequestException:
         return False
+
 
 def _clear_session():
     for key in SESSION_KEYS:
@@ -53,6 +71,7 @@ def _save_session(response):
     st.session_state["sb_refresh_token"] = session.refresh_token
     st.session_state["sb_user_id"] = user.id
     st.session_state["sb_user_email"] = user.email or ""
+
     return True
 
 
@@ -64,18 +83,30 @@ def _restore_session(client):
         return False
 
     try:
-        response = client.auth.set_session(access_token, refresh_token)
+        response = client.auth.set_session(
+            access_token,
+            refresh_token,
+        )
+
         if not response.user:
             _clear_session()
             return False
 
         if response.session:
-            st.session_state["sb_access_token"] = response.session.access_token
-            st.session_state["sb_refresh_token"] = response.session.refresh_token
+            st.session_state["sb_access_token"] = (
+                response.session.access_token
+            )
+            st.session_state["sb_refresh_token"] = (
+                response.session.refresh_token
+            )
 
         st.session_state["sb_user_id"] = response.user.id
-        st.session_state["sb_user_email"] = response.user.email or ""
+        st.session_state["sb_user_email"] = (
+            response.user.email or ""
+        )
+
         return True
+
     except Exception:
         _clear_session()
         return False
@@ -85,49 +116,73 @@ def _load_profile(client, user_id):
     try:
         response = (
             client.table("profiles")
-            .select("id,email,nombre,estado,plan,role,kajabi_offer")
+            .select(
+                "id,email,nombre,estado,plan,role,kajabi_offer"
+            )
             .eq("id", user_id)
             .maybe_single()
             .execute()
         )
+
         return response.data
+
     except Exception:
         return None
 
 
 def _is_active(profile):
-    return bool(profile) and str(profile.get("estado", "")).strip().lower() == "activo"
+    return (
+        bool(profile)
+        and str(profile.get("estado", "")).strip().lower()
+        == "activo"
+    )
 
 
 def _perform_login(email, password):
     client = _client()
+    normalized_email = email.strip().lower()
 
     try:
         response = client.auth.sign_in_with_password(
-            {"email": email.strip().lower(), "password": password}
+            {
+                "email": normalized_email,
+                "password": password,
+            }
         )
 
         if not response.user or not response.session:
             return False, "No se pudo iniciar sesión."
 
-        profile = _load_profile(client, response.user.id)
+        profile = _load_profile(
+            client,
+            response.user.id,
+        )
+
         if not _is_active(profile):
             try:
                 client.auth.sign_out()
             except Exception:
                 pass
-            return False, "Tu cuenta no tiene acceso activo a Macro FX."
+
+            return (
+                False,
+                "Tu cuenta no tiene acceso activo a Macro FX.",
+            )
 
         _save_session(response)
         st.session_state["sb_profile"] = profile
+
         return True, ""
 
     except Exception as error:
         message = str(error).lower()
+
         if "invalid login credentials" in message:
             return False, "Correo o contraseña incorrectos."
+
         if "email not confirmed" in message:
             return False, "Confirma tu correo antes de entrar."
+
         return False, f"No se pudo iniciar sesión: {error}"
 
 
@@ -139,18 +194,26 @@ def _auth_page_styles():
             [data-testid="collapsedControl"] {
                 display: none !important;
             }
+
             .block-container {
                 max-width: 520px !important;
                 padding-top: 8vh !important;
             }
+
             .login-shell {
-                background: linear-gradient(145deg, #111111, #202020);
+                background: linear-gradient(
+                    145deg,
+                    #111111,
+                    #202020
+                );
                 border: 1px solid #2f2f2f;
                 border-radius: 20px;
                 padding: 2rem;
                 margin-bottom: 1rem;
-                box-shadow: 0 18px 50px rgba(0,0,0,.16);
+                box-shadow:
+                    0 18px 50px rgba(0, 0, 0, .16);
             }
+
             .login-eyebrow {
                 color: #E3C85B;
                 font-size: .76rem;
@@ -159,33 +222,46 @@ def _auth_page_styles():
                 text-transform: uppercase;
                 margin-bottom: .55rem;
             }
+
             .login-title {
                 color: white;
                 font-size: 2rem;
                 font-weight: 850;
                 line-height: 1.08;
             }
+
             .login-subtitle {
                 color: #BFC3CA;
                 margin-top: .7rem;
                 line-height: 1.5;
             }
+
             div[data-testid="stForm"] {
                 background: white;
                 border: 1px solid #E5E7EB;
                 border-radius: 16px;
                 padding: 1.25rem;
-                box-shadow: 0 6px 22px rgba(17,24,39,.06);
+                box-shadow:
+                    0 6px 22px rgba(17, 24, 39, .06);
             }
+
             div[data-testid="stFormSubmitButton"] button {
                 width: 100%;
+                border-radius: 9px;
+                font-weight: 800;
+            }
+
+            div[data-testid="stFormSubmitButton"]
+            button[kind="primary"] {
                 background: #C9A227;
                 color: #111111;
                 border: none;
-                font-weight: 800;
-                border-radius: 9px;
             }
-            #MainMenu, footer { visibility: hidden; }
+
+            #MainMenu,
+            footer {
+                visibility: hidden;
+            }
         </style>
         """,
         unsafe_allow_html=True,
@@ -198,56 +274,103 @@ def _render_login():
     st.markdown(
         """
         <div class="login-shell">
-            <div class="login-eyebrow">Finans Trading</div>
-            <div class="login-title">Acceso privado a Macro FX</div>
+            <div class="login-eyebrow">
+                Finans Trading
+            </div>
+
+            <div class="login-title">
+                Acceso privado a Macro FX
+            </div>
+
             <div class="login-subtitle">
-                Inicia sesión con el correo y la contraseña recibidos.
+                Inicia sesión con el correo y la
+                contraseña recibidos.
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if st.session_state.pop("password_updated", False):
-        st.success("Contraseña actualizada correctamente.")
-
-with st.form("macro_fx_login"):
-    email = st.text_input("Correo electrónico")
-    password = st.text_input("Contraseña", type="password")
-    submitted = st.form_submit_button("Iniciar sesión")
-
-forgot = st.button(
-    "¿Has olvidado tu contraseña?",
-    use_container_width=True,
-)
-
-if forgot:
-
-    if not email.strip():
-        st.warning("Introduce primero tu correo electrónico.")
-        st.stop()
-
-    if send_password_reset_request(email):
+    if st.session_state.pop(
+        "password_updated",
+        False,
+    ):
         st.success(
-            "Si el correo existe en nuestro sistema, te hemos enviado una nueva contraseña temporal."
-        )
-    else:
-        st.error(
-            "No se ha podido procesar la solicitud. Inténtalo de nuevo."
+            "Contraseña actualizada correctamente."
         )
 
-    st.stop()
-    if submitted:
-        if not email.strip() or not password:
-            st.warning("Introduce tu correo y contraseña.")
+    with st.form("macro_fx_login"):
+        email = st.text_input(
+            "Correo electrónico"
+        )
+
+        password = st.text_input(
+            "Contraseña",
+            type="password",
+        )
+
+        login_column, recovery_column = st.columns(
+            [1, 1]
+        )
+
+        with login_column:
+            submitted = st.form_submit_button(
+                "Iniciar sesión",
+                type="primary",
+                use_container_width=True,
+            )
+
+        with recovery_column:
+            forgot = st.form_submit_button(
+                "¿Olvidaste tu contraseña?",
+                use_container_width=True,
+            )
+
+    if forgot:
+        if not email.strip():
+            st.warning(
+                "Introduce primero tu correo electrónico."
+            )
             st.stop()
 
-        ok, error = _perform_login(email, password)
+        request_sent = send_password_reset_request(
+            email
+        )
+
+        if request_sent:
+            st.success(
+                "Si el correo existe en nuestro sistema, "
+                "te hemos enviado una nueva contraseña "
+                "temporal."
+            )
+        else:
+            st.error(
+                "No se ha podido procesar la solicitud. "
+                "Inténtalo de nuevo."
+            )
+
+        st.stop()
+
+    if submitted:
+        if not email.strip() or not password:
+            st.warning(
+                "Introduce tu correo y contraseña."
+            )
+            st.stop()
+
+        ok, error = _perform_login(
+            email,
+            password,
+        )
+
         if ok:
             st.rerun()
+
         st.error(error)
 
-    st.caption("Acceso reservado a usuarios autorizados.")
+    st.caption(
+        "Acceso reservado a usuarios autorizados."
+    )
 
 
 def require_authenticated_user():
@@ -265,9 +388,15 @@ def require_authenticated_user():
             user = None
 
         if user:
-            profile = _load_profile(client, user.id)
+            profile = _load_profile(
+                client,
+                user.id,
+            )
+
             if _is_active(profile):
-                st.session_state["sb_profile"] = profile
+                st.session_state["sb_profile"] = (
+                    profile
+                )
                 return profile
 
     _clear_session()
@@ -276,35 +405,77 @@ def require_authenticated_user():
 
 
 def _change_password_form():
-    with st.expander("Mi cuenta · Cambiar contraseña", expanded=False):
-        with st.form("macro_fx_change_password", clear_on_submit=True):
-            new_password = st.text_input("Nueva contraseña", type="password")
-            confirmation = st.text_input("Repetir nueva contraseña", type="password")
-            submitted = st.form_submit_button("Guardar contraseña")
+    with st.expander(
+        "Mi cuenta · Cambiar contraseña",
+        expanded=False,
+    ):
+        with st.form(
+            "macro_fx_change_password",
+            clear_on_submit=True,
+        ):
+            new_password = st.text_input(
+                "Nueva contraseña",
+                type="password",
+            )
+
+            confirmation = st.text_input(
+                "Repetir nueva contraseña",
+                type="password",
+            )
+
+            submitted = st.form_submit_button(
+                "Guardar contraseña"
+            )
 
         if submitted:
             if len(new_password) < 8:
-                st.warning("La contraseña debe tener al menos 8 caracteres.")
+                st.warning(
+                    "La contraseña debe tener "
+                    "al menos 8 caracteres."
+                )
                 return
 
             if new_password != confirmation:
-                st.warning("Las contraseñas no coinciden.")
+                st.warning(
+                    "Las contraseñas no coinciden."
+                )
                 return
 
             try:
                 client = _client()
+
                 if not _restore_session(client):
-                    st.error("La sesión ha caducado. Cierra sesión y vuelve a entrar.")
+                    st.error(
+                        "La sesión ha caducado. "
+                        "Cierra sesión y vuelve a entrar."
+                    )
                     return
 
-                client.auth.update_user({"password": new_password})
-                st.success("Contraseña actualizada correctamente.")
+                client.auth.update_user(
+                    {"password": new_password}
+                )
+
+                st.success(
+                    "Contraseña actualizada "
+                    "correctamente."
+                )
+
             except Exception as error:
                 message = str(error).lower()
-                if "different from the old password" in message:
-                    st.warning("La nueva contraseña debe ser diferente de la actual.")
+
+                if (
+                    "different from the old password"
+                    in message
+                ):
+                    st.warning(
+                        "La nueva contraseña debe ser "
+                        "diferente de la actual."
+                    )
                 else:
-                    st.error(f"No se pudo cambiar la contraseña: {error}")
+                    st.error(
+                        "No se pudo cambiar la "
+                        f"contraseña: {error}"
+                    )
 
 
 def render_logout(profile):
@@ -313,7 +484,10 @@ def render_logout(profile):
         or str(profile.get("email") or "").strip()
         or "Usuario"
     )
-    plan = str(profile.get("plan") or "Macro FX").strip()
+
+    plan = str(
+        profile.get("plan") or "Macro FX"
+    ).strip()
 
     st.markdown(
         f"""
@@ -327,7 +501,10 @@ def render_logout(profile):
 
     _change_password_form()
 
-    if st.button("Cerrar sesión", use_container_width=True):
+    if st.button(
+        "Cerrar sesión",
+        use_container_width=True,
+    ):
         try:
             client = _client()
             _restore_session(client)
