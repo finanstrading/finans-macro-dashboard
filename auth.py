@@ -1,3 +1,4 @@
+import requests
 import streamlit as st
 from supabase import create_client
 
