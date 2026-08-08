@@ -1143,93 +1143,93 @@ try:
         render_logout(AUTH_PROFILE)
 
 
-    # ===================================================
-    # CONVERSIÓN DE VALORES
-    # ===================================================
+# ===================================================
+# CONVERSIÓN DE VALORES
+# ===================================================
 
-    df["Valor"] = convertir_valores(df[indicador])
+df["Valor"] = convertir_valores(df[indicador])
 
-    datos_completos = (
-        df[["Fecha", "Valor"]]
-        .dropna()
-        .sort_values("Fecha")
-        .reset_index(drop=True)
+datos_completos = (
+    df[["Fecha", "Valor"]]
+    .dropna()
+    .sort_values("Fecha")
+    .reset_index(drop=True)
+)
+
+if datos_completos.empty:
+    st.warning("Este indicador todavía no contiene datos disponibles.")
+    st.stop()
+
+analisis = analizar_indicador(
+    datos_completos["Fecha"],
+    datos_completos["Valor"],
+    indicador,
+    divisa
+)
+
+resultados_divisa = analizar_divisa_completa(
+    df,
+    divisa,
+    indicadores,
+)
+
+currency_score = calcular_currency_score(
+    divisa,
+    resultados_divisa,
+)
+
+st.write("DEBUG CURRENCY SCORE")
+st.write(currency_score)
+
+fecha_minima = datos_completos["Fecha"].min()
+fecha_maxima = datos_completos["Fecha"].max()
+
+ultimo_registro = datos_completos.iloc[-1]
+ultimo_valor = float(ultimo_registro["Valor"])
+ultima_fecha = ultimo_registro["Fecha"]
+
+if len(datos_completos) >= 2:
+    valor_anterior = float(datos_completos.iloc[-2]["Valor"])
+    variacion = ultimo_valor - valor_anterior
+else:
+    valor_anterior = None
+    variacion = None
+
+sufijo = determinar_sufijo(indicador)
+
+ultimo_texto = formatear_valor(ultimo_valor, sufijo)
+
+anterior_texto = (
+    formatear_valor(valor_anterior, sufijo)
+    if valor_anterior is not None
+    else "Sin dato"
+)
+
+fecha_texto = ultima_fecha.strftime("%m/%Y")
+publicaciones_texto = f"{len(datos_completos):,}"
+
+if variacion is None:
+    variacion_texto = "Sin comparación"
+    clase_variacion = "metric-neutral"
+    signo_variacion = ""
+elif variacion > 0:
+    variacion_texto = (
+        f"{variacion:+.2f}{sufijo} frente al dato anterior"
     )
-
-    if datos_completos.empty:
-        st.warning("Este indicador todavía no contiene datos disponibles.")
-        st.stop()
-
-        analisis = analizar_indicador(
-        datos_completos["Fecha"],
-        datos_completos["Valor"],
-        indicador,
-        divisa
+    clase_variacion = "metric-positive"
+    signo_variacion = "▲"
+elif variacion < 0:
+    variacion_texto = (
+        f"{variacion:+.2f}{sufijo} frente al dato anterior"
     )
-
-    resultados_divisa = analizar_divisa_completa(
-        df,
-        divisa,
-        indicadores,
+    clase_variacion = "metric-negative"
+    signo_variacion = "▼"
+else:
+    variacion_texto = (
+        f"{variacion:+.2f}{sufijo} frente al dato anterior"
     )
-
-    currency_score = calcular_currency_score(
-        divisa,
-        resultados_divisa,
-    )
-
-    st.write("DEBUG CURRENCY SCORE")
-    st.write(currency_score)
-
-    fecha_minima = datos_completos["Fecha"].min()
-    fecha_maxima = datos_completos["Fecha"].max()
-
-    ultimo_registro = datos_completos.iloc[-1]
-    ultimo_valor = float(ultimo_registro["Valor"])
-    ultima_fecha = ultimo_registro["Fecha"]
-
-    if len(datos_completos) >= 2:
-        valor_anterior = float(datos_completos.iloc[-2]["Valor"])
-        variacion = ultimo_valor - valor_anterior
-    else:
-        valor_anterior = None
-        variacion = None
-
-    sufijo = determinar_sufijo(indicador)
-
-    ultimo_texto = formatear_valor(ultimo_valor, sufijo)
-
-    anterior_texto = (
-        formatear_valor(valor_anterior, sufijo)
-        if valor_anterior is not None
-        else "Sin dato"
-    )
-
-    fecha_texto = ultima_fecha.strftime("%m/%Y")
-    publicaciones_texto = f"{len(datos_completos):,}"
-
-    if variacion is None:
-        variacion_texto = "Sin comparación"
-        clase_variacion = "metric-neutral"
-        signo_variacion = ""
-    elif variacion > 0:
-        variacion_texto = (
-            f"{variacion:+.2f}{sufijo} frente al dato anterior"
-        )
-        clase_variacion = "metric-positive"
-        signo_variacion = "▲"
-    elif variacion < 0:
-        variacion_texto = (
-            f"{variacion:+.2f}{sufijo} frente al dato anterior"
-        )
-        clase_variacion = "metric-negative"
-        signo_variacion = "▼"
-    else:
-        variacion_texto = (
-            f"{variacion:+.2f}{sufijo} frente al dato anterior"
-        )
-        clase_variacion = "metric-neutral"
-        signo_variacion = "—"
+    clase_variacion = "metric-neutral"
+    signo_variacion = "—"
 
 
     # ===================================================
