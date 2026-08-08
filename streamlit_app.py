@@ -1206,40 +1206,126 @@ try:
         families = currency_score.get("families", {})
 
         rating = (
-           clasificar_currency_score(score)
+            clasificar_currency_score(score)
             if score is not None
             else "Sin evaluación"
         )
 
-    # ===================================================
-    # CABECERA CURRENCY SCORE
-    # ===================================================
+        # ===================================================
+        # CABECERA CURRENCY SCORE
+        # ===================================================
 
-    st.markdown(
-        f"""
-<div style="background:linear-gradient(135deg,#111111,#202020);
-border-radius:18px;padding:28px 30px;margin-bottom:22px;">
-    <div style="color:#d4a514;font-size:12px;font-weight:800;
-    letter-spacing:1.4px;">
-        FINANS TRADING · CURRENCY SCORE
-    </div>
-    <div style="color:white;font-size:32px;font-weight:800;
-    margin-top:8px;">
-        {divisa} · Macro Score
-    </div>
-    <div style="color:#b7bcc7;font-size:15px;margin-top:6px;">
-        Lectura macroeconómica agregada de la divisa
-    </div>
-</div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if score is None:
-        st.warning(
-            "Todavía no existen suficientes datos para calcular "
-            "el Currency Score."
+        st.markdown(
+            f'<div style="background:linear-gradient(135deg,#111111,#202020);'
+            f'border-radius:18px;padding:28px 30px;margin-bottom:22px;">'
+            f'<div style="color:#d4a514;font-size:12px;font-weight:800;'
+            f'letter-spacing:1.4px;">'
+            f'FINANS TRADING · CURRENCY SCORE'
+            f'</div>'
+            f'<div style="color:white;font-size:32px;font-weight:800;'
+            f'margin-top:8px;">'
+            f'{divisa} · Macro Score'
+            f'</div>'
+            f'<div style="color:#b7bcc7;font-size:15px;margin-top:6px;">'
+            f'Lectura macroeconómica agregada de la divisa'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
         )
+
+        if score is None:
+            st.warning(
+                "Todavía no existen suficientes datos para calcular "
+                "el Currency Score."
+            )
+            st.stop()
+
+        # ===================================================
+        # MÉTRICAS PRINCIPALES
+        # ===================================================
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric(
+                "CURRENCY SCORE",
+                f"{score:.1f}/100"
+            )
+
+        with col2:
+            st.metric(
+                "SEÑAL MACRO",
+                rating
+            )
+
+        with col3:
+            st.metric(
+                "COBERTURA",
+                f"{coverage * 100:.0f}%"
+            )
+
+        st.markdown("## Componentes macro")
+
+        # ===================================================
+        # FAMILIAS
+        # ===================================================
+
+        for nombre_familia, datos_familia in families.items():
+
+            family_score = datos_familia.get("score")
+            family_weight = datos_familia.get("peso_original", 0)
+            family_coverage = datos_familia.get("coverage", 0)
+
+            if family_score is None:
+                continue
+
+            titulo_familia = (
+                nombre_familia
+                .replace("_", " ")
+                .title()
+            )
+
+            html_familia = (
+                f'<div style="background:#ffffff;'
+                f'border:1px solid #e3e6eb;'
+                f'border-radius:14px;'
+                f'padding:18px 20px;'
+                f'margin-bottom:10px;'
+                f'display:flex;'
+                f'justify-content:space-between;'
+                f'align-items:center;">'
+
+                f'<div>'
+                f'<div style="font-size:12px;'
+                f'color:#697386;'
+                f'font-weight:800;'
+                f'letter-spacing:.6px;">'
+                f'{titulo_familia.upper()}'
+                f'</div>'
+
+                f'<div style="font-size:25px;'
+                f'font-weight:800;'
+                f'color:#111;'
+                f'margin-top:4px;">'
+                f'{family_score:.1f}/100'
+                f'</div>'
+                f'</div>'
+
+                f'<div style="text-align:right;'
+                f'color:#697386;'
+                f'font-size:13px;">'
+                f'Peso {family_weight * 100:.0f}%<br>'
+                f'Cobertura {family_coverage * 100:.0f}%'
+                f'</div>'
+
+                f'</div>'
+            )
+
+            st.markdown(
+                html_familia,
+                unsafe_allow_html=True,
+            )
+
         st.stop()
 
     # ===================================================
