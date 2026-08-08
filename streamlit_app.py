@@ -1190,7 +1190,7 @@ try:
         resultados_divisa,
     )
 
-        if vista == "Currency Score":
+    if vista == "Currency Score":
 
         score = currency_score.get("score")
         coverage = currency_score.get("coverage", 0)
