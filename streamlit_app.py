@@ -935,15 +935,15 @@ def analizar_divisa_completa(df, divisa, indicadores):
                 divisa,
             )
 
-           if resultado is not None:
+        if resultado is not None:
 
-    nombre_currency_score = (
-        MAPA_INDICADORES_IA
-        .get(str(divisa).strip().upper(), {})
-        .get(nombre_indicador, nombre_indicador)
-    )
+            nombre_currency_score = (
+                MAPA_INDICADORES_IA
+                .get(str(divisa).strip().upper(), {})
+                .get(nombre_indicador, nombre_indicador)
+        )
 
-    resultados[nombre_currency_score] = resultado
+        resultados[nombre_currency_score] = resultado
 
         except Exception:
             # Un indicador defectuoso no debe impedir
