@@ -242,12 +242,12 @@ def clasificar_indicador(indicador):
     )):
         return "salarios"
 
-    if any(p in nombre for p in (
-        "unemployment", "desempleo", "employment", "empleo",
-        "payroll", "jobless", "claims", "claimant", "vacancies",
-        "labor force", "labour force", "participation rate", "ccc"
-    )):
-        return "empleo"
+if any(p in nombre for p in (
+    "unemployment", "desempleo", "employment", "empleo",
+    "payroll", "nfp", "jobless", "claims", "claimant", "vacancies",
+    "labor force", "labour force", "participation rate", "ccc"
+)):
+    return "empleo"
 
     if any(p in nombre for p in (
         "gdp", "gross domestic product", "growth rate", "economic growth"
@@ -815,6 +815,3 @@ def analizar_indicador(fechas, valores, indicador, divisa):
     resultado["summary"] = generar_resumen(resultado)
     return resultado
 
-if __name__ == "__main__":
-    print(clasificar_indicador("Non Farm Payrolls"))
-    print(detectar_direccion_inversa("Non Farm Payrolls"))
