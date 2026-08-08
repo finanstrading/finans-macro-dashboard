@@ -937,10 +937,10 @@ def analizar_divisa_completa(df, divisa, indicadores):
 
             if resultado is not None:
 
-            nombre_currency_score = (
-                MAPA_INDICADORES_IA
-                .get(str(divisa).strip().upper(), {})
-                .get(nombre_indicador, nombre_indicador)
+                nombre_currency_score = (
+                    MAPA_INDICADORES_IA
+                    .get(str(divisa).strip().upper(), {})
+                    .get(nombre_indicador, nombre_indicador)
             )
 
             resultados[nombre_currency_score] = resultado
