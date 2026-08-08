@@ -1185,6 +1185,15 @@ try:
         indicadores,
     )
 
+# ===================================================
+# SELECTOR DE VISTA
+# ===================================================
+
+    vista = st.sidebar.radio(
+        "VISTA",
+        ["Indicador", "Currency Score"],
+        index=0,
+    )
     currency_score = calcular_currency_score(
         divisa,
         resultados_divisa,
