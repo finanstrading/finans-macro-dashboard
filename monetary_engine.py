@@ -814,3 +814,7 @@ def analizar_indicador(fechas, valores, indicador, divisa):
 
     resultado["summary"] = generar_resumen(resultado)
     return resultado
+
+if __name__ == "__main__":
+    print(clasificar_indicador("Non Farm Payrolls"))
+    print(detectar_direccion_inversa("Non Farm Payrolls"))
