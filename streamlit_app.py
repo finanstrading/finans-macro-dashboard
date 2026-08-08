@@ -1326,7 +1326,7 @@ try:
                 unsafe_allow_html=True,
             )
 
-        st.stop()
+            st.stop()
 
     # ===================================================
     # MÉTRICAS PRINCIPALES
