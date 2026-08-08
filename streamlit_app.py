@@ -1199,17 +1199,17 @@ try:
         resultados_divisa,
     )
 
-if vista == "Currency Score":
+    if vista == "Currency Score":
 
-    score = currency_score.get("score")
-    coverage = currency_score.get("coverage", 0)
-    families = currency_score.get("families", {})
+        score = currency_score.get("score")
+        coverage = currency_score.get("coverage", 0)
+        families = currency_score.get("families", {})
 
-    rating = (
-        clasificar_currency_score(score)
-        if score is not None
-        else "Sin evaluación"
-    )
+        rating = (
+           clasificar_currency_score(score)
+            if score is not None
+            else "Sin evaluación"
+        )
 
     # ===================================================
     # CABECERA CURRENCY SCORE
