@@ -237,3 +237,59 @@ def clasificar_currency_score(score):
         return "Dovish"
 
     return "Fuertemente dovish"
+
+def probar_currency_score_usd(datos_indicadores):
+    """
+    Recibe un diccionario con los resultados de analizar_indicador()
+    y calcula el Currency Score del USD.
+    """
+
+    resultado = calcular_currency_score(
+        "USD",
+        datos_indicadores,
+    )
+
+    print("\n==============================")
+    print("USD CURRENCY SCORE")
+    print("==============================")
+
+    print(
+        "Score:",
+        resultado["score"],
+        "|",
+        clasificar_currency_score(resultado["score"]),
+    )
+
+    print(
+        "Cobertura:",
+        round(resultado["coverage"] * 100, 1),
+        "%",
+    )
+
+    print("\nFAMILIAS:")
+
+    for familia, datos in resultado["families"].items():
+
+        print(
+            familia,
+            "=>",
+            datos["score"],
+            "| peso:",
+            datos.get("peso_normalizado"),
+        )
+
+        for indicador, detalle in datos["indicators"].items():
+            print(
+                "   ",
+                indicador,
+                "score:",
+                detalle["score"],
+                "peso:",
+                round(
+                    detalle["peso_normalizado"] * 100,
+                    1,
+                ),
+                "%",
+            )
+
+    return resultado
