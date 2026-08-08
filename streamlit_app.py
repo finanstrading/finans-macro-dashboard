@@ -1169,9 +1169,9 @@ try:
     currency_score = calcular_currency_score(
         divisa,
         resultados_divisa,
-)
-st.write("DEBUG CURRENCY SCORE")
-st.write(currency_score)
+    )
+    st.write("DEBUG CURRENCY SCORE")
+    st.write(currency_score)
 
     fecha_minima = datos_completos["Fecha"].min()
     fecha_maxima = datos_completos["Fecha"].max()
