@@ -1154,12 +1154,13 @@ try:
         st.warning("Este indicador todavía no contiene datos disponibles.")
         st.stop()
 
-    analisis = analizar_indicador(
+        analisis = analizar_indicador(
         datos_completos["Fecha"],
         datos_completos["Valor"],
         indicador,
         divisa
     )
+
     resultados_divisa = analizar_divisa_completa(
         df,
         divisa,
@@ -1170,6 +1171,9 @@ try:
         divisa,
         resultados_divisa,
     )
+
+    st.write("DEBUG CURRENCY SCORE")
+    st.write(currency_score)
 
     fecha_minima = datos_completos["Fecha"].min()
     fecha_maxima = datos_completos["Fecha"].max()
