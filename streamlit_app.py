@@ -1199,147 +1199,123 @@ try:
         resultados_divisa,
     )
 
-    if vista == "Currency Score":
+if vista == "Currency Score":
 
-        score = currency_score.get("score")
-        coverage = currency_score.get("coverage", 0)
-        families = currency_score.get("families", {})
+    score = currency_score.get("score")
+    coverage = currency_score.get("coverage", 0)
+    families = currency_score.get("families", {})
 
-        rating = (
-            clasificar_currency_score(score)
-            if score is not None
-            else "Sin evaluación"
+    rating = (
+        clasificar_currency_score(score)
+        if score is not None
+        else "Sin evaluación"
+    )
+
+    # ===================================================
+    # CABECERA CURRENCY SCORE
+    # ===================================================
+
+    st.markdown(
+        f"""
+<div style="background:linear-gradient(135deg,#111111,#202020);
+border-radius:18px;padding:28px 30px;margin-bottom:22px;">
+    <div style="color:#d4a514;font-size:12px;font-weight:800;
+    letter-spacing:1.4px;">
+        FINANS TRADING · CURRENCY SCORE
+    </div>
+    <div style="color:white;font-size:32px;font-weight:800;
+    margin-top:8px;">
+        {divisa} · Macro Score
+    </div>
+    <div style="color:#b7bcc7;font-size:15px;margin-top:6px;">
+        Lectura macroeconómica agregada de la divisa
+    </div>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if score is None:
+        st.warning(
+            "Todavía no existen suficientes datos para calcular "
+            "el Currency Score."
+        )
+        st.stop()
+
+    # ===================================================
+    # MÉTRICAS PRINCIPALES
+    # ===================================================
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "CURRENCY SCORE",
+            f"{score:.1f}/100"
+        )
+
+    with col2:
+        st.metric(
+            "SEÑAL MACRO",
+            rating
+        )
+
+    with col3:
+        st.metric(
+            "COBERTURA",
+            f"{coverage * 100:.0f}%"
+        )
+
+    st.markdown("## Componentes macro")
+
+    # ===================================================
+    # FAMILIAS
+    # ===================================================
+
+    for nombre_familia, datos_familia in families.items():
+
+        family_score = datos_familia.get("score")
+        family_weight = datos_familia.get("peso_original", 0)
+        family_coverage = datos_familia.get("coverage", 0)
+
+        if family_score is None:
+            continue
+
+        titulo_familia = (
+            nombre_familia
+            .replace("_", " ")
+            .title()
         )
 
         st.markdown(
             f"""
-            <div style="
-                background: linear-gradient(135deg, #111111 0%, #202020 100%);
-                border-radius: 18px;
-                padding: 28px 30px;
-                margin-bottom: 22px;
-            ">
-                <div style="
-                    color: #d4a514;
-                    font-size: 12px;
-                    font-weight: 800;
-                    letter-spacing: 1.4px;
-                ">
-                    FINANS TRADING · CURRENCY SCORE
-                </div>
+<div style="background:#ffffff;border:1px solid #e3e6eb;
+border-radius:14px;padding:18px 20px;margin-bottom:10px;
+display:flex;justify-content:space-between;align-items:center;">
 
-                <div style="
-                    color: white;
-                    font-size: 32px;
-                    font-weight: 800;
-                    margin-top: 8px;
-                ">
-                    {divisa} · Macro Score
-                </div>
+    <div>
+        <div style="font-size:12px;color:#697386;font-weight:800;
+        letter-spacing:.6px;">
+            {titulo_familia.upper()}
+        </div>
 
-                <div style="
-                    color: #b7bcc7;
-                    font-size: 15px;
-                    margin-top: 6px;
-                ">
-                    Lectura macroeconómica agregada de la divisa
-                </div>
-            </div>
+        <div style="font-size:25px;font-weight:800;color:#111;
+        margin-top:4px;">
+            {family_score:.1f}/100
+        </div>
+    </div>
+
+    <div style="text-align:right;color:#697386;font-size:13px;">
+        Peso {family_weight * 100:.0f}%<br>
+        Cobertura {family_coverage * 100:.0f}%
+    </div>
+
+</div>
             """,
             unsafe_allow_html=True,
         )
 
-        if score is None:
-            st.warning(
-                "Todavía no existen suficientes datos para calcular "
-                "el Currency Score."
-            )
-            st.stop()
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.metric(
-                "CURRENCY SCORE",
-                f"{score:.1f}/100"
-            )
-
-        with col2:
-            st.metric(
-                "SEÑAL MACRO",
-                rating
-            )
-
-        with col3:
-            st.metric(
-                "COBERTURA",
-                f"{coverage * 100:.0f}%"
-            )
-
-        st.markdown("## Componentes macro")
-
-        for nombre_familia, datos_familia in families.items():
-
-            family_score = datos_familia.get("score")
-            family_weight = datos_familia.get("peso_original", 0)
-            family_coverage = datos_familia.get("coverage", 0)
-
-            if family_score is None:
-                continue
-
-            titulo_familia = nombre_familia.replace(
-                "_", " "
-            ).title()
-
-            st.markdown(
-                f"""
-                <div style="
-                    background: white;
-                    border: 1px solid #e3e6eb;
-                    border-radius: 14px;
-                    padding: 18px 20px;
-                    margin-bottom: 10px;
-                ">
-                    <div style="
-                        display:flex;
-                        justify-content:space-between;
-                        align-items:center;
-                    ">
-                        <div>
-                            <div style="
-                                font-size:12px;
-                                color:#697386;
-                                font-weight:800;
-                                letter-spacing:.6px;
-                            ">
-                                {titulo_familia.upper()}
-                            </div>
-
-                            <div style="
-                                font-size:25px;
-                                font-weight:800;
-                                color:#111;
-                                margin-top:4px;
-                            ">
-                                {family_score:.1f}/100
-                            </div>
-                        </div>
-
-                        <div style="
-                            text-align:right;
-                            color:#697386;
-                            font-size:13px;
-                        ">
-                            Peso {family_weight * 100:.0f}%<br>
-                            Cobertura {family_coverage * 100:.0f}%
-                        </div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        st.stop()
+    st.stop()
 
     fecha_minima = datos_completos["Fecha"].min()
     fecha_maxima = datos_completos["Fecha"].max()
