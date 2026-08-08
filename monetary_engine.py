@@ -242,11 +242,11 @@ def clasificar_indicador(indicador):
     )):
         return "salarios"
 
-if any(p in nombre for p in (
-    "unemployment", "desempleo", "employment", "empleo",
-    "payroll", "nfp", "jobless", "claims", "claimant", "vacancies",
-    "labor force", "labour force", "participation rate", "ccc"
-)):
+    if any(p in nombre for p in (
+        "unemployment", "desempleo", "employment", "empleo",
+        "payroll", "nfp", "jobless", "claims", "claimant", "vacancies",
+        "labor force", "labour force", "participation rate", "ccc"
+    )):
     return "empleo"
 
     if any(p in nombre for p in (
