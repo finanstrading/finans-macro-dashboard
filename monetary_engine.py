@@ -247,7 +247,7 @@ def clasificar_indicador(indicador):
         "payroll", "nfp", "jobless", "claims", "claimant", "vacancies",
         "labor force", "labour force", "participation rate", "ccc"
     )):
-    return "empleo"
+        return "empleo"
 
     if any(p in nombre for p in (
         "gdp", "gross domestic product", "growth rate", "economic growth"
