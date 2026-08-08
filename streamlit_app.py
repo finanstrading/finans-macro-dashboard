@@ -950,6 +950,7 @@ def determinar_sufijo(nombre_indicador):
         "gdp",
         "pce",
         "ppi",
+        "household spending",
         "earnings"
     ]
 
