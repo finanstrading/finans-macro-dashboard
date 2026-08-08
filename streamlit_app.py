@@ -1015,7 +1015,19 @@ def determinar_sufijo(nombre_indicador):
         palabra in nombre
         for palabra in palabras_porcentaje
     ) else ""
+    
+    st.sidebar.markdown(
+        '<div class="sidebar-section-label">VISTA</div>',
+        unsafe_allow_html=True
+    )
 
+    vista = st.sidebar.radio(
+        "Vista",
+        ["Indicadores", "Currency Score"],
+        index=0,
+        label_visibility="collapsed",
+        key="macro_fx_view"
+    )
 
 # ===================================================
 # BARRA LATERAL — MERCADO
