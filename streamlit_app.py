@@ -898,7 +898,52 @@ def obtener_indicadores(df):
         if columna not in columnas_excluidas
         and convertir_valores(df[columna]).notna().any()
     ]
+def analizar_divisa_completa(df, divisa, indicadores):
+    """
+    Ejecuta monetary_engine para todos los indicadores disponibles
+    de una divisa y prepara los resultados para currency_score_engine.
+    """
 
+    resultados = {}
+
+    for nombre_indicador in indicadores:
+
+        valores = convertir_valores(
+            df[nombre_indicador]
+        )
+
+        datos_indicador = pd.DataFrame({
+            "Fecha": df["Fecha"],
+            "Valor": valores,
+        })
+
+        datos_indicador = (
+            datos_indicador
+            .dropna()
+            .sort_values("Fecha")
+            .reset_index(drop=True)
+        )
+
+        if len(datos_indicador) < 2:
+            continue
+
+        try:
+            resultado = analizar_indicador(
+                datos_indicador["Fecha"],
+                datos_indicador["Valor"],
+                nombre_indicador,
+                divisa,
+            )
+
+            if resultado is not None:
+                resultados[nombre_indicador] = resultado
+
+        except Exception:
+            # Un indicador defectuoso no debe impedir
+            # calcular toda la divisa.
+            continue
+
+    return resultados
 
 def añadir_margen(valor_minimo, valor_maximo):
     if valor_minimo == valor_maximo:
@@ -1115,6 +1160,18 @@ try:
         indicador,
         divisa
     )
+resultados_divisa = analizar_divisa_completa(
+    df,
+    divisa,
+    indicadores,
+)
+
+currency_score = calcular_currency_score(
+    divisa,
+    resultados_divisa,
+)
+st.write("DEBUG CURRENCY SCORE")
+st.write(currency_score)
 
     fecha_minima = datos_completos["Fecha"].min()
     fecha_maxima = datos_completos["Fecha"].max()
