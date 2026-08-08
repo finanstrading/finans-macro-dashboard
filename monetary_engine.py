@@ -290,7 +290,10 @@ def detectar_direccion_inversa(indicador):
         "claimant", "layoff"
     ))
 
-
+def es_nfp(indicador):
+    nombre = _normalizar_texto(indicador)
+    return "nfp" in nombre or "non farm payroll" in nombre
+    
 def detectar_frecuencia(indicador):
     nombre = _normalizar_texto(indicador)
 
