@@ -1326,6 +1326,84 @@ try:
                 unsafe_allow_html=True,
             )
 
+                        # ===================================================
+            # DESGLOSE DE INDICADORES
+            # ===================================================
+
+            indicadores_familia = datos_familia.get(
+                "indicators",
+                {}
+            )
+
+            if indicadores_familia:
+
+                with st.expander(
+                    f"Ver desglose de {titulo_familia}",
+                    expanded=False,
+                ):
+
+                    for nombre_indicador, datos_indicador in indicadores_familia.items():
+
+                        indicator_score = datos_indicador.get(
+                            "score"
+                        )
+
+                        peso_original = datos_indicador.get(
+                            "peso_original",
+                            0,
+                        )
+
+                        peso_normalizado = datos_indicador.get(
+                            "peso_normalizado",
+                            0,
+                        )
+
+                        contribution = datos_indicador.get(
+                            "contribution",
+                            0,
+                        )
+
+                        if indicator_score is None:
+                            continue
+
+                        columna_nombre, columna_score, columna_peso = st.columns(
+                            [2.5, 1, 1.2]
+                        )
+
+                        with columna_nombre:
+                            st.markdown(
+                                f"**{nombre_indicador}**"
+                            )
+
+                        with columna_score:
+                            st.markdown(
+                                f"**{indicator_score:.1f}/100**"
+                            )
+
+                        with columna_peso:
+                            st.markdown(
+                                f"{peso_normalizado * 100:.0f}%"
+                            )
+
+                        st.progress(
+                            max(
+                                0.0,
+                                min(
+                                    1.0,
+                                    indicator_score / 100,
+                                ),
+                            )
+                        )
+
+                        st.caption(
+                            f"Peso configurado: "
+                            f"{peso_original * 100:.0f}%"
+                            f" · Contribución al bloque: "
+                            f"{contribution:.1f} pts"
+                        )
+
+
+
         st.stop()
 
 
