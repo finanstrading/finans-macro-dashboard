@@ -1160,15 +1160,15 @@ try:
         indicador,
         divisa
     )
-resultados_divisa = analizar_divisa_completa(
-    df,
-    divisa,
-    indicadores,
-)
+    resultados_divisa = analizar_divisa_completa(
+        df,
+        divisa,
+        indicadores,
+    )
 
-currency_score = calcular_currency_score(
-    divisa,
-    resultados_divisa,
+    currency_score = calcular_currency_score(
+        divisa,
+        resultados_divisa,
 )
 st.write("DEBUG CURRENCY SCORE")
 st.write(currency_score)
