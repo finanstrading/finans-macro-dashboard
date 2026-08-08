@@ -369,6 +369,35 @@ def score_momentum(resultado, inverso=False):
         valor = 100.0 - valor
     return _limitar(valor)
 
+def score_momentum_nfp(resultado, serie):
+    """
+    Score específico para NFP.
+
+    Usa la volatilidad reciente en lugar de toda la historia para evitar
+    que los extremos de pandemia reduzcan artificialmente la importancia
+    de movimientos actuales.
+    """
+    s = _serie(serie)
+
+    if len(s) < 2:
+        return 50.0
+
+    cambio = float(s.iloc[-1] - s.iloc[-2])
+
+    # Volatilidad de los últimos 24 meses.
+    reciente = s.tail(24)
+
+    if len(reciente) >= 6:
+        escala = float(reciente.std())
+    else:
+        escala = float(s.std())
+
+    # Evita una escala excesivamente pequeña.
+    escala = max(escala, 30000.0)
+
+    valor = 50.0 + 35.0 * np.tanh(cambio / escala)
+
+    return _limitar(valor)
 
 def score_historico(resultado, inverso=False):
     percentil = resultado["percentil"]
@@ -493,17 +522,66 @@ def motor_empleo(serie, resultado, indicador, objetivo):
     inverso = detectar_direccion_inversa(indicador)
     ultimo = resultado["ultimo_valor"]
 
+    # Tratamiento específico del Non Farm Payrolls.
+    if es_nfp(indicador):
+
+        componentes = {
+            "Nivel del mercado laboral":
+                score_nivel_relativo(resultado),
+
+            "Tendencia":
+                score_tendencia(resultado),
+
+            "Impulso reciente":
+                score_momentum_nfp(resultado, serie),
+
+            "Persistencia":
+                score_persistencia(
+                    serie,
+                    float(resultado["media_historica"]),
+                    inverso=False,
+                    ventana=6,
+                ),
+
+            "Posición histórica":
+                score_historico(resultado),
+        }
+
+        pesos = {
+            "Nivel del mercado laboral": 0.25,
+            "Tendencia": 0.15,
+            "Impulso reciente": 0.25,
+            "Persistencia": 0.15,
+            "Posición histórica": 0.20,
+        }
+
+        return (
+            componentes,
+            pesos,
+            f"{ultimo:.0f}; una lectura mayor es más hawkish"
+        )
+
+    # Resto de indicadores laborales: comportamiento actual.
     componentes = {
-        "Nivel del mercado laboral": score_nivel_relativo(resultado, inverso=inverso),
-        "Tendencia": score_tendencia(resultado, inverso=inverso),
-        "Impulso reciente": score_momentum(resultado, inverso=inverso),
-        "Persistencia": score_persistencia(
-            serie,
-            float(resultado["media_historica"]),
-            inverso=inverso,
-            ventana=6,
-        ),
-        "Posición histórica": score_historico(resultado, inverso=inverso),
+        "Nivel del mercado laboral":
+            score_nivel_relativo(resultado, inverso=inverso),
+
+        "Tendencia":
+            score_tendencia(resultado, inverso=inverso),
+
+        "Impulso reciente":
+            score_momentum(resultado, inverso=inverso),
+
+        "Persistencia":
+            score_persistencia(
+                serie,
+                float(resultado["media_historica"]),
+                inverso=inverso,
+                ventana=6,
+            ),
+
+        "Posición histórica":
+            score_historico(resultado, inverso=inverso),
     }
 
     pesos = {
@@ -514,7 +592,12 @@ def motor_empleo(serie, resultado, indicador, objetivo):
         "Posición histórica": 0.05,
     }
 
-    direccion = "una lectura menor es más hawkish" if inverso else "una lectura mayor es más hawkish"
+    direccion = (
+        "una lectura menor es más hawkish"
+        if inverso
+        else "una lectura mayor es más hawkish"
+    )
+
     return componentes, pesos, f"{ultimo:.2f}; {direccion}"
 
 
