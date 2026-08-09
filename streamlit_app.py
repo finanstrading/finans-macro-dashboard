@@ -951,6 +951,97 @@ def analizar_divisa_completa(df, divisa, indicadores):
 
     return resultados
 
+ @st.cache_data(ttl=600, show_spinner=False)
+def calcular_ranking_divisas():
+
+    ranking = []
+
+    for currency, hojas in MERCADOS.items():
+
+        try:
+            df_currency, _ = cargar_datos_mercado(
+                tuple(hojas)
+            )
+
+            df_currency["Fecha"] = convertir_fechas(
+                df_currency["DATE"]
+            )
+
+            df_currency = (
+                df_currency
+                .dropna(subset=["Fecha"])
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
+
+            if df_currency.empty:
+                continue
+
+            indicadores_currency = obtener_indicadores(
+                df_currency
+            )
+
+            if not indicadores_currency:
+                continue
+
+            resultados_currency = analizar_divisa_completa(
+                df_currency,
+                currency,
+                indicadores_currency,
+            )
+
+            resultado_score = calcular_currency_score(
+                currency,
+                resultados_currency,
+            )
+
+            score = resultado_score.get("score")
+
+            if score is None:
+                continue
+
+            ranking.append({
+                "currency": currency,
+                "score": float(score),
+                "rating": clasificar_currency_score(score),
+                "coverage": float(
+                    resultado_score.get(
+                        "coverage",
+                        0
+                    )
+                ),
+            })
+
+        except Exception as error:
+            ranking.append({
+                "currency": currency,
+                "score": None,
+                "rating": "Error",
+                "coverage": 0.0,
+                "error": str(error),
+            })
+
+    ranking_validos = [
+        item
+        for item in ranking
+        if item["score"] is not None
+    ]
+
+    ranking_validos.sort(
+        key=lambda item: item["score"],
+        reverse=True,
+    )
+
+    ranking_errores = [
+        item
+        for item in ranking
+        if item["score"] is None
+    ]
+
+    return ranking_validos + ranking_errores
+
+
+
 def añadir_margen(valor_minimo, valor_maximo):
     if valor_minimo == valor_maximo:
         margen = max(abs(valor_minimo) * 0.10, 1)
@@ -1204,6 +1295,7 @@ try:
         score = currency_score.get("score")
         coverage = currency_score.get("coverage", 0)
         families = currency_score.get("families", {})
+        ranking_divisas = calcular_ranking_divisas()
 
         rating = (
             clasificar_currency_score(score)
@@ -1262,6 +1354,91 @@ try:
             st.metric(
                 "COBERTURA",
                 f"{coverage * 100:.0f}%"
+            )
+
+                    st.markdown("## Ranking macro")
+
+        st.caption(
+            "Comparación de presión macroeconómica entre las "
+            "principales divisas de Macro FX."
+        )
+
+        for posicion, item in enumerate(
+            ranking_divisas,
+            start=1,
+        ):
+
+            currency_rank = item["currency"]
+            score_rank = item["score"]
+            rating_rank = item["rating"]
+            coverage_rank = item["coverage"]
+
+            if score_rank is None:
+                continue
+
+            es_actual = (
+                currency_rank == divisa
+            )
+
+            fondo = (
+                "#FFF8E1"
+                if es_actual
+                else "#FFFFFF"
+            )
+
+            borde = (
+                "#C9A227"
+                if es_actual
+                else "#E5E7EB"
+            )
+
+            html_ranking = (
+                f'<div style="background:{fondo};'
+                f'border:1px solid {borde};'
+                f'border-radius:12px;'
+                f'padding:12px 16px;'
+                f'margin-bottom:8px;'
+                f'display:grid;'
+                f'grid-template-columns:50px 90px 1fr 130px;'
+                f'align-items:center;'
+                f'gap:10px;">'
+
+                f'<div style="color:#6B7280;'
+                f'font-weight:800;">'
+                f'#{posicion}'
+                f'</div>'
+
+                f'<div style="font-size:18px;'
+                f'font-weight:800;'
+                f'color:#111111;">'
+                f'{currency_rank}'
+                f'</div>'
+
+                f'<div>'
+                f'<div style="font-size:20px;'
+                f'font-weight:800;'
+                f'color:#111111;">'
+                f'{score_rank:.1f}/100'
+                f'</div>'
+                f'<div style="font-size:12px;'
+                f'color:#6B7280;">'
+                f'{rating_rank}'
+                f'</div>'
+                f'</div>'
+
+                f'<div style="text-align:right;'
+                f'font-size:12px;'
+                f'color:#6B7280;">'
+                f'Cobertura '
+                f'{coverage_rank * 100:.0f}%'
+                f'</div>'
+
+                f'</div>'
+            )
+
+            st.markdown(
+                html_ranking,
+                unsafe_allow_html=True,
             )
 
         st.markdown("## Componentes macro")
