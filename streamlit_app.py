@@ -1649,17 +1649,22 @@ try:
                         "<b>%{y:.1f}/100</b>"
                         "<extra></extra>"
                     ),
+                    marker=dict(
+                    size=6,
+                    color=COLOR_DORADO,
+),
                 )
             )
 
-            figura_score.add_hline(
-                y=50,
-                line_width=1,
-                line_dash="dot",
-                line_color="rgba(107, 114, 128, 0.65)",
-                annotation_text="Neutral 50",
-                annotation_position="top left",
-            )
+            if eje_score_min <= 50 <= eje_score_max:
+                figura_score.add_hline(
+                    y=50,
+                    line_width=1,
+                    line_dash="dot",
+                    line_color="rgba(107, 114, 128, 0.65)",
+                    annotation_text="Neutral 50",
+                    annotation_position="top left",
+                )
 
             figura_score.update_layout(
                 height=390,
@@ -1704,29 +1709,32 @@ try:
             eje_score_min = min_score - margen_score
             eje_score_max = max_score + margen_score
 
-            # Si el nivel neutral está cerca, también se muestra.
-            if eje_score_min <= 52:
-                eje_score_min = min(
+            min_score = float(
+                historico_grafico["Score"].min()
+            )
+
+            max_score = float(
+                historico_grafico["Score"].max()
+            )
+
+            rango_score = max_score - min_score
+
+            margen_score = max(
+                rango_score * 0.20,
+                0.8,
+            )
+
+            eje_score_min = min_score - margen_score
+            eje_score_max = max_score + margen_score
+
+            figura_score.update_yaxes(
+                range=[
                     eje_score_min,
-                    49,
-                )
-
-            if eje_score_max >= 48:
-                eje_score_max = max(
                     eje_score_max,
-                    51,
-                )
-
-            eje_score_min = max(
-                0,
-                eje_score_min,
+                ],
+                gridcolor="rgba(107, 114, 128, 0.12)",
+                fixedrange=True,
             )
-
-            eje_score_max = min(
-                100,
-                eje_score_max,
-            )
-
             st.plotly_chart(
                 figura_score,
                 use_container_width=True,
@@ -2208,7 +2216,7 @@ try:
         go.Scatter(
             x=datos_visibles["Fecha"],
             y=datos_visibles["Valor"],
-            mode="lines",
+            mode="lines+markers",
             name=indicador,
             line=dict(
                 color=COLOR_DORADO,
