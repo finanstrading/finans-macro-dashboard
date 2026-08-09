@@ -1635,11 +1635,15 @@ try:
                 go.Scatter(
                     x=historico_grafico["Fecha"],
                     y=historico_grafico["Score"],
-                    mode="lines",
+                    mode="lines+markers",
                     name="Currency Score",
                     line=dict(
                         color=COLOR_DORADO,
                         width=3,
+                    ),
+                    marker=dict(
+                        size=6,
+                        color=COLOR_DORADO,
                     ),
                     fill="tozeroy",
                     fillcolor="rgba(201, 162, 39, 0.08)",
@@ -1649,10 +1653,6 @@ try:
                         "<b>%{y:.1f}/100</b>"
                         "<extra></extra>"
                     ),
-                    marker=dict(
-                    size=6,
-                    color=COLOR_DORADO,
-),
                 )
             )
 
