@@ -1563,19 +1563,22 @@ try:
         with momentum_2:
             st.metric(
                 "1 SEMANA",
-                formatear_cambio_score(cambio_1s)
+                f"{score_1s:.1f}/100" if score_1s is not None else "Sin dato",
+                delta=formatear_cambio_score(cambio_1s),
             )
 
         with momentum_3:
             st.metric(
                 "1 MES",
-                formatear_cambio_score(cambio_1m)
+                f"{score_1m:.1f}/100" if score_1m is not None else "Sin dato",
+                delta=formatear_cambio_score(cambio_1m),
             )
 
         with momentum_4:
             st.metric(
                 "3 MESES",
-                formatear_cambio_score(cambio_3m)
+                f"{score_3m:.1f}/100" if score_3m is not None else "Sin dato",
+                delta=formatear_cambio_score(cambio_3m),
             )
 
         # ===================================================
