@@ -1174,6 +1174,154 @@ def calcular_drivers_currency_score(
 
     return drivers
 
+def calcular_drivers_historicos_currency_score(
+    currency,
+    historico_score,
+):
+
+    if historico_score is None or historico_score.empty:
+        return []
+
+    historico = (
+        historico_score
+        .copy()
+        .sort_values("Fecha")
+        .reset_index(drop=True)
+    )
+
+    if len(historico) < 2:
+        return []
+
+    # ===================================================
+    # CARGAR DATOS DE LA DIVISA UNA SOLA VEZ
+    # ===================================================
+
+    df_currency, _ = cargar_datos_mercado(
+        tuple(MERCADOS[currency])
+    )
+
+    df_currency["Fecha"] = convertir_fechas(
+        df_currency["DATE"]
+    )
+
+    df_currency = (
+        df_currency
+        .dropna(subset=["Fecha"])
+        .sort_values("Fecha")
+        .reset_index(drop=True)
+    )
+
+    indicadores_currency = obtener_indicadores(
+        df_currency
+    )
+
+    if not indicadores_currency:
+        return []
+
+    cambios_historicos = []
+
+    # ===================================================
+    # COMPARAR CADA PUNTO CON EL ANTERIOR
+    # ===================================================
+
+    for i in range(1, len(historico)):
+
+        fila_anterior = historico.iloc[i - 1]
+        fila_actual = historico.iloc[i]
+
+        fecha_anterior = fila_anterior["Fecha"]
+        fecha_actual = fila_actual["Fecha"]
+
+        score_anterior = float(
+            fila_anterior["Score"]
+        )
+
+        score_actual = float(
+            fila_actual["Score"]
+        )
+
+        cambio_score = (
+            score_actual - score_anterior
+        )
+
+        # Si el score no cambió, lo guardamos igualmente,
+        # pero evitamos recalcular todos los indicadores.
+
+        if abs(cambio_score) < 0.01:
+
+            cambios_historicos.append({
+                "Fecha": fecha_actual,
+                "Fecha anterior": fecha_anterior,
+                "Score anterior": score_anterior,
+                "Score actual": score_actual,
+                "Cambio": 0.0,
+                "Drivers": [],
+            })
+
+            continue
+
+        # ===================================================
+        # RECONSTRUIR ESTADO ANTERIOR
+        # ===================================================
+
+        resultados_anteriores = analizar_divisa_completa(
+            df_currency,
+            currency,
+            indicadores_currency,
+            fecha_corte=fecha_anterior,
+        )
+
+        currency_score_anterior = calcular_currency_score(
+            currency,
+            resultados_anteriores,
+        )
+
+        familias_anteriores = (
+            currency_score_anterior.get(
+                "families",
+                {},
+            )
+        )
+
+        # ===================================================
+        # RECONSTRUIR ESTADO ACTUAL
+        # ===================================================
+
+        resultados_actuales = analizar_divisa_completa(
+            df_currency,
+            currency,
+            indicadores_currency,
+            fecha_corte=fecha_actual,
+        )
+
+        currency_score_actual = calcular_currency_score(
+            currency,
+            resultados_actuales,
+        )
+
+        familias_actuales = (
+            currency_score_actual.get(
+                "families",
+                {},
+            )
+        )
+
+        drivers = calcular_drivers_currency_score(
+            familias_actuales,
+            familias_anteriores,
+        )
+
+        cambios_historicos.append({
+            "Fecha": fecha_actual,
+            "Fecha anterior": fecha_anterior,
+            "Score anterior": score_anterior,
+            "Score actual": score_actual,
+            "Cambio": round(cambio_score, 2),
+            "Drivers": drivers,
+        })
+
+    return cambios_historicos
+
 def calcular_drivers_ultimo_cambio(
     currency,
     historico_score,
@@ -1650,6 +1798,59 @@ try:
         divisa,
         frecuencia="W",
         periodos=26,
+        )
+
+        drivers_historicos = (
+        calcular_drivers_historicos_currency_score(
+            divisa,
+            historico_score,
+            )
+        )
+
+                debug_cambios = []
+
+        for cambio in drivers_historicos:
+
+            if abs(cambio["Cambio"]) < 0.01:
+                continue
+
+            drivers = cambio["Drivers"]
+
+            driver_principal = (
+                drivers[0]["Indicador"]
+                if drivers
+                else "Sin identificar"
+            )
+
+            impacto_principal = (
+                drivers[0]["Impacto estimado"]
+                if drivers
+                else 0
+            )
+
+            debug_cambios.append({
+                "Fecha": cambio["Fecha"],
+                "Score anterior":
+                    cambio["Score anterior"],
+                "Score actual":
+                    cambio["Score actual"],
+                "Cambio":
+                    cambio["Cambio"],
+                "Driver principal":
+                    driver_principal,
+                "Impacto principal":
+                    impacto_principal,
+                "Nº drivers":
+                    len(drivers),
+            })
+
+        st.write(
+            "DEBUG CAMBIOS HISTÓRICOS"
+        )
+
+        st.dataframe(
+            pd.DataFrame(debug_cambios),
+            use_container_width=True,
         )
 
         drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
