@@ -1356,7 +1356,7 @@ try:
                 f"{coverage * 100:.0f}%"
             )
 
-                    st.markdown("## Ranking macro")
+        st.markdown("## Ranking macro")
 
         st.caption(
             "Comparación de presión macroeconómica entre las "
