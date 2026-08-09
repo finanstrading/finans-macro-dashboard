@@ -1011,6 +1011,7 @@ def calcular_historico_currency_score(
     fecha_final = df_currency["Fecha"].max()
 
     if frecuencia == "W":
+
         fechas_corte = pd.date_range(
             end=fecha_final,
             periods=periodos,
@@ -1018,6 +1019,7 @@ def calcular_historico_currency_score(
         )
 
     elif frecuencia == "M":
+
         fechas_corte = pd.date_range(
             end=fecha_final,
             periods=periodos,
@@ -1028,6 +1030,22 @@ def calcular_historico_currency_score(
         raise ValueError(
             "La frecuencia debe ser 'W' o 'M'."
         )
+
+    # ===================================================
+    # ASEGURAR QUE LA ÚLTIMA FECHA REAL ESTÁ INCLUIDA
+    # ===================================================
+
+    fechas_corte = list(fechas_corte)
+
+    if (
+        not fechas_corte
+        or fechas_corte[-1] != fecha_final
+    ):
+        fechas_corte.append(fecha_final)
+
+    fechas_corte = sorted(
+        set(fechas_corte)
+    )
 
     historico = []
 
@@ -1063,7 +1081,24 @@ def calcular_historico_currency_score(
             "Coverage": float(coverage_historica),
         })
 
-    return pd.DataFrame(historico)
+    historico_df = pd.DataFrame(
+        historico
+    )
+
+    if historico_df.empty:
+        return historico_df
+
+    historico_df = (
+        historico_df
+        .sort_values("Fecha")
+        .drop_duplicates(
+            subset=["Fecha"],
+            keep="last",
+        )
+        .reset_index(drop=True)
+    )
+
+    return historico_df
 
 @st.cache_data(ttl=600, show_spinner=False)
 def calcular_ranking_divisas():
