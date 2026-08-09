@@ -898,10 +898,18 @@ def obtener_indicadores(df):
         if columna not in columnas_excluidas
         and convertir_valores(df[columna]).notna().any()
     ]
-def analizar_divisa_completa(df, divisa, indicadores):
+def analizar_divisa_completa(
+    df,
+    divisa,
+    indicadores,
+    fecha_corte=None,
+):
     """
     Ejecuta monetary_engine para todos los indicadores disponibles
     de una divisa y prepara los resultados para currency_score_engine.
+
+    Si fecha_corte está definida, solamente utiliza información
+    disponible hasta esa fecha.
     """
 
     resultados = {}
@@ -916,6 +924,11 @@ def analizar_divisa_completa(df, divisa, indicadores):
             "Fecha": df["Fecha"],
             "Valor": valores,
         })
+
+        if fecha_corte is not None:
+            datos_indicador = datos_indicador[
+                datos_indicador["Fecha"] <= fecha_corte
+            ].copy()
 
         datos_indicador = (
             datos_indicador
@@ -950,6 +963,107 @@ def analizar_divisa_completa(df, divisa, indicadores):
             continue
 
     return resultados
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def calcular_historico_currency_score(
+    currency,
+    frecuencia="W",
+    periodos=26,
+):
+
+    df_currency, _ = cargar_datos_mercado(
+        tuple(MERCADOS[currency])
+    )
+
+    df_currency["Fecha"] = convertir_fechas(
+        df_currency["DATE"]
+    )
+
+    df_currency = (
+        df_currency
+        .dropna(subset=["Fecha"])
+        .sort_values("Fecha")
+        .reset_index(drop=True)
+    )
+
+    if df_currency.empty:
+        return pd.DataFrame(
+            columns=[
+                "Fecha",
+                "Score",
+                "Coverage",
+            ]
+        )
+
+    indicadores_currency = obtener_indicadores(
+        df_currency
+    )
+
+    if not indicadores_currency:
+        return pd.DataFrame(
+            columns=[
+                "Fecha",
+                "Score",
+                "Coverage",
+            ]
+        )
+
+    fecha_final = df_currency["Fecha"].max()
+
+    if frecuencia == "W":
+        fechas_corte = pd.date_range(
+            end=fecha_final,
+            periods=periodos,
+            freq="W",
+        )
+
+    elif frecuencia == "M":
+        fechas_corte = pd.date_range(
+            end=fecha_final,
+            periods=periodos,
+            freq="ME",
+        )
+
+    else:
+        raise ValueError(
+            "La frecuencia debe ser 'W' o 'M'."
+        )
+
+    historico = []
+
+    for fecha_corte in fechas_corte:
+
+        resultados = analizar_divisa_completa(
+            df_currency,
+            currency,
+            indicadores_currency,
+            fecha_corte=fecha_corte,
+        )
+
+        resultado_score = calcular_currency_score(
+            currency,
+            resultados,
+        )
+
+        score_historico = resultado_score.get(
+            "score"
+        )
+
+        coverage_historica = resultado_score.get(
+            "coverage",
+            0,
+        )
+
+        if score_historico is None:
+            continue
+
+        historico.append({
+            "Fecha": fecha_corte,
+            "Score": float(score_historico),
+            "Coverage": float(coverage_historica),
+        })
+
+    return pd.DataFrame(historico)
 
 @st.cache_data(ttl=600, show_spinner=False)
 def calcular_ranking_divisas():
@@ -1296,6 +1410,15 @@ try:
         coverage = currency_score.get("coverage", 0)
         families = currency_score.get("families", {})
         ranking_divisas = calcular_ranking_divisas()
+
+        historico_score = calcular_historico_currency_score(
+        divisa,
+        frecuencia="W",
+        periodos=26,
+        )
+
+        st.write("DEBUG HISTÓRICO CURRENCY SCORE")
+        st.dataframe(historico_score)
 
         rating = (
             clasificar_currency_score(score)
