@@ -2202,6 +2202,179 @@ try:
             },
         )
 
+        # ===================================================
+        # DRIVERS DE LOS CAMBIOS DEL CURRENCY SCORE
+        # ===================================================
+
+        st.markdown("## ¿Qué movió el Currency Score?")
+
+        st.caption(
+            "Consulta los principales indicadores que explican "
+            "cada cambio observado en la evolución del score."
+        )
+
+        cambios_relevantes = [
+            cambio
+            for cambio in drivers_historicos
+            if abs(cambio["Cambio"]) >= 0.01
+        ]
+
+        if not cambios_relevantes:
+
+            st.info(
+                "No se han detectado cambios relevantes "
+                "del Currency Score en el periodo seleccionado."
+            )
+
+        else:
+
+            for cambio in reversed(cambios_relevantes):
+
+                fecha_anterior = pd.to_datetime(
+                    cambio["Fecha anterior"]
+                )
+
+                fecha_actual = pd.to_datetime(
+                    cambio["Fecha"]
+                )
+
+                score_anterior_cambio = float(
+                    cambio["Score anterior"]
+                )
+
+                score_actual_cambio = float(
+                    cambio["Score actual"]
+                )
+
+                variacion_cambio = float(
+                    cambio["Cambio"]
+                )
+
+                drivers_cambio = cambio.get(
+                    "Drivers",
+                    []
+                )
+
+                if variacion_cambio > 0:
+                    simbolo = "▲"
+                    direccion = "Más hawkish"
+
+                elif variacion_cambio < 0:
+                    simbolo = "▼"
+                    direccion = "Más dovish"
+
+                else:
+                    simbolo = "—"
+                    direccion = "Sin cambio"
+
+                titulo_cambio = (
+                    f"{fecha_anterior.strftime('%d %b')} → "
+                    f"{fecha_actual.strftime('%d %b %Y')} · "
+                    f"{score_anterior_cambio:.1f} → "
+                    f"{score_actual_cambio:.1f} · "
+                    f"{simbolo} {variacion_cambio:+.1f} pts"
+                )
+
+                with st.expander(
+                    titulo_cambio,
+                    expanded=False,
+                ):
+
+                    st.caption(
+                        f"Dirección macro: {direccion}"
+                    )
+
+                    if not drivers_cambio:
+
+                        st.write(
+                            "No se identificaron drivers "
+                            "individuales para este movimiento."
+                        )
+
+                        continue
+
+                    for driver in drivers_cambio:
+
+                        nombre_driver = driver.get(
+                            "Indicador",
+                            "Indicador",
+                        )
+
+                        familia_driver = driver.get(
+                            "Familia",
+                            "",
+                        )
+
+                        score_driver_anterior = driver.get(
+                            "Score anterior"
+                        )
+
+                        score_driver_actual = driver.get(
+                            "Score actual"
+                        )
+
+                        impacto_driver = driver.get(
+                            "Impacto estimado",
+                            0,
+                        )
+
+                        cambio_driver = driver.get(
+                            "Cambio indicador",
+                            0,
+                        )
+
+                        col_driver_1, col_driver_2, col_driver_3 = (
+                            st.columns(
+                                [2.4, 1.2, 1.2]
+                            )
+                        )
+
+                        with col_driver_1:
+
+                            st.markdown(
+                                f"**{nombre_driver}**"
+                            )
+
+                            if familia_driver:
+                                st.caption(
+                                    familia_driver.title()
+                                )
+
+                        with col_driver_2:
+
+                            st.markdown(
+                                f"{score_driver_anterior:.1f} → "
+                                f"{score_driver_actual:.1f}"
+                            )
+
+                            st.caption(
+                                f"Δ indicador "
+                                f"{cambio_driver:+.1f}"
+                            )
+
+                        with col_driver_3:
+
+                            if impacto_driver > 0:
+                                impacto_texto = (
+                                    f"▲ +{impacto_driver:.2f} pts"
+                                )
+
+                            elif impacto_driver < 0:
+                                impacto_texto = (
+                                    f"▼ {impacto_driver:.2f} pts"
+                                )
+
+                            else:
+                                impacto_texto = "— 0.00 pts"
+
+                            st.markdown(
+                                f"**{impacto_texto}**"
+                            )
+
+                            st.caption(
+                                "Impacto estimado"
+                            )
+
         st.markdown("## Ranking macro")
 
         st.caption(
