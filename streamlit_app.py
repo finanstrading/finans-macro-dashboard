@@ -1730,16 +1730,16 @@ try:
             gridcolor="rgba(107, 114, 128, 0.12)",
             fixedrange=True,
         )
-            st.plotly_chart(
-                figura_score,
-                use_container_width=True,
-                config={
-                    "displaylogo": False,
-                    "displayModeBar": False,
-                    "scrollZoom": False,
-                    "responsive": True,
-                },
-            )
+        st.plotly_chart(
+            figura_score,
+            use_container_width=True,
+            config={
+                "displaylogo": False,
+                "displayModeBar": False,
+                "scrollZoom": False,
+                "responsive": True,
+            },
+        )
 
         st.markdown("## Ranking macro")
 
