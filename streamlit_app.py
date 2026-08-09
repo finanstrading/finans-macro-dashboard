@@ -952,7 +952,7 @@ def analizar_divisa_completa(df, divisa, indicadores):
     return resultados
 
  @st.cache_data(ttl=600, show_spinner=False)
-def calcular_ranking_divisas():
+ def calcular_ranking_divisas():
 
     ranking = []
 
