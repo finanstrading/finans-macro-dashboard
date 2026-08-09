@@ -1174,6 +1174,132 @@ def calcular_drivers_currency_score(
 
     return drivers
 
+def calcular_drivers_ultimo_cambio(
+    currency,
+    historico_score,
+):
+
+    if historico_score is None or historico_score.empty:
+        return None
+
+    historico = (
+        historico_score
+        .copy()
+        .sort_values("Fecha")
+        .reset_index(drop=True)
+    )
+
+    if len(historico) < 2:
+        return None
+
+    ultima_fila = historico.iloc[-1]
+
+    fecha_actual = ultima_fila["Fecha"]
+    score_actual = float(ultima_fila["Score"])
+
+    # Buscar hacia atrás el último punto
+    # donde el Currency Score era diferente.
+    historico_anterior = historico.iloc[:-1].copy()
+
+    historico_anterior = historico_anterior[
+        abs(
+            historico_anterior["Score"]
+            - score_actual
+        ) > 0.01
+    ]
+
+    if historico_anterior.empty:
+        return None
+
+    fila_anterior = historico_anterior.iloc[-1]
+
+    fecha_anterior = fila_anterior["Fecha"]
+    score_anterior = float(
+        fila_anterior["Score"]
+    )
+
+    # ===================================================
+    # CARGAR DATOS DE LA DIVISA
+    # ===================================================
+
+    df_currency, _ = cargar_datos_mercado(
+        tuple(MERCADOS[currency])
+    )
+
+    df_currency["Fecha"] = convertir_fechas(
+        df_currency["DATE"]
+    )
+
+    df_currency = (
+        df_currency
+        .dropna(subset=["Fecha"])
+        .sort_values("Fecha")
+        .reset_index(drop=True)
+    )
+
+    indicadores_currency = obtener_indicadores(
+        df_currency
+    )
+
+    # ===================================================
+    # RECONSTRUIR LOS DOS ESTADOS
+    # ===================================================
+
+    resultados_anteriores = analizar_divisa_completa(
+        df_currency,
+        currency,
+        indicadores_currency,
+        fecha_corte=fecha_anterior,
+    )
+
+    resultados_actuales = analizar_divisa_completa(
+        df_currency,
+        currency,
+        indicadores_currency,
+        fecha_corte=fecha_actual,
+    )
+
+    currency_score_anterior = calcular_currency_score(
+        currency,
+        resultados_anteriores,
+    )
+
+    currency_score_actual = calcular_currency_score(
+        currency,
+        resultados_actuales,
+    )
+
+    familias_anteriores = (
+        currency_score_anterior.get(
+            "families",
+            {},
+        )
+    )
+
+    familias_actuales = (
+        currency_score_actual.get(
+            "families",
+            {},
+        )
+    )
+
+    drivers = calcular_drivers_currency_score(
+        familias_actuales,
+        familias_anteriores,
+    )
+
+    return {
+        "fecha_anterior": fecha_anterior,
+        "fecha_actual": fecha_actual,
+        "score_anterior": score_anterior,
+        "score_actual": score_actual,
+        "cambio_score": round(
+            score_actual - score_anterior,
+            2,
+        ),
+        "drivers": drivers,
+    }
+
 @st.cache_data(ttl=600, show_spinner=False)
 def calcular_ranking_divisas():
 
@@ -1525,6 +1651,45 @@ try:
         frecuencia="W",
         periodos=26,
         )
+
+                drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
+            divisa,
+            historico_score,
+        )
+
+        st.write("DEBUG DRIVERS ÚLTIMO CAMBIO")
+
+        if drivers_ultimo_cambio is None:
+            st.write(
+                "No se ha encontrado un cambio anterior "
+                "del Currency Score."
+            )
+
+        else:
+            st.write({
+                "Fecha anterior":
+                    drivers_ultimo_cambio["fecha_anterior"],
+
+                "Fecha actual":
+                    drivers_ultimo_cambio["fecha_actual"],
+
+                "Score anterior":
+                    drivers_ultimo_cambio["score_anterior"],
+
+                "Score actual":
+                    drivers_ultimo_cambio["score_actual"],
+
+                "Cambio":
+                    drivers_ultimo_cambio["cambio_score"],
+            })
+
+            if drivers_ultimo_cambio["drivers"]:
+                st.dataframe(
+                    pd.DataFrame(
+                        drivers_ultimo_cambio["drivers"]
+                    ),
+                    use_container_width=True,
+                )
 
         def obtener_score_historico(historico, semanas_atras):
             if historico.empty:
