@@ -1807,111 +1807,13 @@ try:
             )
         )
 
-        debug_cambios = []
-
-        for cambio in drivers_historicos:
-
-            if abs(cambio["Cambio"]) < 0.01:
-                continue
-
-            drivers = cambio["Drivers"]
-
-            driver_principal = (
-                drivers[0]["Indicador"]
-                if drivers
-                else "Sin identificar"
-            )
-
-            impacto_principal = (
-                drivers[0]["Impacto estimado"]
-                if drivers
-                else 0
-            )
-
-            debug_cambios.append({
-                "Fecha": cambio["Fecha"],
-                "Score anterior":
-                    cambio["Score anterior"],
-                "Score actual":
-                    cambio["Score actual"],
-                "Cambio":
-                    cambio["Cambio"],
-                "Driver principal":
-                    driver_principal,
-                "Impacto principal":
-                    impacto_principal,
-                "Nº drivers":
-                    len(drivers),
-            })
-
-        st.write(
-            "DEBUG CAMBIOS HISTÓRICOS"
-        )
-
-        st.dataframe(
-            pd.DataFrame(debug_cambios),
-            use_container_width=True,
-        )
 
         drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
         divisa,
         historico_score,
         )
 
-        st.write("DEBUG DRIVERS ÚLTIMO CAMBIO")
 
-        if drivers_ultimo_cambio is None:
-            st.write(
-                "No se ha encontrado un cambio anterior "
-                "del Currency Score."
-            )
-
-        else:
-            st.write({
-                "Fecha anterior":
-                    drivers_ultimo_cambio["fecha_anterior"],
-
-                "Fecha actual":
-                    drivers_ultimo_cambio["fecha_actual"],
-
-                "Score anterior":
-                    drivers_ultimo_cambio["score_anterior"],
-
-                "Score actual":
-                    drivers_ultimo_cambio["score_actual"],
-
-                "Cambio":
-                    drivers_ultimo_cambio["cambio_score"],
-            })
-
-            if drivers_ultimo_cambio["drivers"]:
-                df_debug_drivers = pd.DataFrame(
-                    drivers_ultimo_cambio["drivers"]
-                )
-
-                st.write("DEBUG IMPACTOS")
-                st.write(
-                    df_debug_drivers[
-                        [
-                            "Indicador",
-                            "Cambio indicador",
-                            "Impacto estimado",
-                        ]
-                    ].to_dict("records")
-                )
-
-                st.write(
-                    "SUMA IMPACTOS:",
-                    round(
-                        df_debug_drivers["Impacto estimado"].sum(),
-                        2,
-                    )
-                )
-
-                st.dataframe(
-                    df_debug_drivers,
-                    use_container_width=True,
-                )
 
         def obtener_score_historico(historico, semanas_atras):
             if historico.empty:
