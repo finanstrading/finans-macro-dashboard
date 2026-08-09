@@ -1629,112 +1629,107 @@ try:
                 .reset_index(drop=True)
             )
 
-            figura_score = go.Figure()
+        figura_score = go.Figure()
 
-            figura_score.add_trace(
-                go.Scatter(
-                    x=historico_grafico["Fecha"],
-                    y=historico_grafico["Score"],
-                    mode="lines+markers",
-                    name="Currency Score",
-                    line=dict(
-                        color=COLOR_DORADO,
-                        width=3,
-                    ),
-                    marker=dict(
-                        size=6,
-                        color=COLOR_DORADO,
-                    ),
-                    fill="tozeroy",
-                    fillcolor="rgba(201, 162, 39, 0.08)",
-                    hovertemplate=(
-                        "<b>%{x|%d %b %Y}</b>"
-                        "<br>Currency Score: "
-                        "<b>%{y:.1f}/100</b>"
-                        "<extra></extra>"
-                    ),
-                )
-            )
-
-            if eje_score_min <= 50 <= eje_score_max:
-                figura_score.add_hline(
-                    y=50,
-                    line_width=1,
-                    line_dash="dot",
-                    line_color="rgba(107, 114, 128, 0.65)",
-                    annotation_text="Neutral 50",
-                    annotation_position="top left",
-                )
-
-            figura_score.update_layout(
-                height=390,
-                margin=dict(
-                    l=20,
-                    r=20,
-                    t=25,
-                    b=20,
+        figura_score.add_trace(
+            go.Scatter(
+                x=historico_grafico["Fecha"],
+                y=historico_grafico["Score"],
+                mode="lines+markers",
+                name="Currency Score",
+                line=dict(
+                    color=COLOR_DORADO,
+                    width=3,
                 ),
-                paper_bgcolor=COLOR_TARJETA,
-                plot_bgcolor=COLOR_TARJETA,
-                showlegend=False,
-                hovermode="x unified",
-                dragmode=False,
-                font=dict(
-                    family="Inter, Arial, sans-serif",
-                    color=COLOR_NEGRO,
+                marker=dict(
+                    size=6,
+                    color=COLOR_DORADO,
+                ),
+                fill="tozeroy",
+                fillcolor="rgba(201, 162, 39, 0.08)",
+                hovertemplate=(
+                    "<b>%{x|%d %b %Y}</b>"
+                    "<br>Currency Score: "
+                    "<b>%{y:.1f}/100</b>"
+                    "<extra></extra>"
                 ),
             )
+        )
 
-            figura_score.update_xaxes(
-                showgrid=False,
-                showline=True,
-                linecolor="#D1D5DB",
-                tickformat="%b %Y",
-                fixedrange=True,
+        # ===================================================
+        # ESCALA DINÁMICA
+        # ===================================================
+
+        min_score = float(
+            historico_grafico["Score"].min()
+        )
+
+        max_score = float(
+            historico_grafico["Score"].max()
+        )
+
+        rango_score = max_score - min_score
+
+        margen_score = max(
+            rango_score * 0.20,
+            0.8,
+        )
+
+        eje_score_min = max(
+            0,
+            min_score - margen_score,
+        )
+
+        eje_score_max = min(
+            100,
+            max_score + margen_score,
+        )
+
+        # ===================================================
+        # LÍNEA NEUTRAL
+        # ===================================================
+
+        if eje_score_min <= 50 <= eje_score_max:
+            figura_score.add_hline(
+                y=50,
+                line_width=1,
+                line_dash="dot",
+                line_color="rgba(107, 114, 128, 0.65)",
+                annotation_text="Neutral 50",
+                annotation_position="top left",
             )
 
-            min_score = float(
-                historico_grafico["Score"].min()
-            )
+        # ===================================================
+        # DISEÑO DEL GRÁFICO
+        # ===================================================
 
-            max_score = float(
-                historico_grafico["Score"].max()
-            )
+        figura_score.update_layout(
+            height=360,
+            margin=dict(
+                l=10,
+                r=10,
+                t=10,
+                b=10,
+            ),
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            showlegend=False,
+            hovermode="x unified",
+        )
 
-            margen_score = max(
-                (max_score - min_score) * 0.25,
-                2.0,
-            )
+        figura_score.update_xaxes(
+            gridcolor="rgba(107, 114, 128, 0.08)",
+            fixedrange=True,
+        )
 
-            eje_score_min = min_score - margen_score
-            eje_score_max = max_score + margen_score
-
-            min_score = float(
-                historico_grafico["Score"].min()
-            )
-
-            max_score = float(
-                historico_grafico["Score"].max()
-            )
-
-            rango_score = max_score - min_score
-
-            margen_score = max(
-                rango_score * 0.20,
-                0.8,
-            )
-
-            eje_score_min = min_score - margen_score
-            eje_score_max = max_score + margen_score
-
-            figura_score.update_yaxes(
-                range=[
-                    eje_score_min,
-                    eje_score_max,
-                ],
-                gridcolor="rgba(107, 114, 128, 0.12)",
-                fixedrange=True,
-            )
+        figura_score.update_yaxes(
+            range=[
+                eje_score_min,
+                eje_score_max,
+            ],
+            gridcolor="rgba(107, 114, 128, 0.12)",
+            fixedrange=True,
+        )
             st.plotly_chart(
                 figura_score,
                 use_container_width=True,
