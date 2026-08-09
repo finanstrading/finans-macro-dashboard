@@ -1688,10 +1688,43 @@ try:
                 fixedrange=True,
             )
 
-            figura_score.update_yaxes(
-                range=[0, 100],
-                gridcolor="rgba(107, 114, 128, 0.12)",
-                fixedrange=True,
+            min_score = float(
+                historico_grafico["Score"].min()
+            )
+
+            max_score = float(
+                historico_grafico["Score"].max()
+            )
+
+            margen_score = max(
+                (max_score - min_score) * 0.25,
+                2.0,
+            )
+
+            eje_score_min = min_score - margen_score
+            eje_score_max = max_score + margen_score
+
+            # Si el nivel neutral está cerca, también se muestra.
+            if eje_score_min <= 52:
+                eje_score_min = min(
+                    eje_score_min,
+                    49,
+                )
+
+            if eje_score_max >= 48:
+                eje_score_max = max(
+                    eje_score_max,
+                    51,
+                )
+
+            eje_score_min = max(
+                0,
+                eje_score_min,
+            )
+
+            eje_score_max = min(
+                100,
+                eje_score_max,
             )
 
             st.plotly_chart(
