@@ -1531,6 +1531,142 @@ try:
                 f"{coverage * 100:.0f}%"
             )
 
+        # ===================================================
+        # MOMENTUM DEL CURRENCY SCORE
+        # ===================================================
+
+        st.markdown("## Evolución del Currency Score")
+
+        st.caption(
+            "Cambios en la presión macroeconómica agregada "
+            "de la divisa."
+        )
+
+        def formatear_cambio_score(cambio):
+            if cambio is None:
+                return "Sin dato"
+
+            if cambio > 0:
+                return f"+{cambio:.1f} pts"
+
+            return f"{cambio:.1f} pts"
+
+
+        momentum_1, momentum_2, momentum_3, momentum_4 = st.columns(4)
+
+        with momentum_1:
+            st.metric(
+                "SCORE ACTUAL",
+                f"{score:.1f}/100"
+            )
+
+        with momentum_2:
+            st.metric(
+                "1 SEMANA",
+                formatear_cambio_score(cambio_1s)
+            )
+
+        with momentum_3:
+            st.metric(
+                "1 MES",
+                formatear_cambio_score(cambio_1m)
+            )
+
+        with momentum_4:
+            st.metric(
+                "3 MESES",
+                formatear_cambio_score(cambio_3m)
+            )
+
+        # ===================================================
+        # GRÁFICO HISTÓRICO DEL SCORE
+        # ===================================================
+
+        if not historico_score.empty:
+
+            historico_grafico = (
+                historico_score
+                .copy()
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
+
+            figura_score = go.Figure()
+
+            figura_score.add_trace(
+                go.Scatter(
+                    x=historico_grafico["Fecha"],
+                    y=historico_grafico["Score"],
+                    mode="lines",
+                    name="Currency Score",
+                    line=dict(
+                        color=COLOR_DORADO,
+                        width=3,
+                    ),
+                    fill="tozeroy",
+                    fillcolor="rgba(201, 162, 39, 0.08)",
+                    hovertemplate=(
+                        "<b>%{x|%d %b %Y}</b>"
+                        "<br>Currency Score: "
+                        "<b>%{y:.1f}/100</b>"
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+            figura_score.add_hline(
+                y=50,
+                line_width=1,
+                line_dash="dot",
+                line_color="rgba(107, 114, 128, 0.65)",
+                annotation_text="Neutral 50",
+                annotation_position="top left",
+            )
+
+            figura_score.update_layout(
+                height=390,
+                margin=dict(
+                    l=20,
+                    r=20,
+                    t=25,
+                    b=20,
+                ),
+                paper_bgcolor=COLOR_TARJETA,
+                plot_bgcolor=COLOR_TARJETA,
+                showlegend=False,
+                hovermode="x unified",
+                dragmode=False,
+                font=dict(
+                    family="Inter, Arial, sans-serif",
+                    color=COLOR_NEGRO,
+                ),
+            )
+
+            figura_score.update_xaxes(
+                showgrid=False,
+                showline=True,
+                linecolor="#D1D5DB",
+                tickformat="%b %Y",
+                fixedrange=True,
+            )
+
+            figura_score.update_yaxes(
+                range=[0, 100],
+                gridcolor="rgba(107, 114, 128, 0.12)",
+                fixedrange=True,
+            )
+
+            st.plotly_chart(
+                figura_score,
+                use_container_width=True,
+                config={
+                    "displaylogo": False,
+                    "displayModeBar": False,
+                    "scrollZoom": False,
+                    "responsive": True,
+                },
+            )
+
         st.markdown("## Ranking macro")
 
         st.caption(
