@@ -1100,6 +1100,80 @@ def calcular_historico_currency_score(
 
     return historico_df
 
+def calcular_drivers_currency_score(
+    resultados_actuales,
+    resultados_anteriores,
+):
+    drivers = []
+
+    if not resultados_actuales or not resultados_anteriores:
+        return drivers
+
+    familias = set(resultados_actuales.keys()) | set(
+        resultados_anteriores.keys()
+    )
+
+    for familia in familias:
+
+        actual = resultados_actuales.get(familia, {})
+        anterior = resultados_anteriores.get(familia, {})
+
+        indicadores_actuales = actual.get("indicators", {})
+        indicadores_anteriores = anterior.get("indicators", {})
+
+        indicadores = set(indicadores_actuales.keys()) | set(
+            indicadores_anteriores.keys()
+        )
+
+        for indicador in indicadores:
+
+            dato_actual = indicadores_actuales.get(indicador, {})
+            dato_anterior = indicadores_anteriores.get(indicador, {})
+
+            score_actual = dato_actual.get("score")
+            score_anterior = dato_anterior.get("score")
+
+            if score_actual is None or score_anterior is None:
+                continue
+
+            cambio_score = score_actual - score_anterior
+
+            if abs(cambio_score) < 0.01:
+                continue
+
+            peso_familia = actual.get(
+                "peso_normalizado",
+                actual.get("peso_original", 0),
+            )
+
+            peso_indicador = dato_actual.get(
+                "peso_normalizado",
+                dato_actual.get("peso_original", 0),
+            )
+
+            impacto_estimado = (
+                cambio_score
+                * peso_indicador
+                * peso_familia
+            )
+
+            drivers.append({
+                "Familia": familia,
+                "Indicador": indicador,
+                "Score anterior": round(score_anterior, 1),
+                "Score actual": round(score_actual, 1),
+                "Cambio indicador": round(cambio_score, 1),
+                "Impacto estimado": round(impacto_estimado, 2),
+            })
+
+    drivers = sorted(
+        drivers,
+        key=lambda x: abs(x["Impacto estimado"]),
+        reverse=True,
+    )
+
+    return drivers
+
 @st.cache_data(ttl=600, show_spinner=False)
 def calcular_ranking_divisas():
 
