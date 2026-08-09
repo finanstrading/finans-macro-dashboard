@@ -1652,9 +1652,9 @@ try:
         periodos=26,
         )
 
-            drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
-            divisa,
-            historico_score,
+        drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
+        divisa,
+        historico_score,
         )
 
         st.write("DEBUG DRIVERS ÚLTIMO CAMBIO")
