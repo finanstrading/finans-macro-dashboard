@@ -1807,7 +1807,7 @@ try:
             )
         )
 
-                debug_cambios = []
+        debug_cambios = []
 
         for cambio in drivers_historicos:
 
