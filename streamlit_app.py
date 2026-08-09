@@ -1684,10 +1684,31 @@ try:
             })
 
             if drivers_ultimo_cambio["drivers"]:
+                df_debug_drivers = pd.DataFrame(
+                    drivers_ultimo_cambio["drivers"]
+                )
+
+                st.write("DEBUG IMPACTOS")
+                st.write(
+                    df_debug_drivers[
+                        [
+                            "Indicador",
+                            "Cambio indicador",
+                            "Impacto estimado",
+                        ]
+                    ].to_dict("records")
+                )
+
+                st.write(
+                    "SUMA IMPACTOS:",
+                    round(
+                        df_debug_drivers["Impacto estimado"].sum(),
+                        2,
+                    )
+                )
+
                 st.dataframe(
-                    pd.DataFrame(
-                        drivers_ultimo_cambio["drivers"]
-                    ),
+                    df_debug_drivers,
                     use_container_width=True,
                 )
 
