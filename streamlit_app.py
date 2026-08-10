@@ -1579,23 +1579,23 @@ for fecha_corte in fechas_corte:
     )
 
 
-        score_historico = resultado_score.get(
-            "score"
-        )
+    score_historico = resultado_score.get(
+        "score"
+    )
 
-        coverage_historica = resultado_score.get(
-            "coverage",
-            0,
-        )
+    coverage_historica = resultado_score.get(
+        "coverage",
+        0,
+    )
 
-        if score_historico is None:
-            continue
+    if score_historico is None:
+        continue
 
-        historico.append({
-            "Fecha": fecha_corte,
-            "Score": float(score_historico),
-            "Coverage": float(coverage_historica),
-        })
+    historico.append({
+        "Fecha": fecha_corte,
+        "Score": float(score_historico),
+        "Coverage": float(coverage_historica),
+    })
 
     historico_df = pd.DataFrame(
         historico
