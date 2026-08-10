@@ -1731,6 +1731,49 @@ def construir_df_currency_por_release(
                 "comparison": "mom",
             },
 
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+
+            "Core CPI YoY": {
+                "names": [
+                    "RBA Trimmed Mean CPI",
+                ],
+                "comparison": "yoy",
+            },
+
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Manufacturing PMI": {
+                "names": [
+                    "Manufacturing PMI",
+                    "Judo Bank Manufacturing PMI",
+                    "S&P Global Manufacturing PMI",
+                ],
+                "comparison": "",
+            },
+
+            "Services PMI": {
+                "names": [
+                    "Services PMI",
+                    "Judo Bank Services PMI",
+                    "S&P Global Services PMI",
+                ],
+                "comparison": "",
+            },
+
+            "Business Confidence": {
+                "names": [
+                    "NAB Business Confidence",
+                    "Business Confidence",
+                ],
+                "comparison": "",
+            },
+
             # No sustituimos Core CPI por Median CPI /
             # Trimmed Mean CPI sin verificar que sea exactamente
             # la serie que usa Dashboard_AUD.
