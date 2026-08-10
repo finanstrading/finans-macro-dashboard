@@ -1525,7 +1525,7 @@ if not fechas_disponibles:
 
 fecha_final = max(
     fechas_disponibles
-)
+    )
 
     if frecuencia == "W":
 
