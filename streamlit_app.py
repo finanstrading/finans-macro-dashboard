@@ -2034,6 +2034,29 @@ def construir_df_currency_por_release(
             config = config_proxy
             es_proxy_release = True
 
+        if config is None:
+
+            serie_fallback = pd.DataFrame({
+                "Fecha": dashboard["Fecha"],
+                "Valor": convertir_valores(
+                    dashboard[columna]
+                ),
+                "Period": dashboard["_Periodo"].astype(str),
+                "FuenteFecha": "Fallback Dashboard",
+            })
+
+            serie_fallback = (
+                serie_fallback
+                .dropna(subset=["Fecha", "Valor"])
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
+
+            if not serie_fallback.empty:
+                series_por_indicador[nombre_score] = serie_fallback
+
+            continue
+
 
 
         # -----------------------------------------------
