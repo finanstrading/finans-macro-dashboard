@@ -2396,11 +2396,41 @@ def construir_df_currency_por_release(
                     "Periodo",
                     "ReleaseDate",
                     "Period",
+                    "Actual",
+                    "Indicator",
                 ]
             ],
             on="Periodo",
             how="left",
         )
+
+        # ===================================================
+        # PMI: USAR VALOR ACTUAL DE EODHD CUANDO ESTÉ DISPONIBLE
+        # ===================================================
+
+        indicadores_pmi_api = {
+            "Manufacturing PMI",
+            "Services PMI",
+        }
+
+        usar_valor_pmi_eodhd = (
+            nombre_score in indicadores_pmi_api
+            and not es_proxy_release
+        )
+
+        if usar_valor_pmi_eodhd:
+
+            serie["Actual_EODHD"] = convertir_valores(
+                serie["Actual"]
+            )
+
+            serie.loc[
+                serie["Actual_EODHD"].notna(),
+                "Valor",
+            ] = serie.loc[
+                serie["Actual_EODHD"].notna(),
+                "Actual_EODHD",
+            ]
 
 
         # -----------------------------------------------
