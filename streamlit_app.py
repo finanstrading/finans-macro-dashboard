@@ -2503,16 +2503,6 @@ try:
 
                     for driver in drivers_cambio:
 
-                        st.write({
-                            "Indicador": driver.get("Indicador"),
-                            "Fecha publicación": driver.get("Fecha publicación"),
-                            "Indicador EODHD": driver.get("Indicador EODHD"),
-                            "Periodo": driver.get("Periodo publicación"),
-                            "Actual": driver.get("Actual publicación"),
-                            "Previous": driver.get("Previous publicación"),
-                            "Estimate": driver.get("Estimate publicación"),
-                        })
-
                         nombre_driver = driver.get(
                             "Indicador",
                             "Indicador",
