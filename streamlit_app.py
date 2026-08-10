@@ -1485,9 +1485,10 @@ def calcular_historico_currency_score(
         indicadores_currency,
     )
 
-    usar_release_dates = bool(
-        series_release
-    )
+usar_release_dates = (
+    str(currency).strip().upper() == "USD"
+    and bool(series_release)
+)
 
     if usar_release_dates:
 
@@ -1571,17 +1572,6 @@ def calcular_historico_currency_score(
                 indicadores_currency,
                 fecha_corte=fecha_corte,
             )
-
-        resultado_score = calcular_currency_score(
-            currency,
-            resultados,
-        )
-
-        resultados = analizar_divisa_por_release(
-            series_release,
-            currency,
-            fecha_corte,
-        )
 
         resultado_score = calcular_currency_score(
             currency,
@@ -2581,6 +2571,14 @@ try:
         # ===================================================
         # GRÁFICO HISTÓRICO DEL SCORE
         # ===================================================
+
+        historico_grafico = pd.DataFrame(
+        columns=[
+            "Fecha",
+            "Score",
+            "Coverage",
+            ]
+        )
 
         if not historico_score.empty:
 
