@@ -1771,10 +1771,15 @@ def construir_df_currency_por_release(
 
         for columna in indicadores_currency:
 
-            nombre_score = mapa_currency.get(
-                columna,
-                columna,
+            columna_normalizada = " ".join(
+                str(columna).split()
             )
+
+            nombre_score = mapa_currency.get(
+                columna_normalizada,
+                columna_normalizada,
+            )
+
             if "PMI" in str(columna) or "Manufact" in str(columna):
                 st.write(
                     "TEST PMI:",
