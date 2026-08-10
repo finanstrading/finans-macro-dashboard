@@ -1775,6 +1775,17 @@ def construir_df_currency_por_release(
                 columna,
                 columna,
             )
+            if "PMI" in str(columna) or "Manufact" in str(columna):
+                st.write(
+                    "TEST PMI:",
+                    {
+                        "columna": repr(columna),
+                        "nombre_score": repr(nombre_score),
+                        "currency": repr(currency),
+                        "mapa_tiene_columna": columna in mapa_currency,
+                        "alias_tiene_nombre_score": nombre_score in aliases_eodhd,
+                    }
+                )
 
             if nombre_score == "PMI Manufactura":
                 st.write("DEBUG PMI:", {
