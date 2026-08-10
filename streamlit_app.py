@@ -1775,6 +1775,13 @@ def construir_df_currency_por_release(
                 columna,
             )
 
+            if nombre_score == "PMI Manufactura":
+                st.write("DEBUG PMI:", {
+                    "nombre_score": nombre_score,
+                    "existe_clave": nombre_score in aliases_eodhd,
+                    "keys_usd": list(aliases_eodhd.keys()),
+                })
+
             config = aliases_eodhd.get(
                 nombre_score
             )
