@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-
-st.error("PRUEBA VERSION NUEVA 10 AGOSTO")
 from urllib.parse import quote  
 
 from auth import require_authenticated_user, render_logout
@@ -13,7 +11,7 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
-# =================================================== 
+# ===================================================
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
