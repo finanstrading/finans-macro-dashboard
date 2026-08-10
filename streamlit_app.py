@@ -1880,6 +1880,26 @@ def construir_df_currency_por_release(
                 "names": ["procure.ch Manufacturing PMI"],
                 "comparison": "",
             },
+            
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
+
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Consumer Confidence": {
+                "names": ["Consumer Confidence"],
+                "comparison": "",
+            },
 
             # Core CPI, Services PMI y Business Confidence
             # quedan de momento en fallback porque los candidatos
