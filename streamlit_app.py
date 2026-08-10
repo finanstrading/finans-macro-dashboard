@@ -1602,7 +1602,7 @@ historico_df = pd.DataFrame(
 )
 
 if historico_df.empty:
-    return historico_df
+return historico_df
 
 historico_df = (
     historico_df
