@@ -13,7 +13,7 @@ from currency_score_engine import (
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
-# ===================================================     
+# ===================================================    
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
@@ -2715,39 +2715,6 @@ try:
 
         macro_releases = cargar_macro_releases()
 
-
-            st.write({
-                "Desde": fecha_debug_anterior,
-                "Hasta": fecha_debug_actual,
-                "Divisa": divisa,
-                "Eventos": len(releases_debug),
-            })
-
-            st.dataframe(
-                releases_debug[
-                    [
-                        "ReleaseDate",
-                        "Indicator",
-                        "Period",
-                        "Comparison",
-                        "Actual",
-                        "Previous",
-                        "Estimate",
-                    ]
-                ],
-                use_container_width=True,
-            )
-
-            st.write("INDICADORES PUBLICADOS EN EL INTERVALO")
-
-            st.write(
-                releases_debug["Indicator"]
-                .dropna()
-                .astype(str)
-                .sort_values()
-                .unique()
-                .tolist()
-            )
 
         drivers_historicos = (
         calcular_drivers_historicos_currency_score(
