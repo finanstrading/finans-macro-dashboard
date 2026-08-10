@@ -1977,34 +1977,6 @@ def construir_df_currency_por_release(
         {},
     )
 
-    # ===================================================
-    # CATÁLOGO COMPLETO EODHD — JPY
-    # ===================================================
-
-    if currency in ["JPY", "CAD", "AUD", "NZD", "CHF"]:
-
-        st.write(f"### CATÁLOGO COMPLETO EODHD — {currency}")
-
-        catalogo_eodhd = (
-            df_releases[
-                [
-                    "Indicator",
-                    "Comparison",
-                ]
-            ]
-            .drop_duplicates()
-            .sort_values(
-                ["Indicator", "Comparison"],
-                na_position="last",
-            )
-            .reset_index(drop=True)
-        )
-
-        st.dataframe(
-            catalogo_eodhd,
-            use_container_width=True,
-            hide_index=True,
-        )
 
     # ===================================================
     # AUDITORÍA TEMPORAL EODHD — DIVISA ACTUAL
