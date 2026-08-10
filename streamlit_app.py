@@ -957,6 +957,8 @@ def obtener_interpretacion_ia(divisa, indicador):
             "ADP": "ADP Employment",
             "PMI Manufactura": "ISM Manufacturing",
             "PMI  Manufactura": "ISM Manufacturing",
+            "PMI   Manufactura": "ISM Manufacturing",
+            "PMI  Manufactura": "ISM Manufacturing",
             "PMI Servicios": "ISM Services",
             "Confianza CB": "Consumer Confidence CB",
         },
