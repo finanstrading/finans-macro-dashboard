@@ -1597,24 +1597,24 @@ for fecha_corte in fechas_corte:
         "Coverage": float(coverage_historica),
     })
 
-historico_df = pd.DataFrame(
-    historico
-)
-
-if historico_df.empty:
-    return historico_df
-
-historico_df = (
-    historico_df
-    .sort_values("Fecha")
-    .drop_duplicates(
-        subset=["Fecha"],
-        keep="last",
+    historico_df = pd.DataFrame(
+        historico
     )
-    .reset_index(drop=True)
-)
 
-return historico_df
+    if historico_df.empty:
+        return historico_df
+
+    historico_df = (
+        historico_df
+        .sort_values("Fecha")
+        .drop_duplicates(
+            subset=["Fecha"],
+            keep="last",
+        )
+        .reset_index(drop=True)
+    )
+
+    return historico_df
 
 def calcular_drivers_currency_score(
     resultados_actuales,
