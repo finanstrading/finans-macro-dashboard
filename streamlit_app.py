@@ -2933,6 +2933,35 @@ def calcular_historico_currency_score(
         df_currency
     )
 
+    # ===================================================
+    # ELIMINAR INDICADORES DUPLICADOS POR ESPACIOS
+    # ===================================================
+
+    indicadores_unicos = []
+    indicadores_vistos = set()
+
+    for columna in indicadores_currency:
+
+        clave_normalizada = " ".join(
+            str(columna)
+            .replace("\u00a0", " ")
+            .replace("\u200b", "")
+            .split()
+        )
+
+        if clave_normalizada in indicadores_vistos:
+            continue
+
+        indicadores_vistos.add(
+            clave_normalizada
+        )
+
+        indicadores_unicos.append(
+            columna
+        )
+
+    indicadores_currency = indicadores_unicos
+
     series_release = construir_df_currency_por_release(
         df_currency,
         currency,
