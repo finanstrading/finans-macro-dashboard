@@ -1924,6 +1924,49 @@ def construir_df_currency_por_release(
         {},
     )
 
+    # ===================================================
+    # TEST DASHBOARD CHF — SERVICES PMI
+    # ===================================================
+
+    if currency == "CHF":
+
+        columnas_services_chf = [
+            col
+            for col in df_currency.columns
+            if "service" in str(col).lower()
+            and "pmi" in str(col).lower()
+        ]
+
+        st.write(
+            "### COLUMNAS SERVICES PMI EN DASHBOARD_CHF",
+            columnas_services_chf,
+        )
+
+        for columna_services in columnas_services_chf:
+
+            test_services_chf = pd.DataFrame({
+                "Fecha Dashboard": df_currency["Fecha"],
+                "Valor Services PMI": convertir_valores(
+                    df_currency[columna_services]
+                ),
+            })
+
+            test_services_chf = (
+                test_services_chf
+                .dropna(subset=["Valor Services PMI"])
+                .sort_values("Fecha Dashboard", ascending=False)
+                .head(15)
+            )
+
+            st.write(
+                f"### SERVICES PMI CHF — {columna_services}"
+            )
+
+            st.dataframe(
+                test_services_chf,
+                use_container_width=True,
+                hide_index=True,
+            )
     
 
     if currency == "JPY":
