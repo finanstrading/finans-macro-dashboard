@@ -1490,7 +1490,7 @@ usar_release_dates = (
     and bool(series_release)
 )
 
-    if usar_release_dates:
+        if usar_release_dates:
 
         fechas_disponibles = []
 
