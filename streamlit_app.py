@@ -1845,6 +1845,11 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
+            "CPI YoY": {
+                "names": ["Inflation Rate"],
+                "comparison": "yoy",
+            },
+
             # Core CPI YoY queda en fallback:
             # no hemos encontrado un equivalente EODHD inequívoco.
         },
