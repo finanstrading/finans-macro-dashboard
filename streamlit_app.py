@@ -1827,6 +1827,24 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
+
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Business Confidence": {
+                "names": [
+                    "Business Confidence",
+                    "ANZ Business Confidence",
+                ],
+                "comparison": "",
+            },
+
             # Core CPI YoY queda en fallback:
             # no hemos encontrado un equivalente EODHD inequívoco.
         },
