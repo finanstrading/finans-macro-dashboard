@@ -2395,17 +2395,24 @@ def construir_df_currency_por_release(
 
                     continue
 
-                eodhd = (
-                    df_serie["FuenteFecha"]
-                    .eq("EODHD ReleaseDate")
-                    .sum()
-                )
+                if "FuenteFecha" in df_serie.columns:
 
-                fallback = (
-                    df_serie["FuenteFecha"]
-                    .eq("Fallback Dashboard")
-                    .sum()
-                )
+                    eodhd = (
+                        df_serie["FuenteFecha"]
+                        .eq("EODHD ReleaseDate")
+                        .sum()
+                    )
+
+                    fallback = (
+                        df_serie["FuenteFecha"]
+                        .eq("Fallback Dashboard")
+                        .sum()
+                    )
+
+                else:
+
+                    eodhd = 0
+                    fallback = len(df_serie)
 
                 cobertura_fechas.append({
                     "Indicador": nombre_indicador,
