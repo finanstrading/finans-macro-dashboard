@@ -1472,6 +1472,35 @@ def construir_df_currency_por_release(
                 "names": ["Consumer Confidence"],
                 "comparison": "",
             },
+                    "Euro Area Wage Growth": {
+            "names": [
+                "Wage Growth",
+            ],
+            "comparison": "yoy",
+            },
+
+            "Eurozone Business Climate": {
+                "names": [
+                    "Business Climate",
+                ],
+                "comparison": "",
+            },
+
+            "GDP Growth Rate (QoQ)": {
+                "names": [
+                    "GDP Growth Rate",
+                    "Gross Domestic Product",
+                ],
+                "comparison": "qoq",
+            },
+
+            "GDP Annual Growth Rate (YoY)": {
+                "names": [
+                    "GDP Growth Rate",
+                    "Gross Domestic Product",
+                ],
+                "comparison": "yoy",
+            },
 
         },
 
@@ -1704,11 +1733,63 @@ def construir_df_currency_por_release(
                 return pd.NaT
 
             periodo_texto = str(
-                fila["Period"]
+                fila.get("Period", "")
             ).strip()
 
-            if not periodo_texto:
-                return pd.NaT
+            # ===================================================
+            # SIN PERIOD EXPLÍCITO
+            # Ej.: Business Climate.
+            # Se considera correspondiente al mes de publicación.
+            # ===================================================
+
+            if (
+                not periodo_texto
+                or periodo_texto.lower() == "nan"
+            ):
+
+                return release_date.to_period("M")
+
+
+            # ===================================================
+            # PERIODOS TRIMESTRALES
+            # Q1 -> marzo
+            # Q2 -> junio
+            # Q3 -> septiembre
+            # Q4 -> diciembre
+            # ===================================================
+
+            periodo_upper = periodo_texto.upper()
+
+            if periodo_upper in {
+                "Q1",
+                "Q2",
+                "Q3",
+                "Q4",
+            }:
+
+                trimestre = int(
+                    periodo_upper[1]
+                )
+
+                mes = trimestre * 3
+                año = release_date.year
+
+                # Ejemplo:
+                # Q4 publicado en enero/febrero
+                # pertenece al año anterior.
+                if mes > release_date.month:
+                    año -= 1
+
+                return pd.Period(
+                    year=año,
+                    month=mes,
+                    freq="M",
+                )
+
+
+            # ===================================================
+            # PERIODOS MENSUALES
+            # ===================================================
 
             mes_texto = (
                 periodo_texto[:3]
@@ -1724,8 +1805,6 @@ def construir_df_currency_por_release(
 
             año = release_date.year
 
-            # Ejemplo:
-            # dato de diciembre publicado en enero.
             if mes > release_date.month:
                 año -= 1
 
