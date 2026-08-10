@@ -764,6 +764,9 @@ def filtrar_drivers_por_releases(
     """
     Conserva únicamente drivers cuyo indicador tuvo
     una publicación real dentro del intervalo.
+
+    Además añade la fecha real de publicación
+    y el nombre utilizado por EODHD.
     """
 
     if not drivers:
@@ -772,13 +775,14 @@ def filtrar_drivers_por_releases(
     if releases_intervalo is None or releases_intervalo.empty:
         return []
 
-    nombres_publicados = (
-        releases_intervalo["Indicator"]
+    releases = releases_intervalo.copy()
+
+    releases["_indicator_clean"] = (
+        releases["Indicator"]
         .dropna()
         .astype(str)
         .str.strip()
         .str.lower()
-        .tolist()
     )
 
     # Equivalencias entre nombres internos del dashboard
@@ -816,24 +820,69 @@ def filtrar_drivers_por_releases(
             [indicador],
         )
 
-        encontrado = False
+        coincidencias = []
 
         for candidato in candidatos:
-            for publicado in nombres_publicados:
 
-                if (
-                    candidato == publicado
-                    or candidato in publicado
-                    or publicado in candidato
-                ):
-                    encontrado = True
-                    break
+            coincidencias_candidato = releases[
+                releases["_indicator_clean"].apply(
+                    lambda publicado:
+                        candidato == publicado
+                        or candidato in publicado
+                        or publicado in candidato
+                )
+            ]
 
-            if encontrado:
-                break
+            if not coincidencias_candidato.empty:
+                coincidencias.append(
+                    coincidencias_candidato
+                )
 
-        if encontrado:
-            drivers_filtrados.append(driver)
+        if not coincidencias:
+            continue
+
+        coincidencias = pd.concat(
+            coincidencias,
+            ignore_index=True,
+        )
+
+        # Si existe más de una publicación compatible
+        # dentro del intervalo, usamos la más reciente.
+        coincidencias = coincidencias.sort_values(
+            "ReleaseDate"
+        )
+
+        release = coincidencias.iloc[-1]
+
+        driver_nuevo = driver.copy()
+
+        driver_nuevo["Fecha publicación"] = (
+            release["ReleaseDate"]
+        )
+
+        driver_nuevo["Indicador EODHD"] = (
+            release["Indicator"]
+        )
+
+        driver_nuevo["Periodo publicación"] = (
+            release.get("Period", "")
+        )
+
+        driver_nuevo["Actual publicación"] = (
+            release.get("Actual")
+        )
+
+        driver_nuevo["Previous publicación"] = (
+            release.get("Previous")
+        )
+
+        driver_nuevo["Estimate publicación"] = (
+            release.get("Estimate")
+        )
+
+        drivers_filtrados.append(
+            driver_nuevo
+        )
 
     return drivers_filtrados
 
