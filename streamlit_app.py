@@ -2103,14 +2103,34 @@ def construir_df_currency_por_release(
             nombre_score
         )
 
+        es_proxy_release = False
+
+        proxies_currency = proxies_release_eodhd_por_divisa.get(
+            str(currency).strip().upper(),
+            {},
+        )
+
+        config_proxy = proxies_currency.get(
+            nombre_score
+        )
+
+        # Si existe proxy explícito, usarlo como reloj
+        if config_proxy is not None:
+            config = config_proxy
+            es_proxy_release = True
+
 
         if config is None:
             auditoria_eodhd.append({
                 "Indicador": nombre_score,
-                "Estado": "❌ SIN CONFIG",
-                "Último ReleaseDate": None,
-                "Match EODHD": None,
-                "Comparison": None,
+                "Estado": (
+                    "🟡 EODHD PROXY"
+                    if es_proxy_release
+                    else "✅ EODHD"
+                ),
+                "Último ReleaseDate": ultimo["ReleaseDate"],
+                "Match EODHD": ultimo["Indicator"],
+                "Comparison": ultimo["Comparison"],
             })
             continue
 
