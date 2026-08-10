@@ -2061,6 +2061,56 @@ def construir_df_currency_por_release(
             }
         )
 
+        if currency in RELEASE_AWARE_CURRENCIES:
+
+            cobertura_fechas = []
+
+            for nombre_indicador, df_serie in series_por_indicador.items():
+
+                if (
+                    df_serie is None
+                    or df_serie.empty
+                ):
+                    continue
+
+                if "FuenteFecha" not in df_serie.columns:
+
+                    cobertura_fechas.append({
+                        "Indicador": nombre_indicador,
+                        "EODHD": 0,
+                        "Fallback": len(df_serie),
+                    })
+
+                    continue
+
+                eodhd = (
+                    df_serie["FuenteFecha"]
+                    .eq("EODHD ReleaseDate")
+                    .sum()
+                )
+
+                fallback = (
+                    df_serie["FuenteFecha"]
+                    .eq("Fallback Dashboard")
+                    .sum()
+                )
+
+                cobertura_fechas.append({
+                    "Indicador": nombre_indicador,
+                    "EODHD": int(eodhd),
+                    "Fallback": int(fallback),
+                })
+
+            st.write(
+                f"🔎 COBERTURA RELEASE DATE {currency}"
+            )
+
+            st.dataframe(
+                pd.DataFrame(cobertura_fechas),
+                use_container_width=True,
+                hide_index=True,
+            )
+
     return series_por_indicador
 
 def analizar_divisa_por_release(
