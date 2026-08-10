@@ -1594,6 +1594,7 @@ def construir_df_currency_por_release(
                     dashboard[columna]
                 ),
                 "Period": dashboard["_Periodo"].astype(str),
+                "FuenteFecha": "Fallback Dashboard",
             })
 
             serie_fallback = (
@@ -1973,6 +1974,15 @@ def construir_df_currency_por_release(
             serie["Fecha_original"]
         )
 
+        serie["FuenteFecha"] = (
+            "Fallback Dashboard"
+        )
+
+        serie.loc[
+            serie["ReleaseDate"].notna(),
+            "FuenteFecha",
+        ] = "EODHD ReleaseDate"
+
 
         serie = (
             serie
@@ -2006,8 +2016,49 @@ def construir_df_currency_por_release(
                     "Fecha",
                     "Valor",
                     "Period",
+                    "FuenteFecha",
                 ]
             ].copy()
+        )
+
+    # ===================================================
+    # VALIDACIÓN TEMPORAL — COBERTURA RELEASE-AWARE
+    # ===================================================
+
+    if currency in RELEASE_AWARE_CURRENCIES:
+
+        indicadores_dashboard = []
+
+        for columna in indicadores_currency:
+            nombre_score = mapa_currency.get(
+                columna,
+                columna,
+            )
+
+            indicadores_dashboard.append(
+                nombre_score
+            )
+
+        indicadores_release = list(
+            series_por_indicador.keys()
+        )
+
+        faltantes = sorted(
+            set(indicadores_dashboard)
+            - set(indicadores_release)
+        )
+
+        st.write(
+            f"🧪 VALIDACIÓN {currency}",
+            {
+                "Indicadores Dashboard": len(
+                    set(indicadores_dashboard)
+                ),
+                "Indicadores histórico": len(
+                    set(indicadores_release)
+                ),
+                "Faltantes": faltantes,
+            }
         )
 
     return series_por_indicador
