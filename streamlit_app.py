@@ -1309,6 +1309,59 @@ def construir_df_currency_por_release(
 
         },  # cierra USD
 
+        "GBP": {
+            "CPI MoM": {
+                "names": ["CPI"],
+                "comparison": "mom",
+            },
+
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+
+            "Core CPI MoM": {
+                "names": ["Core CPI"],
+                "comparison": "mom",
+            },
+
+            "Core CPI YoY": {
+                "names": ["Core CPI"],
+                "comparison": "yoy",
+            },
+
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
+
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Manufacturing PMI": {
+                "names": [
+                    "S&P Global Manufacturing PMI",
+                    "Manufacturing PMI",
+                ],
+                "comparison": "",
+            },
+
+            "Services PMI": {
+                "names": [
+                    "S&P Global Services PMI",
+                    "Services PMI",
+                ],
+                "comparison": "",
+            },
+
+            "Consumer Confidence": {
+                "names": ["Consumer Confidence"],
+                "comparison": "",
+            },
+        },
+
         }  # cierra aliases_eodhd_por_divisa
 
 
