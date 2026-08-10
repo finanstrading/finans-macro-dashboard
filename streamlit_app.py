@@ -1485,72 +1485,71 @@ def calcular_historico_currency_score(
         indicadores_currency,
     )
 
-usar_release_dates = (
-    str(currency).strip().upper() == "USD"
-    and bool(series_release)
-)
+    usar_release_dates = (
+        str(currency).strip().upper() == "USD"
+        and bool(series_release)
+    )
 
-if usar_release_dates:
+    if usar_release_dates:
 
-    fechas_disponibles = []
+        fechas_disponibles = []
 
-    for datos_indicador in series_release.values():
+        for datos_indicador in series_release.values():
 
-        if datos_indicador.empty:
-            continue
+            if datos_indicador.empty:
+                continue
 
-        fechas_disponibles.append(
-            datos_indicador["Fecha"].max()
-        )
+            fechas_disponibles.append(
+                datos_indicador["Fecha"].max()
+            )
 
-    if fechas_disponibles:
-        fecha_final = max(
-            fechas_disponibles
-        )
+        if fechas_disponibles:
+            fecha_final = max(
+                fechas_disponibles
+            )
+        else:
+            usar_release_dates = False
+            fecha_final = df_currency["Fecha"].max()
+
     else:
-        usar_release_dates = False
         fecha_final = df_currency["Fecha"].max()
 
-else:
+    if frecuencia == "W":
 
-    fecha_final = df_currency["Fecha"].max()
+        fechas_corte = pd.date_range(
+            end=fecha_final,
+            periods=periodos,
+            freq="W",
+        )
 
-if frecuencia == "W":
+    elif frecuencia == "M":
 
-    fechas_corte = pd.date_range(
-        end=fecha_final,
-        periods=periodos,
-        freq="W",
+        fechas_corte = pd.date_range(
+            end=fecha_final,
+            periods=periodos,
+            freq="ME",
+        )
+
+    else:
+        raise ValueError(
+            "La frecuencia debe ser 'W' o 'M'."
+        )
+
+    # ===================================================
+    # ASEGURAR QUE LA ÚLTIMA FECHA REAL ESTÁ INCLUIDA
+    # ===================================================
+
+    fechas_corte = list(fechas_corte)
+
+    if (
+        not fechas_corte
+        or fechas_corte[-1] != fecha_final
+    ):
+        fechas_corte.append(fecha_final)
+
+    fechas_corte = sorted(
+        set(fechas_corte)
     )
-
-elif frecuencia == "M":
-
-    fechas_corte = pd.date_range(
-        end=fecha_final,
-        periods=periodos,
-        freq="ME",
-    )
-
-else:
-    raise ValueError(
-        "La frecuencia debe ser 'W' o 'M'."
-    )
-
-# ===================================================
-# ASEGURAR QUE LA ÚLTIMA FECHA REAL ESTÁ INCLUIDA
-# ===================================================
-
-fechas_corte = list(fechas_corte)
-
-if (
-    not fechas_corte
-    or fechas_corte[-1] != fecha_final
-):
-    fechas_corte.append(fecha_final)
-
-fechas_corte = sorted(
-    set(fechas_corte)
-)
 
     historico = []
 
