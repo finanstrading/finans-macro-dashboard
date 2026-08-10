@@ -3586,11 +3586,29 @@ try:
             "cada cambio observado en la evolución del score."
         )
 
-        cambios_relevantes = [
-            cambio
-            for cambio in drivers_historicos
-            if abs(cambio["Cambio"]) >= 0.01
-        ]
+        # Mostrar drivers únicamente de las últimas 4 semanas
+        if drivers_historicos:
+
+            fecha_driver_final = max(
+                pd.to_datetime(cambio["Fecha"])
+                for cambio in drivers_historicos
+            )
+
+            fecha_limite_drivers = (
+                fecha_driver_final - pd.Timedelta(weeks=4)
+            )
+
+            cambios_relevantes = [
+                cambio
+                for cambio in drivers_historicos
+                if (
+                    abs(cambio["Cambio"]) >= 0.01
+                    and pd.to_datetime(cambio["Fecha"]) >= fecha_limite_drivers
+                )
+            ]
+
+        else:
+            cambios_relevantes = []
 
         if not cambios_relevantes:
 
