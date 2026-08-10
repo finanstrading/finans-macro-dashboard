@@ -1240,276 +1240,516 @@ def construir_df_currency_por_release(
     # ALIASES DASHBOARD / CURRENCY SCORE -> EODHD
     # ===================================================
 
-    aliases_eodhd_por_divisa = {
+aliases_eodhd_por_divisa = {
 
-        "USD": {
+    # ===================================================
+    # USD
+    # ===================================================
 
-            "Non Farm Payrolls": {
-                "names": ["Non Farm Payrolls"],
-                "comparison": "",
-            },
+    "USD": {
 
-            "Unemployment Rate": {
-                "names": ["Unemployment Rate"],
-                "comparison": "",
-            },
-
-            "Average Hourly Earnings": {
-                "names": ["Average Hourly Earnings"],
-                "comparison": "mom",
-            },
-
-            "ADP Employment": {
-                "names": [
-                    "ADP Employment Change",
-                    "ADP Employment",
-                ],
-                "comparison": "",
-            },
-
-            "Consumer Confidence CB": {
-                "names": ["CB Consumer Confidence"],
-                "comparison": "",
-            },
-
-            "ISM Services": {
-                "names": [
-                    "ISM Services PMI",
-                    "ISM Services",
-                ],
-                "comparison": "",
-            },
-
-            "ISM Manufacturing": {
-                "names": [
-                    "ISM Manufacturing PMI",
-                    "ISM Manufacturing",
-                ],
-                "comparison": "",
-            },
-
-            "CPI YoY": {
-                "names": ["CPI"],
-                "comparison": "yoy",
-            },
-
-            "Core CPI YoY": {
-                "names": ["Core CPI"],
-                "comparison": "yoy",
-            },
-
-            "PPI MoM": {
-                "names": ["PPI"],
-                "comparison": "mom",
-            },
-
-            "Core PPI MoM": {
-                "names": ["Core PPI"],
-                "comparison": "mom",
-            },
-
-            "Retail Sales MoM": {
-                "names": ["Retail Sales"],
-                "comparison": "mom",
-            },
-
-            "JOLTS": {
-                "names": ["JOLTS Job Openings"],
-                "comparison": "",
-            },
-
-        },  # cierra USD
-
-        "GBP": {
-
-            "CPI MoM": {
-                "names": ["CPI"],
-                "comparison": "mom",
-            },
-
-            "CPI YoY": {
-                "names": ["CPI"],
-                "comparison": "yoy",
-            },
-
-            "Core CPI MoM": {
-                "names": ["Core CPI"],
-                "comparison": "mom",
-            },
-
-            "Core CPI YoY": {
-                "names": ["Core CPI"],
-                "comparison": "yoy",
-            },
-
-            "Retail Sales MoM": {
-                "names": ["Retail Sales"],
-                "comparison": "mom",
-            },
-
-            "Core Retail Sales": {
-                "names": ["Retail Sales Ex Fuel"],
-                "comparison": "mom",
-            },
-
-            "Employment Change (3M/3M)": {
-                "names": ["Employment Change"],
-                "comparison": "",
-            },
-
-            "Unemployment Rate": {
-                "names": ["Unemployment Rate"],
-                "comparison": "",
-            },
-
-            "Average Earnings (+ Bonus)": {
-                "names": ["Average Earnings incl. Bonus"],
-                "comparison": "",
-            },
-
-            "Average Earnings (- Bonus)": {
-                "names": ["Average Earnings excl. Bonus"],
-                "comparison": "",
-            },
-
-            "Manufacturing PMI": {
-                "names": [
-                    "S&P Global Manufacturing PMI",
-                    "S&P Global Manufacturing PMI Flash",
-                ],
-                "comparison": "",
-            },
-
-            "Services PMI": {
-                "names": [
-                    "S&P Global Services PMI",
-                    "S&P Global Services PMI Flash",
-                ],
-                "comparison": "",
-            },
-
-            "Consumer Confidence": {
-                "names": ["Consumer Confidence"],
-                "comparison": "",
-            },
-
-            "GDP Growth Rate (QoQ)": {
-                "names": ["GDP Growth Rate"],
-                "comparison": "qoq",
-            },
-
-            "GDP Annual Growth Rate (YoY)": {
-                "names": ["GDP Growth Rate"],
-                "comparison": "yoy",
-            },
-
+        "Non Farm Payrolls": {
+            "names": ["Non Farm Payrolls"],
+            "comparison": "",
         },
 
-        "EUR": {
+        "Unemployment Rate": {
+            "names": ["Unemployment Rate"],
+            "comparison": "",
+        },
 
-            "CPI MoM": {
-                "names": ["CPI"],
-                "comparison": "mom",
-            },
+        "Average Hourly Earnings": {
+            "names": ["Average Hourly Earnings"],
+            "comparison": "mom",
+        },
 
-            "CPI YoY": {
-                "names": ["CPI"],
-                "comparison": "yoy",
-            },
-
-            "Core CPI MoM": {
-                "names": ["Core CPI"],
-                "comparison": "mom",
-            },
-
-            "Core CPI YoY": {
-                "names": ["Core CPI"],
-                "comparison": "yoy",
-            },
-
-            "Retail Sales MoM": {
-                "names": ["Retail Sales"],
-                "comparison": "mom",
-            },
-
-            "Retail Sales YoY": {
-                "names": ["Retail Sales"],
-                "comparison": "yoy",
-            },
-
-            "Unemployment Rate": {
-                "names": ["Unemployment Rate"],
-                "comparison": "",
-            },
-
-            "Manufacturing PMI": {
-                "names": [
-                    "HCOB Manufacturing PMI",
-                    "S&P Global Manufacturing PMI",
-                    "Manufacturing PMI",
-                ],
-                "comparison": "",
-            },
-
-            "Services PMI": {
-                "names": [
-                    "HCOB Services PMI",
-                    "S&P Global Services PMI",
-                    "Services PMI",
-                ],
-                "comparison": "",
-            },
-
-            "ZEW Economic Sentiment": {
-                "names": [
-                    "ZEW Economic Sentiment Index",
-                    "ZEW Economic Sentiment",
-                ],
-                "comparison": "",
-            },
-
-            "Industrial Production YoY": {
-                "names": ["Industrial Production"],
-                "comparison": "yoy",
-            },
-
-            "Consumer Confidence": {
-                "names": ["Consumer Confidence"],
-                "comparison": "",
-            },
-                    "Euro Area Wage Growth": {
+        "ADP Employment": {
             "names": [
-                "Wage Growth",
+                "ADP Employment Change",
+                "ADP Employment",
+            ],
+            "comparison": "",
+        },
+
+        "Consumer Confidence CB": {
+            "names": ["CB Consumer Confidence"],
+            "comparison": "",
+        },
+
+        "ISM Services": {
+            "names": [
+                "ISM Services PMI",
+                "ISM Services",
+                "ISM Non-Manufacturing PMI",
+            ],
+            "comparison": "",
+        },
+
+        "ISM Manufacturing": {
+            "names": [
+                "ISM Manufacturing PMI",
+                "ISM Manufacturing",
+            ],
+            "comparison": "",
+        },
+
+        # Por si el nombre llega sin pasar por MAPA_INDICADORES_IA
+        "PMI Manufactura": {
+            "names": [
+                "ISM Manufacturing PMI",
+                "S&P Global Manufacturing PMI",
+            ],
+            "comparison": "",
+        },
+
+        "CPI YoY": {
+            "names": ["CPI"],
+            "comparison": "yoy",
+        },
+
+        "Core CPI YoY": {
+            "names": ["Core CPI"],
+            "comparison": "yoy",
+        },
+
+        "PPI MoM": {
+            "names": [
+                "PPI",
+                "Producer Price Index",
+            ],
+            "comparison": "mom",
+        },
+
+        "Core PPI MoM": {
+            "names": ["Core PPI"],
+            "comparison": "mom",
+        },
+
+        "Retail Sales MoM": {
+            "names": ["Retail Sales"],
+            "comparison": "mom",
+        },
+
+        "Core Retail Sales": {
+            "names": [
+                "Retail Sales Ex Autos",
+                "Retail Sales Ex Gas/Autos",
+            ],
+            "comparison": "mom",
+        },
+
+        "JOLTS": {
+            "names": ["JOLTS Job Openings"],
+            "comparison": "",
+        },
+
+        "Confianza UoM": {
+            "names": [
+                "Michigan Consumer Sentiment",
+                "University of Michigan Consumer Sentiment",
+            ],
+            "comparison": "",
+        },
+
+        "GDP Growth Rate (QoQ)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "yoy",
+        },
+    },
+
+
+    # ===================================================
+    # GBP
+    # ===================================================
+
+    "GBP": {
+
+        "CPI MoM": {
+            "names": ["CPI"],
+            "comparison": "mom",
+        },
+
+        "CPI YoY": {
+            "names": ["CPI"],
+            "comparison": "yoy",
+        },
+
+        "Core CPI MoM": {
+            "names": ["Core CPI"],
+            "comparison": "mom",
+        },
+
+        "Core CPI YoY": {
+            "names": ["Core CPI"],
+            "comparison": "yoy",
+        },
+
+        "Retail Sales MoM": {
+            "names": ["Retail Sales"],
+            "comparison": "mom",
+        },
+
+        "Core Retail Sales": {
+            "names": ["Retail Sales Ex Fuel"],
+            "comparison": "mom",
+        },
+
+        "Employment Change (3M/3M)": {
+            "names": ["Employment Change"],
+            "comparison": "",
+        },
+
+        "Unemployment Rate": {
+            "names": ["Unemployment Rate"],
+            "comparison": "",
+        },
+
+        "Average Earnings (+ Bonus)": {
+            "names": ["Average Earnings incl. Bonus"],
+            "comparison": "",
+        },
+
+        "Average Earnings (- Bonus)": {
+            "names": ["Average Earnings excl. Bonus"],
+            "comparison": "",
+        },
+
+        "Manufacturing PMI": {
+            "names": [
+                "S&P Global Manufacturing PMI",
+                "S&P Global Manufacturing PMI Flash",
+            ],
+            "comparison": "",
+        },
+
+        "Services PMI": {
+            "names": [
+                "S&P Global Services PMI",
+                "S&P Global Services PMI Flash",
+            ],
+            "comparison": "",
+        },
+
+        "Consumer Confidence": {
+            "names": ["Consumer Confidence"],
+            "comparison": "",
+        },
+
+        "GDP Growth Rate (QoQ)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "yoy",
+        },
+    },
+
+
+    # ===================================================
+    # EUR
+    # ===================================================
+
+    "EUR": {
+
+        "CPI MoM": {
+            "names": ["CPI"],
+            "comparison": "mom",
+        },
+
+        "CPI YoY": {
+            "names": ["CPI"],
+            "comparison": "yoy",
+        },
+
+        "Core CPI MoM": {
+            "names": ["Core CPI"],
+            "comparison": "mom",
+        },
+
+        "Core CPI YoY": {
+            "names": ["Core CPI"],
+            "comparison": "yoy",
+        },
+
+        "Retail Sales MoM": {
+            "names": ["Retail Sales"],
+            "comparison": "mom",
+        },
+
+        "Retail Sales YoY": {
+            "names": ["Retail Sales"],
+            "comparison": "yoy",
+        },
+
+        "Unemployment Rate": {
+            "names": ["Unemployment Rate"],
+            "comparison": "",
+        },
+
+        "Euro Area Wage Growth": {
+            "names": ["Wage Growth"],
+            "comparison": "yoy",
+        },
+
+        "Manufacturing PMI": {
+            "names": [
+                "HCOB Manufacturing PMI",
+                "S&P Global Manufacturing PMI",
+                "Manufacturing PMI",
+            ],
+            "comparison": "",
+        },
+
+        "Services PMI": {
+            "names": [
+                "HCOB Services PMI",
+                "S&P Global Services PMI",
+                "Services PMI",
+            ],
+            "comparison": "",
+        },
+
+        "ZEW Economic Sentiment": {
+            "names": [
+                "ZEW Economic Sentiment Index",
+                "ZEW Economic Sentiment",
+            ],
+            "comparison": "",
+        },
+
+        "Eurozone Business Climate": {
+            "names": [
+                "Business Climate",
+            ],
+            "comparison": "",
+        },
+
+        "Industrial Production YoY": {
+            "names": ["Industrial Production"],
+            "comparison": "yoy",
+        },
+
+        "Consumer Confidence": {
+            "names": ["Consumer Confidence"],
+            "comparison": "",
+        },
+
+        "GDP Growth Rate (QoQ)": {
+            "names": [
+                "GDP Growth Rate",
+                "Gross Domestic Product",
+            ],
+            "comparison": "qoq",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": [
+                "GDP Growth Rate",
+                "Gross Domestic Product",
             ],
             "comparison": "yoy",
-            },
+        },
+    },
 
-            "Eurozone Business Climate": {
-                "names": [
-                    "Business Climate",
-                ],
-                "comparison": "",
-            },
 
-            "GDP Growth Rate (QoQ)": {
-                "names": [
-                    "GDP Growth Rate",
-                    "Gross Domestic Product",
-                ],
-                "comparison": "qoq",
-            },
+    # ===================================================
+    # CAD
+    # ===================================================
 
-            "GDP Annual Growth Rate (YoY)": {
-                "names": [
-                    "GDP Growth Rate",
-                    "Gross Domestic Product",
-                ],
-                "comparison": "yoy",
-            },
+    "CAD": {
 
+        "GDP Growth Rate (QoQ)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
         },
 
-        }  # cierra aliases_eodhd_por_divisa
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "yoy",
+        },
+
+        "Employment": {
+            "names": ["Employment Change"],
+            "comparison": "",
+        },
+
+        "Manufacturing PMI": {
+            "names": ["S&P Global Manufacturing PMI"],
+            "comparison": "",
+        },
+
+        "Business Confidence": {
+            "names": [
+                "CFIB Business Barometer",
+                "BoC Business Outlook Survey",
+            ],
+            "comparison": "",
+        },
+    },
+
+
+    # ===================================================
+    # JPY
+    # ===================================================
+
+    "JPY": {
+
+        "GDP Growth Rate (QoQ)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "yoy",
+        },
+
+        "Manufacturing PMI": {
+            "names": [
+                "S&P Global Manufacturing PMI",
+                "Jibun Bank Manufacturing PMI",
+                "S&P Global Manufacturing PMI Flash",
+            ],
+            "comparison": "",
+        },
+
+        # OJO:
+        # Tokyo Core NO sustituye a Tokyo CPI general.
+        # Por tanto Tokyo CPI YoY queda deliberadamente en fallback.
+    },
+
+
+    # ===================================================
+    # AUD
+    # ===================================================
+
+    "AUD": {
+
+        "GDP Growth Rate (QoQ)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "yoy",
+        },
+
+        "Employment": {
+            "names": ["Employment Change"],
+            "comparison": "",
+        },
+
+        "Consumer Confidence": {
+            "names": [
+                "Westpac Consumer Confidence Index",
+                "Westpac Consumer Confidence Change",
+            ],
+            "comparison": "",
+        },
+
+        "Household Spending MoM": {
+            "names": ["Household Spending"],
+            "comparison": "mom",
+        },
+
+        # No sustituimos Core CPI por Median CPI /
+        # Trimmed Mean CPI sin verificar que sea exactamente
+        # la serie que usa Dashboard_AUD.
+    },
+
+
+    # ===================================================
+    # NZD
+    # ===================================================
+
+    "NZD": {
+
+        "GDP Growth Rate (QoQ)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "yoy",
+        },
+
+        "CPI YoY": {
+            "names": [
+                "Consumer Price Index",
+                "CPI",
+            ],
+            "comparison": "yoy",
+        },
+
+        "Employment": {
+            "names": ["Employment Change"],
+            "comparison": "",
+        },
+
+        "Manufacturing PMI": {
+            "names": ["Business NZ PMI"],
+            "comparison": "",
+        },
+
+        "Services PMI": {
+            "names": ["Services NZ PSI"],
+            "comparison": "",
+        },
+
+        "Consumer Confidence": {
+            "names": [
+                "Westpac Consumer Confidence",
+                "ANZ Roy Morgan Consumer Confidence",
+            ],
+            "comparison": "",
+        },
+
+        # Core CPI YoY queda en fallback:
+        # no hemos encontrado un equivalente EODHD inequívoco.
+    },
+
+
+    # ===================================================
+    # CHF
+    # ===================================================
+
+    "CHF": {
+
+        "GDP Growth Rate (QoQ)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "yoy",
+        },
+
+        "Employment": {
+            "names": ["Employment Level"],
+            "comparison": "",
+        },
+
+        "Manufacturing PMI": {
+            "names": ["procure.ch Manufacturing PMI"],
+            "comparison": "",
+        },
+
+        # Core CPI, Services PMI y Business Confidence
+        # quedan de momento en fallback porque los candidatos
+        # encontrados no son equivalentes exactos.
+    },
+
+}  # cierra aliases_eodhd_por_divisa
 
 
     aliases_eodhd = aliases_eodhd_por_divisa.get(
