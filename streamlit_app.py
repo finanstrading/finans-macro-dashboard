@@ -1920,6 +1920,17 @@ def calcular_historico_currency_score(
         indicadores_currency,
     )
 
+    if currency_normalizada == "GBP":
+    st.write("DEBUG GBP — series_release")
+    st.write("Indicadores:", list(series_release.keys()))
+
+    for indicador_debug, df_debug in series_release.items():
+        if df_debug is not None and not df_debug.empty:
+            st.write(
+                indicador_debug,
+                df_debug.tail(3)
+            )
+
     usar_release_dates = (
         str(currency).strip().upper() in RELEASE_AWARE_CURRENCIES
         and bool(series_release)
