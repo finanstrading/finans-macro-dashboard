@@ -1977,7 +1977,178 @@ def construir_df_currency_por_release(
         {},
     )
 
-  
+    # ===================================================
+    # CATÁLOGO COMPLETO EODHD — JPY
+    # ===================================================
+
+    if currency in ["JPY", "CAD", "AUD", "NZD", "CHF"]:
+
+        st.write(f"### CATÁLOGO COMPLETO EODHD — {currency}")
+
+        catalogo_eodhd = (
+            df_releases[
+                [
+                    "Indicator",
+                    "Comparison",
+                ]
+            ]
+            .drop_duplicates()
+            .sort_values(
+                ["Indicator", "Comparison"],
+                na_position="last",
+            )
+            .reset_index(drop=True)
+        )
+
+        st.dataframe(
+            catalogo_eodhd,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    # ===================================================
+    # AUDITORÍA TEMPORAL EODHD — DIVISA ACTUAL
+    # ===================================================
+
+    auditoria_eodhd = []
+
+    for columna in indicadores_currency:
+
+        columna_normalizada = " ".join(
+            str(columna)
+            .replace("\u00a0", " ")
+            .replace("\u200b", "")
+            .split()
+        )
+
+        mapa_currency_limpio = {
+            " ".join(
+                str(clave)
+                .replace("\u00a0", " ")
+                .replace("\u200b", "")
+                .split()
+            ): valor
+            for clave, valor in mapa_currency.items()
+        }
+
+        nombre_score = mapa_currency_limpio.get(
+            columna_normalizada,
+            columna_normalizada,
+        )
+
+        # Indicadores que NO deben recibir matching EODHD automático
+        sin_release_eodhd = {
+            "CAD": {
+                "Consumer Confidence",
+            },
+        }
+
+        if (
+            currency in sin_release_eodhd
+            and nombre_score in sin_release_eodhd[currency]
+        ):
+            auditoria_eodhd.append({
+                "Indicador": nombre_score,
+                "Estado": "⚪ FALLBACK",
+                "Último ReleaseDate": None,
+                "Match EODHD": None,
+                "Comparison": None,
+            })
+            continue
+
+        config = aliases_eodhd.get(
+            nombre_score
+        )
+
+        es_proxy_release = False
+
+        proxies_currency = proxies_release_eodhd_por_divisa.get(
+            str(currency).strip().upper(),
+            {},
+        )
+
+        config_proxy = proxies_currency.get(
+            nombre_score
+        )
+
+        # Si existe proxy explícito, usarlo como reloj
+        if config_proxy is not None:
+            config = config_proxy
+            es_proxy_release = True
+
+
+        if config is None:
+            auditoria_eodhd.append({
+                "Indicador": nombre_score,
+                "Estado": "❌ SIN CONFIG",
+                "Último ReleaseDate": None,
+                "Match EODHD": None,
+                "Comparison": None,
+            })
+            continue
+
+        nombres_eodhd = [
+            str(nombre).strip().lower()
+            for nombre in config["names"]
+        ]
+
+        comparison_objetivo = (
+            str(config.get("comparison", ""))
+            .strip()
+            .lower()
+        )
+
+        coincidencias = df_releases[
+            df_releases["Indicator"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .isin(nombres_eodhd)
+        ].copy()
+
+        if comparison_objetivo:
+            coincidencias = coincidencias[
+                coincidencias["Comparison"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .eq(comparison_objetivo)
+            ]
+
+        coincidencias = coincidencias.dropna(
+            subset=["ReleaseDate"]
+        )
+
+        if coincidencias.empty:
+
+            auditoria_eodhd.append({
+                "Indicador": nombre_score,
+                "Estado": "❌ SIN MATCH",
+                "Último ReleaseDate": None,
+                "Match EODHD": " | ".join(config["names"]),
+                "Comparison": comparison_objetivo,
+            })
+
+        else:
+
+            ultimo = coincidencias.sort_values(
+                "ReleaseDate"
+            ).iloc[-1]
+
+            auditoria_eodhd.append({
+                "Indicador": nombre_score,
+                "Estado": (
+                    "🟡 EODHD PROXY"
+                    if es_proxy_release
+                    else "✅ EODHD"
+                ),
+                "Último ReleaseDate": ultimo["ReleaseDate"],
+                "Match EODHD": ultimo["Indicator"],
+                "Comparison": ultimo["Comparison"],
+            })
+
+
     # ===================================================
     # CANDIDATOS EODHD PARA INDICADORES SIN MATCH/CONFIG
     # ===================================================
