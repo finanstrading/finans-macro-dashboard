@@ -13,7 +13,7 @@ from currency_score_engine import (
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
-# ===================================================    
+# ===================================================     
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
