@@ -1977,6 +1977,51 @@ try:
         periodos=26,
         )
 
+                macro_releases = cargar_macro_releases()
+
+        if len(historico_score) >= 2:
+
+            fecha_debug_anterior = (
+                historico_score.iloc[-2]["Fecha"]
+            )
+
+            fecha_debug_actual = (
+                historico_score.iloc[-1]["Fecha"]
+            )
+
+            releases_debug = obtener_releases_intervalo(
+                macro_releases,
+                divisa,
+                fecha_debug_anterior,
+                fecha_debug_actual,
+            )
+
+            st.write(
+                "DEBUG RELEASES REALES"
+            )
+
+            st.write({
+                "Desde": fecha_debug_anterior,
+                "Hasta": fecha_debug_actual,
+                "Divisa": divisa,
+                "Eventos": len(releases_debug),
+            })
+
+            st.dataframe(
+                releases_debug[
+                    [
+                        "ReleaseDate",
+                        "Indicator",
+                        "Period",
+                        "Comparison",
+                        "Actual",
+                        "Previous",
+                        "Estimate",
+                    ]
+                ],
+                use_container_width=True,
+            )
+
         drivers_historicos = (
         calcular_drivers_historicos_currency_score(
             divisa,
