@@ -1769,7 +1769,7 @@ def calcular_historico_currency_score(
     currency,
     frecuencia="W",
     periodos=26,
-    revision="release_v3",
+    revision="release_v4",
 ):
 
     df_currency, _ = cargar_datos_mercado(
@@ -2710,7 +2710,7 @@ try:
             divisa,
             frecuencia="W",
             periodos=26,
-            revision="release_v3",
+            revision="release_v4",
         )
         # ===================================================
         # DEBUG TEMPORAL — SCORE ACTUAL VS ÚLTIMO SNAPSHOT
