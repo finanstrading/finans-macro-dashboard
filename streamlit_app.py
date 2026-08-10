@@ -1880,7 +1880,7 @@ def construir_df_currency_por_release(
                 "names": ["procure.ch Manufacturing PMI"],
                 "comparison": "",
             },
-            
+
             "CPI YoY": {
                 "names": ["CPI"],
                 "comparison": "yoy",
@@ -1919,6 +1919,49 @@ def construir_df_currency_por_release(
         {},
     )
     
+    # ===================================================
+    # TEST PROXY TEMPORAL — CHF CORE CPI -> CPI
+    # ===================================================
+
+    if currency == "CHF":
+
+        proxy_chf_core_cpi = df_releases[
+            (
+                df_releases["Indicator"]
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .eq("cpi")
+            )
+            &
+            (
+                df_releases["Comparison"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .eq("yoy")
+            )
+        ].copy()
+
+        st.write("### TEST PROXY CHF — Core CPI YoY")
+
+        st.dataframe(
+            proxy_chf_core_cpi[
+                [
+                    "ReleaseDate",
+                    "Indicator",
+                    "Period",
+                    "Comparison",
+                ]
+            ]
+            .sort_values(
+                "ReleaseDate",
+                ascending=False,
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
     if currency == "JPY":
 
