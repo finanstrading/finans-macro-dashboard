@@ -1690,6 +1690,11 @@ def construir_df_currency_por_release(
                 "names": ["Average Cash Earnings"],
                 "comparison": "yoy",
             },
+            
+            "Business Confidence": {
+                "names": ["Tankan Large Manufacturers Index"],
+                "comparison": "",
+            },
 
             # OJO:
             # Tokyo Core NO sustituye a Tokyo CPI general.
