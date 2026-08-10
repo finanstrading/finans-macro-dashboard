@@ -1946,13 +1946,11 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
-            "CAD": {
+        "CAD": {
 
-                "GDP Annual Growth Rate (YoY)": {
-                    "names": ["GDP Growth Rate"],
-                    "comparison": "qoq",
-                },
-
+            "GDP Annual Growth Rate (YoY)": {
+                "names": ["GDP Growth Rate"],
+                "comparison": "qoq",
             },
         },
 
