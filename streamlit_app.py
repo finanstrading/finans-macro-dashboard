@@ -1202,19 +1202,24 @@ def construir_df_currency_por_release(
     indicadores_currency,
 ):
     """
-    Construye una copia de la base macro donde cada observación
-    dispone de una fecha efectiva de disponibilidad basada
-    en ReleaseDate de EODHD.
+    Mantiene los valores ORIGINALES de Dashboard_USD y utiliza
+    Macro_Releases/EODHD únicamente para asignar la fecha real
+    en la que cada observación estuvo disponible para el mercado.
 
-    La columna DATE original sigue siendo la referencia económica.
+    DATE representa el periodo económico.
+    ReleaseDate representa el momento real de publicación.
     """
+
+    currency = str(currency).strip().upper()
+
+    # Por ahora esta arquitectura nueva se aplica únicamente a USD.
+    if currency != "USD":
+        return {}
 
     df_releases = cargar_macro_releases()
 
     df_releases = df_releases[
-        df_releases["Currency"].eq(
-            str(currency).strip().upper()
-        )
+        df_releases["Currency"].eq(currency)
     ].copy()
 
     if df_releases.empty:
@@ -1225,77 +1230,93 @@ def construir_df_currency_por_release(
     # ===================================================
 
     aliases_eodhd = {
-        "USD": {
-            "Non Farm Payrolls": {
-                "names": ["Non Farm Payrolls"],
-                "comparison": "",
-            },
-            "Unemployment Rate": {
-                "names": ["Unemployment Rate"],
-                "comparison": "",
-            },
-            "Average Hourly Earnings": {
-                "names": ["Average Hourly Earnings"],
-                "comparison": "mom",
-            },
-            "ADP Employment": {
-                "names": [
-                    "ADP Employment Change",
-                    "ADP Employment",
-                ],
-                "comparison": "",
-            },
-            "Consumer Confidence CB": {
-                "names": ["CB Consumer Confidence"],
-                "comparison": "",
-            },
-            "ISM Services": {
-                "names": [
-                    "ISM Services PMI",
-                    "ISM Services",
-                ],
-                "comparison": "",
-            },
-            "ISM Manufacturing": {
-                "names": [
-                    "ISM Manufacturing PMI",
-                    "ISM Manufacturing",
-                ],
-                "comparison": "",
-            },
-            "CPI YoY": {
-                "names": ["CPI"],
-                "comparison": "yoy",
-            },
-            "Core CPI YoY": {
-                "names": ["Core CPI"],
-                "comparison": "yoy",
-            },
-            "PPI MoM": {
-                "names": ["PPI"],
-                "comparison": "mom",
-            },
-            "Core PPI MoM": {
-                "names": ["Core PPI"],
-                "comparison": "mom",
-            },
-            "Retail Sales MoM": {
-                "names": ["Retail Sales"],
-                "comparison": "mom",
-            },
-            "JOLTS": {
-                "names": ["JOLTS Job Openings"],
-                "comparison": "",
-            },
-        }
+        "Non Farm Payrolls": {
+            "names": ["Non Farm Payrolls"],
+            "comparison": "",
+        },
+        "Unemployment Rate": {
+            "names": ["Unemployment Rate"],
+            "comparison": "",
+        },
+        "Average Hourly Earnings": {
+            "names": ["Average Hourly Earnings"],
+            "comparison": "mom",
+        },
+        "ADP Employment": {
+            "names": [
+                "ADP Employment Change",
+                "ADP Employment",
+            ],
+            "comparison": "",
+        },
+        "Consumer Confidence CB": {
+            "names": ["CB Consumer Confidence"],
+            "comparison": "",
+        },
+        "ISM Services": {
+            "names": [
+                "ISM Services PMI",
+                "ISM Services",
+            ],
+            "comparison": "",
+        },
+        "ISM Manufacturing": {
+            "names": [
+                "ISM Manufacturing PMI",
+                "ISM Manufacturing",
+            ],
+            "comparison": "",
+        },
+        "CPI YoY": {
+            "names": ["CPI"],
+            "comparison": "yoy",
+        },
+        "Core CPI YoY": {
+            "names": ["Core CPI"],
+            "comparison": "yoy",
+        },
+        "PPI MoM": {
+            "names": ["PPI"],
+            "comparison": "mom",
+        },
+        "Core PPI MoM": {
+            "names": ["Core PPI"],
+            "comparison": "mom",
+        },
+        "Retail Sales MoM": {
+            "names": ["Retail Sales"],
+            "comparison": "mom",
+        },
+        "JOLTS": {
+            "names": ["JOLTS Job Openings"],
+            "comparison": "",
+        },
     }
 
     mapa_currency = MAPA_INDICADORES_IA.get(
-        str(currency).strip().upper(),
-        {}
+        currency,
+        {},
+    )
+
+    # ===================================================
+    # PREPARAR PERIODOS DEL DASHBOARD
+    # ===================================================
+
+    dashboard = df_currency.copy()
+
+    dashboard["_Periodo"] = (
+        pd.to_datetime(
+            dashboard["Fecha"],
+            errors="coerce",
+        )
+        .dt.to_period("M")
     )
 
     series_por_indicador = {}
+
+    # ===================================================
+    # CONSTRUIR CADA SERIE
+    # ===================================================
 
     for columna in indicadores_currency:
 
@@ -1304,17 +1325,48 @@ def construir_df_currency_por_release(
             columna,
         )
 
-        config = (
-            aliases_eodhd
-            .get(
-                str(currency).strip().upper(),
-                {}
-            )
-            .get(nombre_score)
+        config = aliases_eodhd.get(
+            nombre_score
         )
 
         if config is None:
             continue
+
+        # -----------------------------------------------
+        # Valores originales del Dashboard
+        # -----------------------------------------------
+
+        valores_dashboard = convertir_valores(
+            dashboard[columna]
+        )
+
+        datos_dashboard = pd.DataFrame({
+            "Periodo": dashboard["_Periodo"],
+            "Valor": valores_dashboard,
+        })
+
+        datos_dashboard = (
+            datos_dashboard
+            .dropna(
+                subset=[
+                    "Periodo",
+                    "Valor",
+                ]
+            )
+            .sort_values("Periodo")
+            .drop_duplicates(
+                subset=["Periodo"],
+                keep="last",
+            )
+            .reset_index(drop=True)
+        )
+
+        if datos_dashboard.empty:
+            continue
+
+        # -----------------------------------------------
+        # Releases EODHD compatibles
+        # -----------------------------------------------
 
         nombres_eodhd = [
             str(nombre).strip().lower()
@@ -1351,7 +1403,7 @@ def construir_df_currency_por_release(
             .dropna(
                 subset=[
                     "ReleaseDate",
-                    "Actual",
+                    "Period",
                 ]
             )
             .sort_values("ReleaseDate")
@@ -1361,29 +1413,137 @@ def construir_df_currency_por_release(
         if releases_indicador.empty:
             continue
 
-        releases_indicador["Valor"] = (
-            convertir_valores(
-                releases_indicador["Actual"]
+        # ===================================================
+        # CONVERTIR "Jul", "Jun", etc. EN PERIODO ECONÓMICO
+        #
+        # El año se deduce de ReleaseDate.
+        # Si el mes económico es posterior al mes de release,
+        # pertenece al año anterior.
+        # ===================================================
+
+        meses_periodo = {
+            "jan": 1,
+            "feb": 2,
+            "mar": 3,
+            "apr": 4,
+            "may": 5,
+            "jun": 6,
+            "jul": 7,
+            "aug": 8,
+            "sep": 9,
+            "oct": 10,
+            "nov": 11,
+            "dec": 12,
+        }
+
+        def obtener_periodo_release(fila):
+
+            release_date = pd.to_datetime(
+                fila["ReleaseDate"],
+                errors="coerce",
+            )
+
+            if pd.isna(release_date):
+                return pd.NaT
+
+            periodo_texto = str(
+                fila["Period"]
+            ).strip()
+
+            if not periodo_texto:
+                return pd.NaT
+
+            mes_texto = (
+                periodo_texto[:3]
+                .lower()
+            )
+
+            mes = meses_periodo.get(
+                mes_texto
+            )
+
+            if mes is None:
+                return pd.NaT
+
+            año = release_date.year
+
+            # Ejemplo:
+            # dato de diciembre publicado en enero.
+            if mes > release_date.month:
+                año -= 1
+
+            return pd.Period(
+                year=año,
+                month=mes,
+                freq="M",
+            )
+
+        releases_indicador["Periodo"] = (
+            releases_indicador.apply(
+                obtener_periodo_release,
+                axis=1,
             )
         )
 
         releases_indicador = (
             releases_indicador
-            .dropna(subset=["Valor"])
+            .dropna(
+                subset=["Periodo"]
+            )
+            .sort_values("ReleaseDate")
+            .drop_duplicates(
+                subset=["Periodo"],
+                keep="last",
+            )
             .reset_index(drop=True)
         )
 
         if releases_indicador.empty:
             continue
 
-        series_por_indicador[nombre_score] = (
+        # ===================================================
+        # MATCH:
+        #
+        # Dashboard_USD aporta Valor
+        # EODHD aporta ReleaseDate
+        # ===================================================
+
+        serie = datos_dashboard.merge(
             releases_indicador[
+                [
+                    "Periodo",
+                    "ReleaseDate",
+                    "Period",
+                ]
+            ],
+            on="Periodo",
+            how="inner",
+        )
+
+        serie = (
+            serie
+            .dropna(
+                subset=[
+                    "ReleaseDate",
+                    "Valor",
+                ]
+            )
+            .sort_values("ReleaseDate")
+            .reset_index(drop=True)
+        )
+
+        if serie.empty:
+            continue
+
+        series_por_indicador[nombre_score] = (
+            serie[
                 [
                     "ReleaseDate",
                     "Valor",
                     "Period",
                 ]
-            ].rename(
+            ]
+            .rename(
                 columns={
                     "ReleaseDate": "Fecha",
                 }
