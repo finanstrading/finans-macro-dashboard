@@ -788,7 +788,6 @@ def filtrar_drivers_por_releases(
             "non farm payrolls",
         ],
         "consumer confidence cb": [
-            "consumer confidence",
             "cb consumer confidence",
         ],
         "ism services": [
@@ -799,8 +798,8 @@ def filtrar_drivers_por_releases(
             "unemployment rate",
         ],
         "adp employment": [
-            "adp employment",
             "adp employment change",
+            "adp employment",
         ],
     }
 
@@ -1495,78 +1494,23 @@ def calcular_drivers_historicos_currency_score(
             familias_anteriores,
         )
 
-                # ===================================================
-        # FILTRAR DRIVERS POR NUEVOS DATOS DEL INTERVALO
-        # ===================================================
+    # ===================================================
+    # FILTRAR DRIVERS POR RELEASE DATE REAL
+    # ===================================================
 
-        drivers_filtrados = []
+    macro_releases = cargar_macro_releases()
 
-        mapa_currency = MAPA_INDICADORES_IA.get(
-            str(currency).strip().upper(),
-            {}
-        )
+    releases_intervalo = obtener_releases_intervalo(
+        macro_releases,
+        currency,
+        fecha_anterior,
+        fecha_actual,
+    )
 
-        for driver in drivers:
-
-            nombre_driver = driver.get(
-                "Indicador"
-            )
-
-            # Buscar qué columna original del dashboard
-            # corresponde al nombre usado por Currency Score.
-            columna_original = None
-
-            for columna in indicadores_currency:
-
-                nombre_mapeado = mapa_currency.get(
-                    columna,
-                    columna,
-                )
-
-                if nombre_mapeado == nombre_driver:
-                    columna_original = columna
-                    break
-
-            if columna_original is None:
-                continue
-
-            valores_driver = convertir_valores(
-                df_currency[columna_original]
-            )
-
-            datos_driver = pd.DataFrame({
-                "Fecha": df_currency["Fecha"],
-                "Valor": valores_driver,
-            })
-
-            datos_driver = datos_driver.dropna()
-
-            # Solo consideramos driver si apareció una
-            # nueva observación entre los dos puntos.
-            publicaciones_intervalo = datos_driver[
-                (datos_driver["Fecha"] > fecha_anterior)
-                &
-                (datos_driver["Fecha"] <= fecha_actual)
-            ]
-
-            if publicaciones_intervalo.empty:
-                continue
-
-            fecha_nuevo_dato = (
-                publicaciones_intervalo["Fecha"].max()
-            )
-
-            driver = driver.copy()
-
-            driver["Fecha dato"] = (
-                fecha_nuevo_dato
-            )
-
-            drivers_filtrados.append(
-                driver
-            )
-
-        drivers = drivers_filtrados
+    drivers = filtrar_drivers_por_releases(
+        drivers,
+        releases_intervalo,
+    )
 
         cambios_historicos.append({
             "Fecha": fecha_actual,
