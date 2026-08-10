@@ -1977,7 +1977,7 @@ try:
         periodos=26,
         )
 
-                macro_releases = cargar_macro_releases()
+        macro_releases = cargar_macro_releases()
 
         if len(historico_score) >= 2:
 
