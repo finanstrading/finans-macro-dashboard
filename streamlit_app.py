@@ -1921,27 +1921,27 @@ def construir_df_currency_por_release(
 # ReleaseDate se utiliza como reloj
 # ===================================================
 
-proxies_release_eodhd_por_divisa = {
+    proxies_release_eodhd_por_divisa = {
 
-    "JPY": {
+        "JPY": {
 
-        "Tokyo CPI YoY": {
-            "names": ["Tokyo Core"],
-            "comparison": "yoy",
+            "Tokyo CPI YoY": {
+                "names": ["Tokyo Core"],
+                "comparison": "yoy",
+            },
+
+            "GDP Annual Growth Rate (YoY)": {
+                "names": ["GDP Growth Rate"],
+                "comparison": "qoq",
+            },
+
+            "Employment": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
         },
 
-        "GDP Annual Growth Rate (YoY)": {
-            "names": ["GDP Growth Rate"],
-            "comparison": "qoq",
-        },
-
-        "Employment": {
-            "names": ["Unemployment Rate"],
-            "comparison": "",
-        },
-    },
-
-}
+    }
 
 
     aliases_eodhd = aliases_eodhd_por_divisa.get(
