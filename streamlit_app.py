@@ -1921,8 +1921,8 @@ def calcular_historico_currency_score(
     )
 
     if currency_normalizada == "GBP":
-    st.write("DEBUG GBP — series_release")
-    st.write("Indicadores:", list(series_release.keys()))
+        st.write("DEBUG GBP — series_release")
+        st.write("Indicadores:", list(series_release.keys()))
 
     for indicador_debug, df_debug in series_release.items():
         if df_debug is not None and not df_debug.empty:
