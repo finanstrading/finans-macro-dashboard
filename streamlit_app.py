@@ -2102,6 +2102,17 @@ try:
                 use_container_width=True,
             )
 
+            st.write("INDICADORES PUBLICADOS EN EL INTERVALO")
+
+            st.write(
+                releases_debug["Indicator"]
+                .dropna()
+                .astype(str)
+                .sort_values()
+                .unique()
+                .tolist()
+            )
+
         drivers_historicos = (
         calcular_drivers_historicos_currency_score(
             divisa,
