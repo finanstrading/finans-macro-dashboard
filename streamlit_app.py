@@ -2492,6 +2492,255 @@ try:
         periodos=26,
         )
 
+    # ===================================================
+    # DEBUG TEMPORAL — SCORE ACTUAL VS ÚLTIMO SNAPSHOT
+    # ===================================================
+
+    if (
+        str(divisa).strip().upper() == "USD"
+        and historico_score is not None
+        and not historico_score.empty
+    ):
+
+        st.markdown("### 🧪 DEBUG USD — Actual vs histórico")
+
+        fecha_ultimo_snapshot = pd.to_datetime(
+            historico_score.iloc[-1]["Fecha"]
+        )
+
+        score_ultimo_snapshot = float(
+            historico_score.iloc[-1]["Score"]
+        )
+
+        # -----------------------------------------------
+        # 1. SERIES RELEASE-AWARE
+        # -----------------------------------------------
+
+        series_release_debug = construir_df_currency_por_release(
+            df,
+            divisa,
+            indicadores,
+        )
+
+        # -----------------------------------------------
+        # 2. RECONSTRUIR EL ESTADO HISTÓRICO
+        #    EXACTAMENTE EN LA ÚLTIMA FECHA
+        # -----------------------------------------------
+
+        resultados_release_debug = analizar_divisa_por_release(
+            series_release_debug,
+            divisa,
+            fecha_ultimo_snapshot,
+        )
+
+        currency_score_release_debug = calcular_currency_score(
+            divisa,
+            resultados_release_debug,
+        )
+
+        score_release_recalculado = (
+            currency_score_release_debug.get("score")
+        )
+
+        coverage_release_recalculada = (
+            currency_score_release_debug.get(
+                "coverage",
+                0,
+            )
+        )
+
+        # -----------------------------------------------
+        # RESUMEN GENERAL
+        # -----------------------------------------------
+
+        col_debug_1, col_debug_2, col_debug_3 = st.columns(3)
+
+        with col_debug_1:
+            st.metric(
+                "Score actual",
+                f"{score:.1f}"
+                if score is not None
+                else "N/D",
+            )
+
+        with col_debug_2:
+            st.metric(
+                "Último histórico",
+                f"{score_ultimo_snapshot:.1f}",
+            )
+
+        with col_debug_3:
+            st.metric(
+                "Release recalculado",
+                (
+                    f"{float(score_release_recalculado):.1f}"
+                    if score_release_recalculado is not None
+                    else "N/D"
+                ),
+            )
+
+        st.write({
+            "Fecha último snapshot": fecha_ultimo_snapshot,
+            "Coverage actual": coverage,
+            "Coverage release": coverage_release_recalculada,
+            "Indicadores actuales": len(resultados_divisa),
+            "Indicadores release-aware": len(resultados_release_debug),
+        })
+
+        # ===================================================
+        # 3. COMPARAR INDICADOR POR INDICADOR
+        # ===================================================
+
+        filas_debug = []
+
+        indicadores_union = sorted(
+            set(resultados_divisa.keys())
+            | set(resultados_release_debug.keys())
+        )
+
+        for nombre_indicador in indicadores_union:
+
+            actual_ind = resultados_divisa.get(
+                nombre_indicador
+            )
+
+            release_ind = resultados_release_debug.get(
+                nombre_indicador
+            )
+
+            def extraer_campo(resultado, campo):
+
+                if not isinstance(resultado, dict):
+                    return None
+
+                return resultado.get(campo)
+
+            score_ind_actual = extraer_campo(
+                actual_ind,
+                "score",
+            )
+
+            score_ind_release = extraer_campo(
+                release_ind,
+                "score",
+            )
+
+            valor_actual = extraer_campo(
+                actual_ind,
+                "valor_actual",
+            )
+
+            valor_release = extraer_campo(
+                release_ind,
+                "valor_actual",
+            )
+
+            diferencia_score = None
+
+            if (
+                score_ind_actual is not None
+                and score_ind_release is not None
+            ):
+                diferencia_score = (
+                    float(score_ind_actual)
+                    - float(score_ind_release)
+                )
+
+            filas_debug.append({
+                "Indicador": nombre_indicador,
+
+                "Está actual": (
+                    actual_ind is not None
+                ),
+
+                "Está histórico": (
+                    release_ind is not None
+                ),
+
+                "Valor actual": valor_actual,
+
+                "Valor histórico": valor_release,
+
+                "Score actual": score_ind_actual,
+
+                "Score histórico": score_ind_release,
+
+                "Diferencia score": diferencia_score,
+            })
+
+        df_debug_comparacion = pd.DataFrame(
+            filas_debug
+        )
+
+        if not df_debug_comparacion.empty:
+
+            df_debug_comparacion = (
+                df_debug_comparacion
+                .sort_values(
+                    "Diferencia score",
+                    key=lambda serie: serie.abs(),
+                    ascending=False,
+                    na_position="first",
+                )
+                .reset_index(drop=True)
+            )
+
+            st.dataframe(
+                df_debug_comparacion,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # ===================================================
+        # 4. QUÉ SERIES ESTÁN LLEGANDO AL HISTÓRICO
+        # ===================================================
+
+        filas_series = []
+
+        for nombre_indicador, datos_serie in (
+            series_release_debug.items()
+        ):
+
+            if datos_serie is None or datos_serie.empty:
+                continue
+
+            ultima_fila = (
+                datos_serie[
+                    datos_serie["Fecha"]
+                    <= fecha_ultimo_snapshot
+                ]
+                .sort_values("Fecha")
+            )
+
+            if ultima_fila.empty:
+                continue
+
+            ultima_fila = ultima_fila.iloc[-1]
+
+            filas_series.append({
+                "Indicador": nombre_indicador,
+                "Última ReleaseDate": ultima_fila["Fecha"],
+                "Último valor Dashboard": ultima_fila["Valor"],
+                "Period EODHD": ultima_fila.get(
+                    "Period",
+                    "",
+                ),
+                "Nº observaciones": len(
+                    datos_serie[
+                        datos_serie["Fecha"]
+                        <= fecha_ultimo_snapshot
+                    ]
+                ),
+            })
+
+        st.markdown("#### Series que entran en el snapshot")
+
+        st.dataframe(
+            pd.DataFrame(filas_series),
+            use_container_width=True,
+            hide_index=True,
+        )
+
         macro_releases = cargar_macro_releases()
 
         if len(historico_score) >= 2:
