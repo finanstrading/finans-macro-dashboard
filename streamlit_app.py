@@ -1751,7 +1751,6 @@ aliases_eodhd_por_divisa = {
 
     }  # cierra aliases_eodhd_por_divisa
 
-
     aliases_eodhd = aliases_eodhd_por_divisa.get(
         currency,
         {},
