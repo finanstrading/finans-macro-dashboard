@@ -2645,13 +2645,23 @@ try:
 
             if not df_debug_comparacion.empty:
 
+                df_debug_comparacion["_Orden diferencia"] = (
+                    pd.to_numeric(
+                        df_debug_comparacion["Diferencia score"],
+                        errors="coerce",
+                    )
+                    .abs()
+                )
+
                 df_debug_comparacion = (
                     df_debug_comparacion
                     .sort_values(
-                        "Diferencia score",
-                        key=lambda serie: serie.abs(),
+                        "_Orden diferencia",
                         ascending=False,
                         na_position="first",
+                    )
+                    .drop(
+                        columns=["_Orden diferencia"]
                     )
                     .reset_index(drop=True)
                 )
