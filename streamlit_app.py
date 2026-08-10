@@ -593,6 +593,110 @@ def cargar_interpretaciones_ia():
 
     return df_ia
 
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_macro_releases():
+
+    nombre_hoja = "Macro_Releases"
+
+    df_releases = pd.read_csv(
+        construir_url(nombre_hoja)
+    )
+
+    df_releases.columns = [
+        str(columna).strip()
+        for columna in df_releases.columns
+    ]
+
+    df_releases = (
+        df_releases
+        .dropna(axis=0, how="all")
+        .reset_index(drop=True)
+    )
+
+    columnas_necesarias = {
+        "Currency",
+        "Country",
+        "Indicator",
+        "ReleaseDate",
+        "Period",
+        "Comparison",
+        "Actual",
+        "Previous",
+        "Estimate",
+    }
+
+    faltantes = columnas_necesarias - set(df_releases.columns)
+
+    if faltantes:
+        raise ValueError(
+            "Faltan columnas en Macro_Releases: "
+            + ", ".join(sorted(faltantes))
+        )
+
+    df_releases["ReleaseDate"] = pd.to_datetime(
+        df_releases["ReleaseDate"],
+        errors="coerce",
+    )
+
+    df_releases["Currency"] = (
+        df_releases["Currency"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    df_releases["Indicator"] = (
+        df_releases["Indicator"]
+        .astype(str)
+        .str.strip()
+    )
+
+    df_releases["Comparison"] = (
+        df_releases["Comparison"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+
+    df_releases = (
+        df_releases
+        .dropna(subset=["ReleaseDate"])
+        .sort_values("ReleaseDate")
+        .reset_index(drop=True)
+    )
+
+    return df_releases
+
+def obtener_releases_intervalo(
+    df_releases,
+    currency,
+    fecha_anterior,
+    fecha_actual,
+):
+
+    if df_releases is None or df_releases.empty:
+        return pd.DataFrame()
+
+    currency = str(currency).strip().upper()
+
+    fecha_anterior = pd.to_datetime(fecha_anterior)
+    fecha_actual = pd.to_datetime(fecha_actual)
+
+    resultado = df_releases[
+        (df_releases["Currency"] == currency)
+        &
+        (df_releases["ReleaseDate"] > fecha_anterior)
+        &
+        (df_releases["ReleaseDate"] <= fecha_actual)
+    ].copy()
+
+    return (
+        resultado
+        .sort_values("ReleaseDate")
+        .reset_index(drop=True)
+    )
+
 MAPA_INDICADORES_IA = {
     "GBP": {
         "CPI": "CPI MoM",
