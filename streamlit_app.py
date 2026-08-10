@@ -2713,28 +2713,6 @@ try:
             revision="release_v4",
         )
 
-        macro_releases = cargar_macro_releases()
-
-        if len(historico_score) >= 2:
-
-            fecha_debug_anterior = (
-                historico_score.iloc[-2]["Fecha"]
-            )
-
-            fecha_debug_actual = (
-                historico_score.iloc[-1]["Fecha"]
-            )
-
-            releases_debug = obtener_releases_intervalo(
-                macro_releases,
-                divisa,
-                fecha_debug_anterior,
-                fecha_debug_actual,
-            )
-
-            st.write(
-                "DEBUG RELEASES REALES"
-            )
 
             st.write({
                 "Desde": fecha_debug_anterior,
