@@ -1911,6 +1911,39 @@ def construir_df_currency_por_release(
             .isin(nombres_eodhd)
         ].copy()
 
+        if (
+            currency == "USD"
+            and nombre_score in {
+                "PMI Manufactura",
+                "ISM Manufacturing",
+            }
+        ):
+            st.write(
+                "🔬 DEBUG USD MANUFACTURING",
+                {
+                    "nombre_score": nombre_score,
+                    "config": config,
+                    "nombres_eodhd": nombres_eodhd,
+                    "matches_antes_comparison": len(
+                        releases_indicador
+                    ),
+                }
+            )
+
+            if not releases_indicador.empty:
+                st.dataframe(
+                    releases_indicador[
+                        [
+                            "ReleaseDate",
+                            "Indicator",
+                            "Period",
+                            "Comparison",
+                        ]
+                    ].tail(15),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
         if comparison_objetivo:
 
             releases_indicador = releases_indicador[
