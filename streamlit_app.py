@@ -2451,6 +2451,20 @@ def construir_df_currency_por_release(
                 use_container_width=True,
                 hide_index=True,
             )
+
+            st.write(
+                "🧪 DEBUG COBERTURA RAW",
+                {
+                    "len_series_por_indicador": len(series_por_indicador),
+                    "keys_series": list(series_por_indicador.keys()),
+                    "len_cobertura_fechas": len(cobertura_fechas),
+                    "gdp_rows": [
+                        x for x in cobertura_fechas
+                        if "GDP" in str(x.get("Indicador", ""))
+                    ],
+                }
+            )
+            
             df_cobertura = pd.DataFrame(cobertura_fechas)
 
             sin_eodhd = df_cobertura[
