@@ -1914,6 +1914,36 @@ def construir_df_currency_por_release(
         }  # cierra aliases_eodhd_por_divisa
 
 
+
+# ===================================================
+# PROXIES TEMPORALES EODHD
+# Indicador Dashboard -> indicador EODHD cuyo
+# ReleaseDate se utiliza como reloj
+# ===================================================
+
+proxies_release_eodhd_por_divisa = {
+
+    "JPY": {
+
+        "Tokyo CPI YoY": {
+            "names": ["Tokyo Core"],
+            "comparison": "yoy",
+        },
+
+        "GDP Annual Growth Rate (YoY)": {
+            "names": ["GDP Growth Rate"],
+            "comparison": "qoq",
+        },
+
+        "Employment": {
+            "names": ["Unemployment Rate"],
+            "comparison": "",
+        },
+    },
+
+}
+
+
     aliases_eodhd = aliases_eodhd_por_divisa.get(
         currency,
         {},
@@ -2072,6 +2102,7 @@ def construir_df_currency_por_release(
         config = aliases_eodhd.get(
             nombre_score
         )
+
 
         if config is None:
             auditoria_eodhd.append({
@@ -2283,8 +2314,24 @@ def construir_df_currency_por_release(
         config = aliases_eodhd.get(nombre_score)
 
         # ===================================================
-        # MATCHING AUTOMÁTICO PARA INDICADORES SIN ALIAS MANUAL
+        # PROXY TEMPORAL DE RELEASEDATE
         # ===================================================
+
+        es_proxy_release = False
+
+        proxies_currency = proxies_release_eodhd_por_divisa.get(
+            str(currency).strip().upper(),
+            {},
+        )
+
+        config_proxy = proxies_currency.get(
+            nombre_score
+        )
+
+        # Si existe proxy explícito, tiene prioridad como reloj
+        if config_proxy is not None:
+            config = config_proxy
+            es_proxy_release = True
 
         if config is None:
 
@@ -2682,11 +2729,19 @@ def construir_df_currency_por_release(
             "Fallback Dashboard"
         )
 
-        serie.loc[
-            serie["ReleaseDate"].notna(),
-            "FuenteFecha",
-        ] = "EODHD ReleaseDate"
+        if es_proxy_release:
 
+            serie.loc[
+                serie["ReleaseDate"].notna(),
+                "FuenteFecha",
+            ] = "EODHD Proxy ReleaseDate"
+
+        else:
+
+            serie.loc[
+                serie["ReleaseDate"].notna(),
+                "FuenteFecha",
+            ] = "EODHD ReleaseDate"
 
         serie = (
             serie
