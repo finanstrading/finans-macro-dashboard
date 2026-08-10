@@ -1920,6 +1920,18 @@ def calcular_drivers_historicos_currency_score(
         historico_score
         .copy()
         .sort_values("Fecha")
+        .reset_idef calcular_drivers_historicos_currency_score(
+    currency,
+    historico_score,
+):
+
+    if historico_score is None or historico_score.empty:
+        return []
+
+    historico = (
+        historico_score
+        .copy()
+        .sort_values("Fecha")
         .reset_index(drop=True)
     )
 
@@ -1927,7 +1939,7 @@ def calcular_drivers_historicos_currency_score(
         return []
 
     # ===================================================
-    # CARGAR DATOS DE LA DIVISA UNA SOLA VEZ
+    # CARGAR DATOS UNA SOLA VEZ
     # ===================================================
 
     df_currency, _ = cargar_datos_mercado(
@@ -1952,6 +1964,27 @@ def calcular_drivers_historicos_currency_score(
     if not indicadores_currency:
         return []
 
+    currency_normalizada = (
+        str(currency).strip().upper()
+    )
+
+    # ===================================================
+    # PARA USD USAR EXACTAMENTE EL MISMO RELOJ
+    # QUE EL HISTÓRICO DEL CURRENCY SCORE
+    # ===================================================
+
+    series_release = {}
+
+    if currency_normalizada == "USD":
+
+        series_release = construir_df_currency_por_release(
+            df_currency,
+            currency,
+            indicadores_currency,
+        )
+
+    macro_releases = cargar_macro_releases()
+
     cambios_historicos = []
 
     # ===================================================
@@ -1963,8 +1996,13 @@ def calcular_drivers_historicos_currency_score(
         fila_anterior = historico.iloc[i - 1]
         fila_actual = historico.iloc[i]
 
-        fecha_anterior = fila_anterior["Fecha"]
-        fecha_actual = fila_actual["Fecha"]
+        fecha_anterior = pd.to_datetime(
+            fila_anterior["Fecha"]
+        )
+
+        fecha_actual = pd.to_datetime(
+            fila_actual["Fecha"]
+        )
 
         score_anterior = float(
             fila_anterior["Score"]
@@ -1978,8 +2016,9 @@ def calcular_drivers_historicos_currency_score(
             score_actual - score_anterior
         )
 
-        # Si el score no cambió, lo guardamos igualmente,
-        # pero evitamos recalcular todos los indicadores.
+        # -----------------------------------------------
+        # Sin cambio
+        # -----------------------------------------------
 
         if abs(cambio_score) < 0.01:
 
@@ -1995,19 +2034,54 @@ def calcular_drivers_historicos_currency_score(
             continue
 
         # ===================================================
-        # RECONSTRUIR ESTADO ANTERIOR
+        # RECONSTRUIR LOS DOS ESTADOS
         # ===================================================
 
-        resultados_anteriores = analizar_divisa_completa(
-            df_currency,
-            currency,
-            indicadores_currency,
-            fecha_corte=fecha_anterior,
-        )
+        if (
+            currency_normalizada == "USD"
+            and series_release
+        ):
+
+            resultados_anteriores = analizar_divisa_por_release(
+                series_release,
+                currency,
+                fecha_anterior,
+            )
+
+            resultados_actuales = analizar_divisa_por_release(
+                series_release,
+                currency,
+                fecha_actual,
+            )
+
+        else:
+
+            resultados_anteriores = analizar_divisa_completa(
+                df_currency,
+                currency,
+                indicadores_currency,
+                fecha_corte=fecha_anterior,
+            )
+
+            resultados_actuales = analizar_divisa_completa(
+                df_currency,
+                currency,
+                indicadores_currency,
+                fecha_corte=fecha_actual,
+            )
+
+        # ===================================================
+        # CURRENCY SCORE DE AMBOS ESTADOS
+        # ===================================================
 
         currency_score_anterior = calcular_currency_score(
             currency,
             resultados_anteriores,
+        )
+
+        currency_score_actual = calcular_currency_score(
+            currency,
+            resultados_actuales,
         )
 
         familias_anteriores = (
@@ -2017,22 +2091,6 @@ def calcular_drivers_historicos_currency_score(
             )
         )
 
-        # ===================================================
-        # RECONSTRUIR ESTADO ACTUAL
-        # ===================================================
-
-        resultados_actuales = analizar_divisa_completa(
-            df_currency,
-            currency,
-            indicadores_currency,
-            fecha_corte=fecha_actual,
-        )
-
-        currency_score_actual = calcular_currency_score(
-            currency,
-            resultados_actuales,
-        )
-
         familias_actuales = (
             currency_score_actual.get(
                 "families",
@@ -2040,37 +2098,50 @@ def calcular_drivers_historicos_currency_score(
             )
         )
 
+        # ===================================================
+        # DRIVERS BRUTOS
+        # ===================================================
+
         drivers = calcular_drivers_currency_score(
             familias_actuales,
             familias_anteriores,
         )
 
-    # ===================================================
-    # FILTRAR DRIVERS POR RELEASE DATE REAL
-    # ===================================================
+        # ===================================================
+        # PUBLICACIONES REALES DEL INTERVALO
+        # ===================================================
 
-    macro_releases = cargar_macro_releases()
+        releases_intervalo = obtener_releases_intervalo(
+            macro_releases,
+            currency,
+            fecha_anterior,
+            fecha_actual,
+        )
 
-    releases_intervalo = obtener_releases_intervalo(
-        macro_releases,
-        currency,
-        fecha_anterior,
-        fecha_actual,
-    )
+        # ===================================================
+        # CONSERVAR SOLO INDICADORES REALMENTE PUBLICADOS
+        # ===================================================
 
-    drivers = filtrar_drivers_por_releases(
-        drivers,
-        releases_intervalo,
-    )
+        drivers = filtrar_drivers_por_releases(
+            drivers,
+            releases_intervalo,
+        )
 
-    cambios_historicos.append({
+        # ===================================================
+        # GUARDAR ESTE INTERVALO
+        # ===================================================
+
+        cambios_historicos.append({
             "Fecha": fecha_actual,
             "Fecha anterior": fecha_anterior,
             "Score anterior": score_anterior,
             "Score actual": score_actual,
-            "Cambio": round(cambio_score, 2),
+            "Cambio": round(
+                cambio_score,
+                2,
+            ),
             "Drivers": drivers,
-    })
+        })
 
     return cambios_historicos
 
