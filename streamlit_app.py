@@ -1444,6 +1444,40 @@ def construir_df_currency_por_release(
         )
 
         if releases_indicador.empty:
+
+            # ===================================================
+            # FALLBACK SI EXISTE CONFIG EODHD PERO NO HAY MATCH
+            #
+            # Ejemplo actual: PPI MoM.
+            # No eliminamos el indicador del Currency Score.
+            # Conservamos la serie original de Dashboard_USD.
+            # ===================================================
+
+            serie_fallback = pd.DataFrame({
+                "Fecha": dashboard["Fecha"],
+                "Valor": convertir_valores(
+                    dashboard[columna]
+                ),
+                "Period": dashboard["_Periodo"].astype(str),
+            })
+
+            serie_fallback = (
+                serie_fallback
+                .dropna(
+                    subset=[
+                        "Fecha",
+                        "Valor",
+                    ]
+                )
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
+
+            if not serie_fallback.empty:
+                series_por_indicador[nombre_score] = (
+                    serie_fallback
+                )
+
             continue
 
         # ===================================================
@@ -1532,6 +1566,40 @@ def construir_df_currency_por_release(
         )
 
         if releases_indicador.empty:
+
+            # ===================================================
+            # FALLBACK SI EXISTE CONFIG EODHD PERO NO HAY MATCH
+            #
+            # Ejemplo actual: PPI MoM.
+            # No eliminamos el indicador del Currency Score.
+            # Conservamos la serie original de Dashboard_USD.
+            # ===================================================
+
+            serie_fallback = pd.DataFrame({
+                "Fecha": dashboard["Fecha"],
+                "Valor": convertir_valores(
+                    dashboard[columna]
+                ),
+                "Period": dashboard["_Periodo"].astype(str),
+            })
+
+            serie_fallback = (
+                serie_fallback
+                .dropna(
+                    subset=[
+                        "Fecha",
+                        "Valor",
+                    ]
+                )
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
+
+            if not serie_fallback.empty:
+                series_por_indicador[nombre_score] = (
+                    serie_fallback
+                )
+
             continue
 
 # ===================================================
