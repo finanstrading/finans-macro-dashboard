@@ -1284,13 +1284,6 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
-            "ISM Manufacturing": {
-                "names": [
-                    "ISM Manufacturing PMI",
-                    "ISM Manufacturing",
-                ],
-                "comparison": "",
-            },
 
             "PMI Manufactura": {
                 "names": [
