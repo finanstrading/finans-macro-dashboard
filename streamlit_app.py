@@ -1307,7 +1307,10 @@ aliases_eodhd_por_divisa = {
             "comparison": "",
         },
 
-    },
+    },  # cierra USD
+
+    }  # cierra aliases_eodhd_por_divisa
+
 
     aliases_eodhd = aliases_eodhd_por_divisa.get(
         currency,
