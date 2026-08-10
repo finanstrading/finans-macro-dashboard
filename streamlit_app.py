@@ -2713,8 +2713,6 @@ try:
             revision="release_v4",
         )
 
-        macro_releases = cargar_macro_releases()
-
 
         drivers_historicos = (
         calcular_drivers_historicos_currency_score(
