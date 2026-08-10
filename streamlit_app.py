@@ -1687,7 +1687,6 @@ def construir_df_currency_por_release(
             .dropna(
                 subset=[
                     "ReleaseDate",
-                    "Period",
                 ]
             )
             .sort_values("ReleaseDate")
