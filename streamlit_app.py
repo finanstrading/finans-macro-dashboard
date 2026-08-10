@@ -1780,17 +1780,6 @@ def construir_df_currency_por_release(
                 columna_normalizada,
             )
 
-            if "PMI" in str(columna) or "Manufact" in str(columna):
-                st.write(
-                    "TEST PMI:",
-                    {
-                        "columna": repr(columna),
-                        "nombre_score": repr(nombre_score),
-                        "currency": repr(currency),
-                        "mapa_tiene_columna": columna in mapa_currency,
-                        "alias_tiene_nombre_score": nombre_score in aliases_eodhd,
-                    }
-                )
 
             if nombre_score == "PMI Manufactura":
                 st.write("DEBUG PMI:", {
@@ -1871,29 +1860,6 @@ def construir_df_currency_por_release(
                 })
 
 
-    if currency == "USD":
-
-        debug_growth = df_releases[
-            df_releases["Indicator"]
-            .astype(str)
-            .str.contains(
-                "growth|annual|domestic",
-                case=False,
-                na=False,
-                regex=True,
-            )
-        ].copy()
-
-        st.write("### DEBUG GROWTH / ANNUAL EODHD")
-
-        st.dataframe(
-            debug_growth[
-                ["ReleaseDate", "Indicator", "Period", "Comparison"]
-            ]
-            .sort_values("ReleaseDate", ascending=False),
-            use_container_width=True,
-            hide_index=True,
-        )
     # ===================================================
     # PREPARAR PERIODOS DEL DASHBOARD
     # ===================================================
