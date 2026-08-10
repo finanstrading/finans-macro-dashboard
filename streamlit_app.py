@@ -1955,6 +1955,15 @@ def construir_df_currency_por_release(
             },
         },
 
+        "NZD": {
+
+            "Core CPI YoY": {
+                "names": ["Inflation Rate"],
+                "comparison": "yoy",
+            },
+
+        },
+
     }
 
 
