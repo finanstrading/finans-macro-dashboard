@@ -1483,25 +1483,25 @@ def calcular_historico_currency_score(
     df_currency,
     currency,
     indicadores_currency,
-)
-
-if not series_release:
-    return pd.DataFrame(
-        columns=[
-            "Fecha",
-            "Score",
-            "Coverage",
-        ]
     )
 
-if not indicadores_currency:
-    return pd.DataFrame(
-        columns=[
-            "Fecha",
-            "Score",
-            "Coverage",
-        ]
-    )
+    if not series_release:
+        return pd.DataFrame(
+            columns=[
+                "Fecha",
+                "Score",
+                "Coverage",
+            ]
+        )
+
+    if not indicadores_currency:
+        return pd.DataFrame(
+            columns=[
+                "Fecha",
+                "Score",
+                "Coverage",
+            ]
+        )
 
 fechas_disponibles = []
 
