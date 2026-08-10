@@ -1945,6 +1945,7 @@ def construir_df_currency_por_release(
                 "names": ["Unemployment Rate"],
                 "comparison": "",
             },
+        },
 
         "CAD": {
 
