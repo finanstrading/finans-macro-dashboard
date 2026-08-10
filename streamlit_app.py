@@ -1879,11 +1879,11 @@ def construir_df_currency_por_release(
     # CATÁLOGO COMPLETO EODHD — JPY
     # ===================================================
 
-    if currency == "JPY":
+    if currency in ["JPY", "CAD", "AUD", "NZD", "CHF"]:
 
-        st.write("### CATÁLOGO COMPLETO EODHD — JPY")
+        st.write(f"### CATÁLOGO COMPLETO EODHD — {currency}")
 
-        catalogo_jpy = (
+        catalogo_eodhd = (
             df_releases[
                 [
                     "Indicator",
@@ -1899,7 +1899,7 @@ def construir_df_currency_por_release(
         )
 
         st.dataframe(
-            catalogo_jpy,
+            catalogo_eodhd,
             use_container_width=True,
             hide_index=True,
         )
