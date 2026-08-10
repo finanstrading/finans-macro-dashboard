@@ -1930,19 +1930,6 @@ def construir_df_currency_por_release(
             .isin(nombres_eodhd)
         ].copy()
 
-            if not releases_indicador.empty:
-                st.dataframe(
-                    releases_indicador[
-                        [
-                            "ReleaseDate",
-                            "Indicator",
-                            "Period",
-                            "Comparison",
-                        ]
-                    ].tail(15),
-                    use_container_width=True,
-                    hide_index=True,
-                )
 
         if comparison_objetivo:
 
