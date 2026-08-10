@@ -2375,6 +2375,24 @@ def construir_df_currency_por_release(
                         "Fallback": len(df_serie),
                     })
 
+                if (
+                    currency == "USD"
+                    and nombre_indicador in {
+                        "PMI Manufactura",
+                        "ISM Manufacturing",
+                    }
+                ):
+                    st.write(
+                        "DEBUG COBERTURA USD",
+                        {
+                            "Indicador": nombre_indicador,
+                            "Columnas": list(df_serie.columns),
+                            "EODHD": int(eodhd),
+                            "Fallback": int(fallback),
+                        }
+                    )
+                    
+
                     continue
 
                 eodhd = (
