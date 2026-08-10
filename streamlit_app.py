@@ -1503,118 +1503,118 @@ def calcular_historico_currency_score(
             ]
         )
 
-fechas_disponibles = []
+    fechas_disponibles = []
 
-for datos_indicador in series_release.values():
+    for datos_indicador in series_release.values():
 
-    if datos_indicador.empty:
-        continue
+        if datos_indicador.empty:
+            continue
 
-    fechas_disponibles.append(
-        datos_indicador["Fecha"].max()
+        fechas_disponibles.append(
+            datos_indicador["Fecha"].max()
+        )
+
+    if not fechas_disponibles:
+        return pd.DataFrame(
+            columns=[
+                "Fecha",
+                "Score",
+                "Coverage",
+            ]
+        )
+
+    fecha_final = max(
+        fechas_disponibles
     )
 
-if not fechas_disponibles:
-    return pd.DataFrame(
-        columns=[
-            "Fecha",
-            "Score",
-            "Coverage",
-        ]
+    if frecuencia == "W":
+
+        fechas_corte = pd.date_range(
+            end=fecha_final,
+            periods=periodos,
+            freq="W",
+        )
+
+    elif frecuencia == "M":
+
+        fechas_corte = pd.date_range(
+            end=fecha_final,
+            periods=periodos,
+            freq="ME",
+        )
+
+    else:
+        raise ValueError(
+            "La frecuencia debe ser 'W' o 'M'."
+        )
+
+    # ===================================================
+    # ASEGURAR QUE LA ÚLTIMA FECHA REAL ESTÁ INCLUIDA
+    # ===================================================
+
+    fechas_corte = list(fechas_corte)
+
+    if (
+        not fechas_corte
+        or fechas_corte[-1] != fecha_final
+    ):
+        fechas_corte.append(fecha_final)
+
+    fechas_corte = sorted(
+        set(fechas_corte)
     )
 
-fecha_final = max(
-    fechas_disponibles
-)
+    historico = []
 
-if frecuencia == "W":
+    for fecha_corte in fechas_corte:
 
-    fechas_corte = pd.date_range(
-        end=fecha_final,
-        periods=periodos,
-        freq="W",
+        resultados = analizar_divisa_por_release(
+            series_release,
+            currency,
+            fecha_corte,
+        )
+
+        resultado_score = calcular_currency_score(
+            currency,
+            resultados,
+        )
+
+        score_historico = resultado_score.get(
+            "score"
+        )
+
+        coverage_historica = resultado_score.get(
+            "coverage",
+            0,
+        )
+
+        if score_historico is None:
+            continue
+
+        historico.append({
+            "Fecha": fecha_corte,
+            "Score": float(score_historico),
+            "Coverage": float(coverage_historica),
+        })
+
+    historico_df = pd.DataFrame(
+        historico
     )
 
-elif frecuencia == "M":
+    if historico_df.empty:
+        return historico_df
 
-    fechas_corte = pd.date_range(
-        end=fecha_final,
-        periods=periodos,
-        freq="ME",
+    historico_df = (
+        historico_df
+        .sort_values("Fecha")
+        .drop_duplicates(
+            subset=["Fecha"],
+            keep="last",
+        )
+        .reset_index(drop=True)
     )
 
-else:
-    raise ValueError(
-        "La frecuencia debe ser 'W' o 'M'."
-    )
-
-# ===================================================
-# ASEGURAR QUE LA ÚLTIMA FECHA REAL ESTÁ INCLUIDA
-# ===================================================
-
-fechas_corte = list(fechas_corte)
-
-if (
-    not fechas_corte
-    or fechas_corte[-1] != fecha_final
-):
-    fechas_corte.append(fecha_final)
-
-fechas_corte = sorted(
-    set(fechas_corte)
-)
-
-historico = []
-
-for fecha_corte in fechas_corte:
-
-    resultados = analizar_divisa_por_release(
-        series_release,
-        currency,
-        fecha_corte,
-    )
-
-    resultado_score = calcular_currency_score(
-        currency,
-        resultados,
-    )
-
-    score_historico = resultado_score.get(
-        "score"
-    )
-
-    coverage_historica = resultado_score.get(
-        "coverage",
-        0,
-    )
-
-    if score_historico is None:
-        continue
-
-    historico.append({
-        "Fecha": fecha_corte,
-        "Score": float(score_historico),
-        "Coverage": float(coverage_historica),
-    })
-
-historico_df = pd.DataFrame(
-    historico
-)
-
-if historico_df.empty:
     return historico_df
-
-historico_df = (
-    historico_df
-    .sort_values("Fecha")
-    .drop_duplicates(
-        subset=["Fecha"],
-        keep="last",
-    )
-    .reset_index(drop=True)
-)
-
-return historico_df
 
 def calcular_drivers_currency_score(
     resultados_actuales,
