@@ -1888,7 +1888,7 @@ def calcular_historico_currency_score(
     )
 
     usar_release_dates = (
-        str(currency).strip().upper() == "USD"
+        str(currency).strip().upper() in RELEASE_AWARE_CURRENCIES
         and bool(series_release)
     )
 
@@ -2145,7 +2145,7 @@ def calcular_drivers_historicos_currency_score(
 
     series_release = {}
 
-    if currency_normalizada == "USD":
+    if currency_normalizada in RELEASE_AWARE_CURRENCIES:
 
         series_release = construir_df_currency_por_release(
             df_currency,
