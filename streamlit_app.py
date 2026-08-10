@@ -2001,6 +2001,7 @@ def construir_df_currency_por_release(
                     dashboard[columna]
                 ),
                 "Period": dashboard["_Periodo"].astype(str),
+                "FuenteFecha": "Fallback Dashboard",
             })
 
             serie_fallback = (
@@ -2173,6 +2174,7 @@ def construir_df_currency_por_release(
                     dashboard[columna]
                 ),
                 "Period": dashboard["_Periodo"].astype(str),
+                "FuenteFecha": "Fallback Dashboard",
             })
 
             serie_fallback = (
@@ -2392,6 +2394,8 @@ def construir_df_currency_por_release(
                         "EODHD": 0,
                         "Fallback": len(df_serie),
                     })
+
+                    continue
 
                 if (
                     currency == "USD"
