@@ -604,7 +604,7 @@ def cargar_interpretaciones_ia():
 
     return df_ia
 
-@st.cache_data(ttl=5, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def cargar_macro_releases():
 
     nombre_hoja = "Macro_Releases"
@@ -2399,35 +2399,6 @@ def construir_df_currency_por_release(
             and not es_proxy_release
         )
 
-        if (
-            str(currency).upper() == "GBP"
-            and nombre_score == "Services PMI"
-        ):
-            st.write("### DEBUG GBP SERVICES — releases_indicador")
-
-            st.dataframe(
-                releases_indicador[
-                    [
-                        "ReleaseDate",
-                        "Indicator",
-                        "Period",
-                        "Periodo",
-                        "Actual",
-                    ]
-                ].tail(15),
-                use_container_width=True,
-                hide_index=True,
-            )
-
-            st.write(
-                "Periodos Dashboard:",
-                sorted(
-                    datos_dashboard_completo["Periodo"]
-                    .dropna()
-                    .astype(str)
-                    .unique()
-                )[-10:]
-            )
 
         if usar_pmi_eodhd:
 
@@ -2589,18 +2560,29 @@ def construir_df_currency_por_release(
             )
         )
 
+        # ===================================================
+        # FECHA DEL PERIODO ECONÓMICO
+        # Solo para representación en la vista Indicador.
+        # NO sustituye ReleaseDate para Currency Score.
+        # ===================================================
+
+        serie["FechaPeriodo"] = (
+            serie["Periodo"]
+            .dt.to_timestamp()
+        )
+
 
         series_por_indicador[nombre_score] = (
             serie[
                 [
                     "Fecha",
+                    "FechaPeriodo",
                     "Valor",
                     "Period",
                     "FuenteFecha",
                 ]
             ].copy()
         )
-
 
     return series_por_indicador
 
@@ -3255,7 +3237,7 @@ def calcular_drivers_ultimo_cambio(
         "drivers": drivers,
     }
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def calcular_ranking_divisas():
 
     ranking = []
@@ -3591,9 +3573,22 @@ try:
 
         datos_release_vista = (
             serie_release_vista[
-                ["Fecha", "Valor"]
+                [
+                    "FechaPeriodo",
+                    "Valor",
+                ]
             ]
-            .dropna(subset=["Fecha", "Valor"])
+            .dropna(
+                subset=[
+                    "FechaPeriodo",
+                    "Valor",
+                ]
+            )
+            .rename(
+                columns={
+                    "FechaPeriodo": "Fecha"
+                }
+            )
             .sort_values("Fecha")
             .reset_index(drop=True)
         )
