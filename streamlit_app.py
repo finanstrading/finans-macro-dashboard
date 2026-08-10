@@ -1399,6 +1399,81 @@ def construir_df_currency_por_release(
 
         },
 
+        "EUR": {
+
+            "CPI MoM": {
+                "names": ["CPI"],
+                "comparison": "mom",
+            },
+
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+
+            "Core CPI MoM": {
+                "names": ["Core CPI"],
+                "comparison": "mom",
+            },
+
+            "Core CPI YoY": {
+                "names": ["Core CPI"],
+                "comparison": "yoy",
+            },
+
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
+
+            "Retail Sales YoY": {
+                "names": ["Retail Sales"],
+                "comparison": "yoy",
+            },
+
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Manufacturing PMI": {
+                "names": [
+                    "HCOB Manufacturing PMI",
+                    "S&P Global Manufacturing PMI",
+                    "Manufacturing PMI",
+                ],
+                "comparison": "",
+            },
+
+            "Services PMI": {
+                "names": [
+                    "HCOB Services PMI",
+                    "S&P Global Services PMI",
+                    "Services PMI",
+                ],
+                "comparison": "",
+            },
+
+            "ZEW Economic Sentiment": {
+                "names": [
+                    "ZEW Economic Sentiment Index",
+                    "ZEW Economic Sentiment",
+                ],
+                "comparison": "",
+            },
+
+            "Industrial Production YoY": {
+                "names": ["Industrial Production"],
+                "comparison": "yoy",
+            },
+
+            "Consumer Confidence": {
+                "names": ["Consumer Confidence"],
+                "comparison": "",
+            },
+
+        },
+
         }  # cierra aliases_eodhd_por_divisa
 
 
