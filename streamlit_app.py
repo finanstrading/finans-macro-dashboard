@@ -2224,15 +2224,11 @@ def construir_df_currency_por_release(
 
             auditoria_eodhd.append({
                 "Indicador": nombre_score,
-                "Estado": "✅ EODHD",
-                "Último ReleaseDate": ultimo["ReleaseDate"],
-                "Match EODHD": ultimo["Indicator"],
-                "Comparison": ultimo["Comparison"],
-            })
-
-            auditoria_eodhd.append({
-                "Indicador": nombre_score,
-                "Estado": "✅ EODHD",
+                "Estado": (
+                    "🟡 EODHD PROXY"
+                    if es_proxy_release
+                    else "✅ EODHD"
+                ),
                 "Último ReleaseDate": ultimo["ReleaseDate"],
                 "Match EODHD": ultimo["Indicator"],
                 "Comparison": ultimo["Comparison"],
@@ -2510,36 +2506,6 @@ def construir_df_currency_por_release(
             config = config_proxy
             es_proxy_release = True
 
-        if config is None:
-
-            nombre_lower = str(nombre_score).strip().lower()
-
-            comparison_automatica = ""
-
-            if "yoy" in nombre_lower:
-                comparison_automatica = "yoy"
-
-            elif "mom" in nombre_lower:
-                comparison_automatica = "mom"
-
-            elif "qoq" in nombre_lower:
-                comparison_automatica = "qoq"
-
-            nombre_base = (
-                str(nombre_score)
-                .replace(" YoY", "")
-                .replace(" MoM", "")
-                .replace(" QoQ", "")
-                .strip()
-            )
-
-            config = {
-                "names": [
-                    nombre_score,
-                    nombre_base,
-                ],
-                "comparison": comparison_automatica,
-            }
 
 
         # -----------------------------------------------
