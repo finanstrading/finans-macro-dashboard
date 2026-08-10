@@ -1606,7 +1606,7 @@ def construir_df_currency_por_release(
             },
 
             "GDP Annual Growth Rate (YoY)": {
-                "names": ["GDP Growth Rate"],
+                "names": ["Gross Domestic Product"],
                 "comparison": "yoy",
             },
 
