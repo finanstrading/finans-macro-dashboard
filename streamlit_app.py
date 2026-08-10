@@ -2399,6 +2399,36 @@ def construir_df_currency_por_release(
             and not es_proxy_release
         )
 
+        if (
+            str(currency).upper() == "GBP"
+            and nombre_score == "Services PMI"
+        ):
+            st.write("### DEBUG GBP SERVICES — releases_indicador")
+
+            st.dataframe(
+                releases_indicador[
+                    [
+                        "ReleaseDate",
+                        "Indicator",
+                        "Period",
+                        "Periodo",
+                        "Actual",
+                    ]
+                ].tail(15),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            st.write(
+                "Periodos Dashboard:",
+                sorted(
+                    datos_dashboard_completo["Periodo"]
+                    .dropna()
+                    .astype(str)
+                    .unique()
+                )[-10:]
+            )
+
         if usar_pmi_eodhd:
 
             periodos_dashboard = set(
