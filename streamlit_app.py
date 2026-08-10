@@ -2196,6 +2196,48 @@ def construir_df_currency_por_release(
                 "Comparison": ultimo["Comparison"],
             })
 
+            auditoria_eodhd.append({
+                "Indicador": nombre_score,
+                "Estado": "✅ EODHD",
+                "Último ReleaseDate": ultimo["ReleaseDate"],
+                "Match EODHD": ultimo["Indicator"],
+                "Comparison": ultimo["Comparison"],
+            })
+
+
+    # ===================================================
+    # DEBUG TOKYO RELEASES — JPY
+    # ===================================================
+
+    if currency == "JPY":
+
+        st.write("### DEBUG TOKYO RELEASES — JPY")
+
+        fechas_tokyo = [
+            "2026-05-28",
+            "2026-06-25",
+            "2026-07-30",
+        ]
+
+        debug_tokyo = df_releases[
+            df_releases["ReleaseDate"]
+            .dt.strftime("%Y-%m-%d")
+            .isin(fechas_tokyo)
+        ][
+            [
+                "ReleaseDate",
+                "Indicator",
+                "Period",
+                "Comparison",
+            ]
+        ].sort_values("ReleaseDate")
+
+        st.dataframe(
+            debug_tokyo,
+            use_container_width=True,
+            hide_index=True,
+        )
+
     st.write(f"### AUDITORÍA EODHD — {currency}")
 
     st.dataframe(
