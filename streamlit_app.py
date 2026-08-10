@@ -1552,50 +1552,49 @@ fechas_corte = sorted(
     set(fechas_corte)
 )
 
-historico = []
+    historico = []
 
-for fecha_corte in fechas_corte:
+    for fecha_corte in fechas_corte:
 
-    if usar_release_dates:
+        if usar_release_dates:
 
-        resultados = analizar_divisa_por_release(
-            series_release,
+            resultados = analizar_divisa_por_release(
+                series_release,
+                currency,
+                fecha_corte,
+            )
+
+        else:
+
+            resultados = analizar_divisa_completa(
+                df_currency,
+                currency,
+                indicadores_currency,
+                fecha_corte=fecha_corte,
+            )
+
+        resultado_score = calcular_currency_score(
             currency,
-            fecha_corte,
+            resultados,
         )
 
-    else:
-
-        resultados = analizar_divisa_completa(
-            df_currency,
-            currency,
-            indicadores_currency,
-            fecha_corte=fecha_corte,
+        score_historico = resultado_score.get(
+            "score"
         )
 
-    resultado_score = calcular_currency_score(
-        currency,
-        resultados,
-    )
+        coverage_historica = resultado_score.get(
+            "coverage",
+            0,
+        )
 
+        if score_historico is None:
+            continue
 
-    score_historico = resultado_score.get(
-        "score"
-    )
-
-    coverage_historica = resultado_score.get(
-        "coverage",
-        0,
-    )
-
-    if score_historico is None:
-        continue
-
-    historico.append({
-        "Fecha": fecha_corte,
-        "Score": float(score_historico),
-        "Coverage": float(coverage_historica),
-    })
+        historico.append({
+            "Fecha": fecha_corte,
+            "Score": float(score_historico),
+            "Coverage": float(coverage_historica),
+        })
 
     historico_df = pd.DataFrame(
         historico
