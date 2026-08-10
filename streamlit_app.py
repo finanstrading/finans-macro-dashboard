@@ -1926,7 +1926,12 @@ def construir_df_currency_por_release(
         "JPY": {
 
             "Tokyo CPI YoY": {
-                "names": ["Tokyo Core"],
+                "names": [
+                    "Tokyo Core",
+                    "Tokyo Core CPI",
+                    "Tokyo CPI Core",
+                    "Tokyo Core CPI YoY",
+                ],
                 "comparison": "yoy",
             },
 
