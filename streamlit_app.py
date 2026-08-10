@@ -44,6 +44,11 @@ RELEASE_AWARE_CURRENCIES = {
     "USD",
     "GBP",
     "EUR",
+    "CAD",
+    "JPY",
+    "AUD",
+    "NZD",
+    "CHF",
 }
 
 COLOR_DORADO = "#C9A227"
@@ -1546,14 +1551,40 @@ def construir_df_currency_por_release(
 
         config = aliases_eodhd.get(nombre_score)
 
-# ===================================================
-# FALLBACK:
-# Si el indicador todavía no tiene mapping EODHD,
-# NO lo eliminamos.
-#
-# Conservamos íntegramente la serie Dashboard_USD
-# usando temporalmente sus fechas originales.
-# ===================================================
+        # ===================================================
+        # MATCHING AUTOMÁTICO PARA INDICADORES SIN ALIAS MANUAL
+        # ===================================================
+
+        if config is None:
+
+            nombre_lower = str(nombre_score).strip().lower()
+
+            comparison_automatica = ""
+
+            if "yoy" in nombre_lower:
+                comparison_automatica = "yoy"
+
+            elif "mom" in nombre_lower:
+                comparison_automatica = "mom"
+
+            elif "qoq" in nombre_lower:
+                comparison_automatica = "qoq"
+
+            nombre_base = (
+                str(nombre_score)
+                .replace(" YoY", "")
+                .replace(" MoM", "")
+                .replace(" QoQ", "")
+                .strip()
+            )
+
+            config = {
+                "names": [
+                    nombre_score,
+                    nombre_base,
+                ],
+                "comparison": comparison_automatica,
+            }
 
         if config is None:
 
@@ -2038,7 +2069,7 @@ def calcular_historico_currency_score(
     currency,
     frecuencia="W",
     periodos=26,
-    revision="release_v6",
+    revision="release_v7",
 ):
 
     df_currency, _ = cargar_datos_mercado(
@@ -2981,7 +3012,7 @@ try:
             divisa,
             frecuencia="W",
             periodos=26,
-            revision="release_v6",
+            revision="release_v7",
         )
 
 
