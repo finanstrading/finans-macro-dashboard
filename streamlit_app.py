@@ -1806,30 +1806,76 @@ def construir_df_currency_por_release(
     )
     
 
-   if currency == "JPY":
+    if currency == "JPY":
 
-    st.write("### CATÁLOGO COMPLETO EODHD — JPY")
+        st.write("### DEBUG JPY — INDICADORES PENDIENTES")
 
-    catalogo_jpy = (
-        df_releases[
-            [
-                "Indicator",
-                "Comparison",
-            ]
+        palabras_jpy = [
+            "GDP",
+            "Employment",
+            "Business",
+            "Tankan",
+            "Tokyo",
+            "CPI",
         ]
-        .drop_duplicates()
-        .sort_values(
-            ["Indicator", "Comparison"],
-            na_position="last",
-        )
-        .reset_index(drop=True)
-    )
 
-    st.dataframe(
-        catalogo_jpy,
-        use_container_width=True,
-        hide_index=True,
-    )
+        mask_jpy = False
+
+        for palabra in palabras_jpy:
+            mask_jpy = mask_jpy | (
+                df_releases["Indicator"]
+                .astype(str)
+                .str.contains(palabra, case=False, na=False)
+            )
+
+        debug_jpy = (
+            df_releases.loc[
+                mask_jpy,
+                [
+                    "ReleaseDate",
+                    "Indicator",
+                    "Period",
+                    "Comparison",
+                ],
+            ]
+            .sort_values("ReleaseDate", ascending=False)
+        )
+
+        st.dataframe(
+            debug_jpy,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    # ===================================================
+    # CATÁLOGO COMPLETO EODHD — JPY
+    # ===================================================
+
+    if currency == "JPY":
+
+        st.write("### CATÁLOGO COMPLETO EODHD — JPY")
+
+        catalogo_jpy = (
+            df_releases[
+                [
+                    "Indicator",
+                    "Comparison",
+                ]
+            ]
+            .drop_duplicates()
+            .sort_values(
+                ["Indicator", "Comparison"],
+                na_position="last",
+            )
+            .reset_index(drop=True)
+        )
+
+        st.dataframe(
+            catalogo_jpy,
+            use_container_width=True,
+            hide_index=True,
+        )
+
     # ===================================================
     # AUDITORÍA TEMPORAL EODHD — DIVISA ACTUAL
     # ===================================================
