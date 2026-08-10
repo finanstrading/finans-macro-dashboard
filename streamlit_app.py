@@ -1229,19 +1229,25 @@ def construir_df_currency_por_release(
     # ALIASES DASHBOARD / CURRENCY SCORE -> EODHD
     # ===================================================
 
-    aliases_eodhd = {
+aliases_eodhd_por_divisa = {
+
+    "USD": {
+
         "Non Farm Payrolls": {
             "names": ["Non Farm Payrolls"],
             "comparison": "",
         },
+
         "Unemployment Rate": {
             "names": ["Unemployment Rate"],
             "comparison": "",
         },
+
         "Average Hourly Earnings": {
             "names": ["Average Hourly Earnings"],
             "comparison": "mom",
         },
+
         "ADP Employment": {
             "names": [
                 "ADP Employment Change",
@@ -1249,10 +1255,12 @@ def construir_df_currency_por_release(
             ],
             "comparison": "",
         },
+
         "Consumer Confidence CB": {
             "names": ["CB Consumer Confidence"],
             "comparison": "",
         },
+
         "ISM Services": {
             "names": [
                 "ISM Services PMI",
@@ -1260,6 +1268,7 @@ def construir_df_currency_por_release(
             ],
             "comparison": "",
         },
+
         "ISM Manufacturing": {
             "names": [
                 "ISM Manufacturing PMI",
@@ -1267,31 +1276,40 @@ def construir_df_currency_por_release(
             ],
             "comparison": "",
         },
+
         "CPI YoY": {
             "names": ["CPI"],
             "comparison": "yoy",
         },
+
         "Core CPI YoY": {
             "names": ["Core CPI"],
             "comparison": "yoy",
         },
+
         "PPI MoM": {
             "names": ["PPI"],
             "comparison": "mom",
         },
+
         "Core PPI MoM": {
             "names": ["Core PPI"],
             "comparison": "mom",
         },
+
         "Retail Sales MoM": {
             "names": ["Retail Sales"],
             "comparison": "mom",
         },
+
         "JOLTS": {
             "names": ["JOLTS Job Openings"],
             "comparison": "",
         },
-    }
+
+    },
+
+}
 
     mapa_currency = MAPA_INDICADORES_IA.get(
         currency,
