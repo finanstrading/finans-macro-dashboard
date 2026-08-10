@@ -1907,6 +1907,13 @@ def construir_df_currency_por_release(
             columna_limpia,
         )
 
+        if nombre_score == "PMI Manufactura":
+            st.write("PRUEBA PMI DEFINITIVA")
+            st.write("currency:", currency)
+            st.write("nombre_score:", repr(nombre_score))
+            st.write("aliases contiene PMI:", "PMI Manufactura" in aliases_eodhd)
+            st.write("aliases keys:", list(aliases_eodhd.keys()))
+
         config = aliases_eodhd.get(nombre_score)
 
         # ===================================================
