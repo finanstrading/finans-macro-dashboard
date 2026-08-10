@@ -2524,6 +2524,71 @@ try:
                 fecha_ultimo_snapshot,
             )
 
+            st.markdown("#### 🔬 Estructura real de resultados")
+
+            st.write(
+                "Indicadores actuales:",
+                list(resultados_divisa.keys())
+            )
+
+            st.write(
+                "Indicadores release-aware:",
+                list(resultados_release_debug.keys())
+            )
+
+            if resultados_divisa:
+                primer_nombre_actual = next(
+                    iter(resultados_divisa)
+                )
+
+                st.write(
+                    f"ACTUAL — {primer_nombre_actual}"
+                )
+
+                st.write(
+                    resultados_divisa[
+                        primer_nombre_actual
+                    ]
+                )
+
+                st.markdown("#### 🔬 Diferencias de universo")
+
+                solo_actual = sorted(
+                    set(resultados_divisa.keys())
+                    - set(resultados_release_debug.keys())
+                )
+
+                solo_release = sorted(
+                    set(resultados_release_debug.keys())
+                    - set(resultados_divisa.keys())
+                )
+
+                comunes = sorted(
+                    set(resultados_divisa.keys())
+                    & set(resultados_release_debug.keys())
+                )
+
+                st.write({
+                    "Solo en actual": solo_actual,
+                    "Solo en release": solo_release,
+                    "Comunes": comunes,
+                })
+
+            if resultados_release_debug:
+                primer_nombre_release = next(
+                    iter(resultados_release_debug)
+                )
+
+                st.write(
+                    f"RELEASE — {primer_nombre_release}"
+                )
+
+                st.write(
+                    resultados_release_debug[
+                        primer_nombre_release
+                    ]
+                )
+
             currency_score_release_debug = calcular_currency_score(
                 divisa,
                 resultados_release_debug,
