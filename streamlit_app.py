@@ -2233,6 +2233,82 @@ def construir_df_currency_por_release(
             hide_index=True,
         )
 
+    if currency == "JPY":
+
+        st.write("### DEBUG BUSINESS CONFIDENCE — JPY")
+
+        # Serie que realmente usa Macro FX
+        if "Business Confidence" in df_currency.columns:
+
+            debug_business_dashboard = pd.DataFrame({
+                "Fecha Dashboard": df_currency["Fecha"],
+                "Business Confidence": convertir_valores(
+                    df_currency["Business Confidence"]
+                ),
+            })
+
+            debug_business_dashboard = (
+                debug_business_dashboard
+                .dropna()
+                .sort_values(
+                    "Fecha Dashboard",
+                    ascending=False,
+                )
+                .head(15)
+            )
+
+            st.write("#### DASHBOARD JPY")
+            st.dataframe(
+                debug_business_dashboard,
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # Releases empresariales disponibles en EODHD
+        palabras_business = [
+            "Business",
+            "Tankan",
+            "Confidence",
+            "Sentiment",
+        ]
+
+        mask_business = False
+
+        for palabra in palabras_business:
+            mask_business = mask_business | (
+                df_releases["Indicator"]
+                .astype(str)
+                .str.contains(
+                    palabra,
+                    case=False,
+                    na=False,
+                )
+            )
+
+        debug_business_eodhd = (
+            df_releases.loc[
+                mask_business,
+                [
+                    "ReleaseDate",
+                    "Indicator",
+                    "Period",
+                    "Comparison",
+                    "Actual",
+                ],
+            ]
+            .sort_values(
+                "ReleaseDate",
+                ascending=False,
+            )
+        )
+
+        st.write("#### EODHD JPY")
+        st.dataframe(
+            debug_business_eodhd,
+            use_container_width=True,
+            hide_index=True,
+        )
+
     st.write(f"### AUDITORÍA EODHD — {currency}")
 
     st.dataframe(
@@ -2932,35 +3008,7 @@ def calcular_historico_currency_score(
     indicadores_currency = obtener_indicadores(
         df_currency
     )
-
-    # ===================================================
-    # ELIMINAR INDICADORES DUPLICADOS POR ESPACIOS
-    # ===================================================
-
-    indicadores_unicos = []
-    indicadores_vistos = set()
-
-    for columna in indicadores_currency:
-
-        clave_normalizada = " ".join(
-            str(columna)
-            .replace("\u00a0", " ")
-            .replace("\u200b", "")
-            .split()
-        )
-
-        if clave_normalizada in indicadores_vistos:
-            continue
-
-        indicadores_vistos.add(
-            clave_normalizada
-        )
-
-        indicadores_unicos.append(
-            columna
-        )
-
-    indicadores_currency = indicadores_unicos
+    
 
     series_release = construir_df_currency_por_release(
         df_currency,
