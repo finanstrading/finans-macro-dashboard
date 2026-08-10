@@ -1325,11 +1325,44 @@ def construir_df_currency_por_release(
             columna,
         )
 
-        config = aliases_eodhd.get(
-            nombre_score
-        )
+        config = aliases_eodhd.get(nombre_score)
+
+# ===================================================
+# FALLBACK:
+# Si el indicador todavía no tiene mapping EODHD,
+# NO lo eliminamos.
+#
+# Conservamos íntegramente la serie Dashboard_USD
+# usando temporalmente sus fechas originales.
+# ===================================================
 
         if config is None:
+
+            serie_fallback = pd.DataFrame({
+                "Fecha": dashboard["Fecha"],
+                "Valor": convertir_valores(
+                    dashboard[columna]
+                ),
+                "Period": dashboard["_Periodo"].astype(str),
+            })
+
+            serie_fallback = (
+                serie_fallback
+                .dropna(
+                    subset=[
+                        "Fecha",
+                        "Valor",
+                    ]
+                )
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
+
+            if not serie_fallback.empty:
+                series_por_indicador[nombre_score] = (
+                    serie_fallback
+                )
+
             continue
 
         # -----------------------------------------------
