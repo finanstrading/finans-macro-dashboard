@@ -2710,6 +2710,15 @@ try:
                     - set(resultados_release_debug.keys())
                 )
 
+                st.markdown("#### 🔎 Único indicador todavía ausente")
+
+                faltantes_release = sorted(
+                    set(resultados_divisa.keys())
+                    - set(resultados_release_debug.keys())
+                )
+
+                st.write(faltantes_release)
+
                 solo_release = sorted(
                     set(resultados_release_debug.keys())
                     - set(resultados_divisa.keys())
