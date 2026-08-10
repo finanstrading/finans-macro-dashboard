@@ -1761,21 +1761,21 @@ mapa_currency = MAPA_INDICADORES_IA.get(
     {},
 )
 
-    # ===================================================
-    # PREPARAR PERIODOS DEL DASHBOARD
-    # ===================================================
+# ===================================================
+# PREPARAR PERIODOS DEL DASHBOARD
+# ===================================================
 
-    dashboard = df_currency.copy()
+dashboard = df_currency.copy()
 
-    dashboard["_Periodo"] = (
-        pd.to_datetime(
-            dashboard["Fecha"],
-            errors="coerce",
-        )
-        .dt.to_period("M")
+dashboard["_Periodo"] = (
+    pd.to_datetime(
+        dashboard["Fecha"],
+        errors="coerce",
     )
+    .dt.to_period("M")
+)
 
-    series_por_indicador = {}
+series_por_indicador = {}
 
     # ===================================================
     # CONSTRUIR CADA SERIE
