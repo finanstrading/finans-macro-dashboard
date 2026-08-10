@@ -1591,6 +1591,34 @@ def construir_df_currency_por_release(
                 ],
                 "comparison": "",
             },
+
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+
+            "Core CPI YoY": {
+                "names": ["Core CPI"],
+                "comparison": "yoy",
+            },
+
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
+
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Services PMI": {
+                "names": [
+                    "Services PMI",
+                    "S&P Global Services PMI",
+                ],
+                "comparison": "",
+            },
         },
 
 
