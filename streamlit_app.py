@@ -1749,7 +1749,7 @@ aliases_eodhd_por_divisa = {
         # encontrados no son equivalentes exactos.
     },
 
-}  # cierra aliases_eodhd_por_divisa
+    }  # cierra aliases_eodhd_por_divisa
 
 
     aliases_eodhd = aliases_eodhd_por_divisa.get(
