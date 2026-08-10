@@ -42,6 +42,7 @@ MERCADOS = {
 
 RELEASE_AWARE_CURRENCIES = {
     "USD",
+    "GBP",
 }
 
 COLOR_DORADO = "#C9A227"
@@ -1882,7 +1883,7 @@ def calcular_historico_currency_score(
     currency,
     frecuencia="W",
     periodos=26,
-    revision="release_v4",
+    revision="release_v5",
 ):
 
     df_currency, _ = cargar_datos_mercado(
@@ -2823,7 +2824,7 @@ try:
             divisa,
             frecuencia="W",
             periodos=26,
-            revision="release_v4",
+            revision="release_v5",
         )
 
 
