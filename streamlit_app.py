@@ -1871,30 +1871,26 @@ def construir_df_currency_por_release(
                 })
 
 
-        # ===================================================
-        # DEBUG TEMPORAL GDP EODHD
-        # ===================================================
+    if currency == "USD":
 
-        debug_gdp = df_releases[
+        debug_growth = df_releases[
             df_releases["Indicator"]
             .astype(str)
-            .str.contains("GDP", case=False, na=False)
+            .str.contains(
+                "growth|annual|domestic",
+                case=False,
+                na=False,
+                regex=True,
+            )
         ].copy()
 
-        st.write("### DEBUG GDP EODHD")
+        st.write("### DEBUG GROWTH / ANNUAL EODHD")
 
         st.dataframe(
-            debug_gdp[
+            debug_growth[
                 ["ReleaseDate", "Indicator", "Period", "Comparison"]
-            ].sort_values("ReleaseDate", ascending=False),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-
-        st.write("### AUDITORÍA EODHD — USD")
-        st.dataframe(
-            pd.DataFrame(auditoria_eodhd),
+            ]
+            .sort_values("ReleaseDate", ascending=False),
             use_container_width=True,
             hide_index=True,
         )
