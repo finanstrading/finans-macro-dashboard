@@ -11,9 +11,9 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
-# =================================================== 
+# ===================================================
 # CONFIGURACIÓN GENERAL
-# ===================================================     
+# ===================================================    
 
 st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
@@ -604,7 +604,7 @@ def cargar_interpretaciones_ia():
 
     return df_ia
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=5, show_spinner=False)
 def cargar_macro_releases():
 
     nombre_hoja = "Macro_Releases"
