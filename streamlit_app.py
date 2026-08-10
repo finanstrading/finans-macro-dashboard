@@ -2713,6 +2713,8 @@ try:
             revision="release_v4",
         )
 
+        macro_releases = cargar_macro_releases()
+
 
             st.write({
                 "Desde": fecha_debug_anterior,
