@@ -1285,7 +1285,7 @@ def construir_df_currency_por_release(
             },
 
 
-            "PMI Manufactura": {
+            "ISM Manufacturing": {
                 "names": [
                     "ISM Manufacturing PMI",
                     "ISM Manufacturing",
