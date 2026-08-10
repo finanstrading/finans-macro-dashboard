@@ -1786,9 +1786,29 @@ def construir_df_currency_por_release(
 
     for columna in indicadores_currency:
 
-        nombre_score = mapa_currency.get(
-            columna,
-            columna,
+        columna_limpia = (
+            str(columna)
+            .replace("\u00a0", " ")
+            .replace("\u200b", "")
+        )
+
+        columna_limpia = " ".join(
+            columna_limpia.split()
+        )
+
+        mapa_currency_limpio = {
+            " ".join(
+                str(clave)
+                .replace("\u00a0", " ")
+                .replace("\u200b", "")
+                .split()
+            ): valor
+            for clave, valor in mapa_currency.items()
+        }
+
+        nombre_score = mapa_currency_limpio.get(
+            columna_limpia,
+            columna_limpia,
         )
 
         config = aliases_eodhd.get(nombre_score)
