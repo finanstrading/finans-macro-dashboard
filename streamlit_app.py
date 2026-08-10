@@ -2157,14 +2157,10 @@ def construir_df_currency_por_release(
         if config is None:
             auditoria_eodhd.append({
                 "Indicador": nombre_score,
-                "Estado": (
-                    "🟡 EODHD PROXY"
-                    if es_proxy_release
-                    else "✅ EODHD"
-                ),
-                "Último ReleaseDate": ultimo["ReleaseDate"],
-                "Match EODHD": ultimo["Indicator"],
-                "Comparison": ultimo["Comparison"],
+                "Estado": "❌ SIN CONFIG",
+                "Último ReleaseDate": None,
+                "Match EODHD": None,
+                "Comparison": None,
             })
             continue
 
