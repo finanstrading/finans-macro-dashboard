@@ -757,6 +757,86 @@ MAPA_INDICADORES_IA = {
     "CHF": {},
 }
 
+def filtrar_drivers_por_releases(
+    drivers,
+    releases_intervalo,
+):
+    """
+    Conserva únicamente drivers cuyo indicador tuvo
+    una publicación real dentro del intervalo.
+    """
+
+    if not drivers:
+        return []
+
+    if releases_intervalo is None or releases_intervalo.empty:
+        return []
+
+    nombres_publicados = (
+        releases_intervalo["Indicator"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .tolist()
+    )
+
+    # Equivalencias entre nombres internos del dashboard
+    # y nombres utilizados por EODHD.
+    aliases = {
+        "non farm payrolls": [
+            "non farm payrolls",
+        ],
+        "consumer confidence cb": [
+            "consumer confidence",
+            "cb consumer confidence",
+        ],
+        "ism services": [
+            "ism services",
+            "ism services pmi",
+        ],
+        "unemployment rate": [
+            "unemployment rate",
+        ],
+        "adp employment": [
+            "adp employment",
+            "adp employment change",
+        ],
+    }
+
+    drivers_filtrados = []
+
+    for driver in drivers:
+
+        indicador = str(
+            driver.get("Indicador", "")
+        ).strip().lower()
+
+        candidatos = aliases.get(
+            indicador,
+            [indicador],
+        )
+
+        encontrado = False
+
+        for candidato in candidatos:
+            for publicado in nombres_publicados:
+
+                if (
+                    candidato == publicado
+                    or candidato in publicado
+                    or publicado in candidato
+                ):
+                    encontrado = True
+                    break
+
+            if encontrado:
+                break
+
+        if encontrado:
+            drivers_filtrados.append(driver)
+
+    return drivers_filtrados
 
 def obtener_interpretacion_ia(divisa, indicador):
     """
