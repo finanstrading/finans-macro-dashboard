@@ -1886,6 +1886,11 @@ def construir_df_currency_por_release(
                 "comparison": "yoy",
             },
 
+            "Core CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+
             "Retail Sales MoM": {
                 "names": ["Retail Sales"],
                 "comparison": "mom",
@@ -1918,97 +1923,8 @@ def construir_df_currency_por_release(
         currency,
         {},
     )
+
     
-    # ===================================================
-    # TEST PROXY TEMPORAL — CHF CORE CPI -> CPI
-    # ===================================================
-
-    if currency == "CHF":
-
-        proxy_chf_core_cpi = df_releases[
-            (
-                df_releases["Indicator"]
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                .eq("cpi")
-            )
-            &
-            (
-                df_releases["Comparison"]
-                .fillna("")
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                .eq("yoy")
-            )
-        ].copy()
-
-        st.write("### TEST PROXY CHF — Core CPI YoY")
-
-        st.dataframe(
-            proxy_chf_core_cpi[
-                [
-                    "ReleaseDate",
-                    "Indicator",
-                    "Period",
-                    "Comparison",
-                ]
-            ]
-            .sort_values(
-                "ReleaseDate",
-                ascending=False,
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-    # ===================================================
-    # TEST DASHBOARD CHF — CORE CPI YoY
-    # ===================================================
-
-    if currency == "CHF":
-
-        columnas_core_chf = [
-            col
-            for col in df_currency.columns
-            if "core" in str(col).lower()
-            and "cpi" in str(col).lower()
-        ]
-
-        st.write(
-            "### COLUMNAS CORE CPI EN DASHBOARD_CHF",
-            columnas_core_chf,
-        )
-
-        for columna_core in columnas_core_chf:
-
-            test_core_chf = pd.DataFrame({
-                "Fecha Dashboard": df_currency["Fecha"],
-                "Valor Core CPI": convertir_valores(
-                    df_currency[columna_core]
-                ),
-            })
-
-            test_core_chf = (
-                test_core_chf
-                .dropna(subset=["Valor Core CPI"])
-                .sort_values(
-                    "Fecha Dashboard",
-                    ascending=False,
-                )
-                .head(15)
-            )
-
-            st.write(
-                f"### CORE CPI CHF — {columna_core}"
-            )
-
-            st.dataframe(
-                test_core_chf,
-                use_container_width=True,
-                hide_index=True,
-            )
 
     if currency == "JPY":
 
