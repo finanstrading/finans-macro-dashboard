@@ -1480,52 +1480,39 @@ def calcular_historico_currency_score(
     )
 
     series_release = construir_df_currency_por_release(
-    df_currency,
-    currency,
-    indicadores_currency,
+        df_currency,
+        currency,
+        indicadores_currency,
     )
 
-    if not series_release:
-        return pd.DataFrame(
-            columns=[
-                "Fecha",
-                "Score",
-                "Coverage",
-            ]
-        )
-
-    if not indicadores_currency:
-        return pd.DataFrame(
-            columns=[
-                "Fecha",
-                "Score",
-                "Coverage",
-            ]
-        )
-
-    fechas_disponibles = []
-
-    for datos_indicador in series_release.values():
-
-        if datos_indicador.empty:
-            continue
-
-        fechas_disponibles.append(
-            datos_indicador["Fecha"].max()
-        )
-
-    if not fechas_disponibles:
-        return pd.DataFrame(
-            columns=[
-                "Fecha",
-                "Score",
-                "Coverage",
-            ]
-        )
-
-    fecha_final = max(
-        fechas_disponibles
+    usar_release_dates = bool(
+        series_release
     )
+
+    if usar_release_dates:
+
+        fechas_disponibles = []
+
+        for datos_indicador in series_release.values():
+
+            if datos_indicador.empty:
+                continue
+
+            fechas_disponibles.append(
+                datos_indicador["Fecha"].max()
+            )
+
+        if fechas_disponibles:
+            fecha_final = max(
+                fechas_disponibles
+            )
+        else:
+            usar_release_dates = False
+            fecha_final = df_currency["Fecha"].max()
+
+    else:
+
+        fecha_final = df_currency["Fecha"].max()
 
     if frecuencia == "W":
 
@@ -1567,6 +1554,28 @@ def calcular_historico_currency_score(
     historico = []
 
     for fecha_corte in fechas_corte:
+
+        if usar_release_dates:
+
+            resultados = analizar_divisa_por_release(
+                series_release,
+                currency,
+                fecha_corte,
+            )
+
+        else:
+
+            resultados = analizar_divisa_completa(
+                df_currency,
+                currency,
+                indicadores_currency,
+                fecha_corte=fecha_corte,
+            )
+
+        resultado_score = calcular_currency_score(
+            currency,
+            resultados,
+        )
 
         resultados = analizar_divisa_por_release(
             series_release,
