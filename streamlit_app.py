@@ -2110,6 +2110,24 @@ def construir_df_currency_por_release(
                 use_container_width=True,
                 hide_index=True,
             )
+            df_cobertura = pd.DataFrame(cobertura_fechas)
+
+            sin_eodhd = df_cobertura[
+                df_cobertura["EODHD"] == 0
+            ]
+
+            if not sin_eodhd.empty:
+                st.write(
+                    f"❌ SIN MATCH EODHD — {currency}"
+                )
+
+                st.write(
+                    sin_eodhd["Indicador"].tolist()
+                )
+            else:
+                st.success(
+                    f"✅ Todos los indicadores de {currency} tienen cobertura EODHD"
+                )
 
     return series_por_indicador
 
