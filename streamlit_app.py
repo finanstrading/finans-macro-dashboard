@@ -1222,7 +1222,7 @@ def construir_df_currency_por_release(
 
     currency = str(currency).strip().upper()
 
-    # Por ahora esta arquitectura nueva se aplica únicamente a USD.
+   # Esta arquitectura se aplica a las divisas RELEASE_AWARE.
     if currency not in RELEASE_AWARE_CURRENCIES:
         return {}
 
@@ -1697,9 +1697,7 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
-            # OJO:
-            # Tokyo Core NO sustituye a Tokyo CPI general.
-            # Por tanto Tokyo CPI YoY queda deliberadamente en fallback.
+
         },
 
 
@@ -1802,14 +1800,6 @@ def construir_df_currency_por_release(
                 "comparison": "yoy",
             },
 
-            "CPI YoY": {
-                "names": [
-                    "Consumer Price Index",
-                    "CPI",
-                ],
-                "comparison": "yoy",
-            },
-
             "Employment": {
                 "names": ["Employment Change"],
                 "comparison": "",
@@ -1856,8 +1846,7 @@ def construir_df_currency_por_release(
                 "comparison": "yoy",
             },
 
-            # Core CPI YoY queda en fallback:
-            # no hemos encontrado un equivalente EODHD inequívoco.
+
         },
 
 
@@ -1912,9 +1901,6 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
-            # Core CPI, Services PMI y Business Confidence
-            # quedan de momento en fallback porque los candidatos
-            # encontrados no son equivalentes exactos.
         },
 
         }  # cierra aliases_eodhd_por_divisa
