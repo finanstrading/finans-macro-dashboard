@@ -1314,6 +1314,7 @@ def construir_df_currency_por_release(
         },  # cierra USD
 
         "GBP": {
+
             "CPI MoM": {
                 "names": ["CPI"],
                 "comparison": "mom",
@@ -1339,15 +1340,35 @@ def construir_df_currency_por_release(
                 "comparison": "mom",
             },
 
+            "Core Retail Sales": {
+                "names": ["Retail Sales Ex Fuel"],
+                "comparison": "mom",
+            },
+
+            "Employment Change (3M/3M)": {
+                "names": ["Employment Change"],
+                "comparison": "",
+            },
+
             "Unemployment Rate": {
                 "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Average Earnings (+ Bonus)": {
+                "names": ["Average Earnings incl. Bonus"],
+                "comparison": "",
+            },
+
+            "Average Earnings (- Bonus)": {
+                "names": ["Average Earnings excl. Bonus"],
                 "comparison": "",
             },
 
             "Manufacturing PMI": {
                 "names": [
                     "S&P Global Manufacturing PMI",
-                    "Manufacturing PMI",
+                    "S&P Global Manufacturing PMI Flash",
                 ],
                 "comparison": "",
             },
@@ -1355,7 +1376,7 @@ def construir_df_currency_por_release(
             "Services PMI": {
                 "names": [
                     "S&P Global Services PMI",
-                    "Services PMI",
+                    "S&P Global Services PMI Flash",
                 ],
                 "comparison": "",
             },
@@ -1364,6 +1385,17 @@ def construir_df_currency_por_release(
                 "names": ["Consumer Confidence"],
                 "comparison": "",
             },
+
+            "GDP Growth Rate (QoQ)": {
+                "names": ["GDP Growth Rate"],
+                "comparison": "qoq",
+            },
+
+            "GDP Annual Growth Rate (YoY)": {
+                "names": ["GDP Growth Rate"],
+                "comparison": "yoy",
+            },
+
         },
 
         }  # cierra aliases_eodhd_por_divisa
