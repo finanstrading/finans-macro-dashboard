@@ -2419,7 +2419,7 @@ def calcular_historico_currency_score(
     currency,
     frecuencia="W",
     periodos=26,
-    revision="release_v9",
+    revision="release_v10",
 ):
 
     df_currency, _ = cargar_datos_mercado(
@@ -3362,7 +3362,7 @@ try:
             divisa,
             frecuencia="W",
             periodos=26,
-            revision="release_v9",
+            revision="release_v10",
         )
 
 
