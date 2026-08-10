@@ -1229,87 +1229,87 @@ def construir_df_currency_por_release(
     # ALIASES DASHBOARD / CURRENCY SCORE -> EODHD
     # ===================================================
 
-aliases_eodhd_por_divisa = {
+    aliases_eodhd_por_divisa = {
 
-    "USD": {
+        "USD": {
 
-        "Non Farm Payrolls": {
-            "names": ["Non Farm Payrolls"],
-            "comparison": "",
-        },
+            "Non Farm Payrolls": {
+                "names": ["Non Farm Payrolls"],
+                "comparison": "",
+            },
 
-        "Unemployment Rate": {
-            "names": ["Unemployment Rate"],
-            "comparison": "",
-        },
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
 
-        "Average Hourly Earnings": {
-            "names": ["Average Hourly Earnings"],
-            "comparison": "mom",
-        },
+            "Average Hourly Earnings": {
+                "names": ["Average Hourly Earnings"],
+                "comparison": "mom",
+            },
 
-        "ADP Employment": {
-            "names": [
-                "ADP Employment Change",
-                "ADP Employment",
-            ],
-            "comparison": "",
-        },
+            "ADP Employment": {
+                "names": [
+                    "ADP Employment Change",
+                    "ADP Employment",
+                ],
+                "comparison": "",
+            },
 
-        "Consumer Confidence CB": {
-            "names": ["CB Consumer Confidence"],
-            "comparison": "",
-        },
+            "Consumer Confidence CB": {
+                "names": ["CB Consumer Confidence"],
+                "comparison": "",
+            },
 
-        "ISM Services": {
-            "names": [
-                "ISM Services PMI",
-                "ISM Services",
-            ],
-            "comparison": "",
-        },
+            "ISM Services": {
+                "names": [
+                    "ISM Services PMI",
+                    "ISM Services",
+                ],
+                "comparison": "",
+            },
 
-        "ISM Manufacturing": {
-            "names": [
-                "ISM Manufacturing PMI",
-                "ISM Manufacturing",
-            ],
-            "comparison": "",
-        },
+            "ISM Manufacturing": {
+                "names": [
+                    "ISM Manufacturing PMI",
+                    "ISM Manufacturing",
+                ],
+                "comparison": "",
+            },
 
-        "CPI YoY": {
-            "names": ["CPI"],
-            "comparison": "yoy",
-        },
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
 
-        "Core CPI YoY": {
-            "names": ["Core CPI"],
-            "comparison": "yoy",
-        },
+            "Core CPI YoY": {
+                "names": ["Core CPI"],
+                "comparison": "yoy",
+            },
 
-        "PPI MoM": {
-            "names": ["PPI"],
-            "comparison": "mom",
-        },
+            "PPI MoM": {
+                "names": ["PPI"],
+                "comparison": "mom",
+            },
 
-        "Core PPI MoM": {
-            "names": ["Core PPI"],
-            "comparison": "mom",
-        },
+            "Core PPI MoM": {
+                "names": ["Core PPI"],
+                "comparison": "mom",
+            },
 
-        "Retail Sales MoM": {
-            "names": ["Retail Sales"],
-            "comparison": "mom",
-        },
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
 
-        "JOLTS": {
-            "names": ["JOLTS Job Openings"],
-            "comparison": "",
-        },
+            "JOLTS": {
+                "names": ["JOLTS Job Openings"],
+                "comparison": "",
+            },
 
-    },  # cierra USD
+        },  # cierra USD
 
-    }  # cierra aliases_eodhd_por_divisa
+        }  # cierra aliases_eodhd_por_divisa
 
 
     aliases_eodhd = aliases_eodhd_por_divisa.get(
