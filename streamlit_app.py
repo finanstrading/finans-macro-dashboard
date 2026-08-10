@@ -1196,6 +1196,254 @@ def analizar_divisa_completa(
 
     return resultados
 
+def construir_df_currency_por_release(
+    df_currency,
+    currency,
+    indicadores_currency,
+):
+    """
+    Construye una copia de la base macro donde cada observación
+    dispone de una fecha efectiva de disponibilidad basada
+    en ReleaseDate de EODHD.
+
+    La columna DATE original sigue siendo la referencia económica.
+    """
+
+    df_releases = cargar_macro_releases()
+
+    df_releases = df_releases[
+        df_releases["Currency"].eq(
+            str(currency).strip().upper()
+        )
+    ].copy()
+
+    if df_releases.empty:
+        return {}
+
+    # ===================================================
+    # ALIASES DASHBOARD / CURRENCY SCORE -> EODHD
+    # ===================================================
+
+    aliases_eodhd = {
+        "USD": {
+            "Non Farm Payrolls": {
+                "names": ["Non Farm Payrolls"],
+                "comparison": "",
+            },
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+            "Average Hourly Earnings": {
+                "names": ["Average Hourly Earnings"],
+                "comparison": "mom",
+            },
+            "ADP Employment": {
+                "names": [
+                    "ADP Employment Change",
+                    "ADP Employment",
+                ],
+                "comparison": "",
+            },
+            "Consumer Confidence CB": {
+                "names": ["CB Consumer Confidence"],
+                "comparison": "",
+            },
+            "ISM Services": {
+                "names": [
+                    "ISM Services PMI",
+                    "ISM Services",
+                ],
+                "comparison": "",
+            },
+            "ISM Manufacturing": {
+                "names": [
+                    "ISM Manufacturing PMI",
+                    "ISM Manufacturing",
+                ],
+                "comparison": "",
+            },
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+            "Core CPI YoY": {
+                "names": ["Core CPI"],
+                "comparison": "yoy",
+            },
+            "PPI MoM": {
+                "names": ["PPI"],
+                "comparison": "mom",
+            },
+            "Core PPI MoM": {
+                "names": ["Core PPI"],
+                "comparison": "mom",
+            },
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
+            "JOLTS": {
+                "names": ["JOLTS Job Openings"],
+                "comparison": "",
+            },
+        }
+    }
+
+    mapa_currency = MAPA_INDICADORES_IA.get(
+        str(currency).strip().upper(),
+        {}
+    )
+
+    series_por_indicador = {}
+
+    for columna in indicadores_currency:
+
+        nombre_score = mapa_currency.get(
+            columna,
+            columna,
+        )
+
+        config = (
+            aliases_eodhd
+            .get(
+                str(currency).strip().upper(),
+                {}
+            )
+            .get(nombre_score)
+        )
+
+        if config is None:
+            continue
+
+        nombres_eodhd = [
+            str(nombre).strip().lower()
+            for nombre in config["names"]
+        ]
+
+        comparison_objetivo = (
+            str(config.get("comparison", ""))
+            .strip()
+            .lower()
+        )
+
+        releases_indicador = df_releases[
+            df_releases["Indicator"]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .isin(nombres_eodhd)
+        ].copy()
+
+        if comparison_objetivo:
+
+            releases_indicador = releases_indicador[
+                releases_indicador["Comparison"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .eq(comparison_objetivo)
+            ]
+
+        releases_indicador = (
+            releases_indicador
+            .dropna(
+                subset=[
+                    "ReleaseDate",
+                    "Actual",
+                ]
+            )
+            .sort_values("ReleaseDate")
+            .reset_index(drop=True)
+        )
+
+        if releases_indicador.empty:
+            continue
+
+        releases_indicador["Valor"] = (
+            convertir_valores(
+                releases_indicador["Actual"]
+            )
+        )
+
+        releases_indicador = (
+            releases_indicador
+            .dropna(subset=["Valor"])
+            .reset_index(drop=True)
+        )
+
+        if releases_indicador.empty:
+            continue
+
+        series_por_indicador[nombre_score] = (
+            releases_indicador[
+                [
+                    "ReleaseDate",
+                    "Valor",
+                    "Period",
+                ]
+            ].rename(
+                columns={
+                    "ReleaseDate": "Fecha",
+                }
+            )
+        )
+
+    return series_por_indicador
+
+def analizar_divisa_por_release(
+    series_por_indicador,
+    divisa,
+    fecha_corte,
+):
+
+    resultados = {}
+
+    fecha_corte = pd.to_datetime(
+        fecha_corte
+    )
+
+    for nombre_indicador, datos in (
+        series_por_indicador.items()
+    ):
+
+        datos_indicador = (
+            datos[
+                datos["Fecha"] <= fecha_corte
+            ]
+            .dropna(
+                subset=[
+                    "Fecha",
+                    "Valor",
+                ]
+            )
+            .sort_values("Fecha")
+            .reset_index(drop=True)
+        )
+
+        if len(datos_indicador) < 2:
+            continue
+
+        try:
+
+            resultado = analizar_indicador(
+                datos_indicador["Fecha"],
+                datos_indicador["Valor"],
+                nombre_indicador,
+                divisa,
+            )
+
+            if resultado is not None:
+                resultados[
+                    nombre_indicador
+                ] = resultado
+
+        except Exception:
+            continue
+
+    return resultados
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def calcular_historico_currency_score(
     currency,
@@ -1231,6 +1479,21 @@ def calcular_historico_currency_score(
         df_currency
     )
 
+    series_release = construir_df_currency_por_release(
+    df_currency,
+    currency,
+    indicadores_currency,
+)
+
+if not series_release:
+    return pd.DataFrame(
+        columns=[
+            "Fecha",
+            "Score",
+            "Coverage",
+        ]
+    )
+
     if not indicadores_currency:
         return pd.DataFrame(
             columns=[
@@ -1240,7 +1503,29 @@ def calcular_historico_currency_score(
             ]
         )
 
-    fecha_final = df_currency["Fecha"].max()
+    fechas_disponibles = []
+
+for datos_indicador in series_release.values():
+
+    if datos_indicador.empty:
+        continue
+
+    fechas_disponibles.append(
+        datos_indicador["Fecha"].max()
+    )
+
+if not fechas_disponibles:
+    return pd.DataFrame(
+        columns=[
+            "Fecha",
+            "Score",
+            "Coverage",
+        ]
+    )
+
+fecha_final = max(
+    fechas_disponibles
+)
 
     if frecuencia == "W":
 
@@ -1283,11 +1568,10 @@ def calcular_historico_currency_score(
 
     for fecha_corte in fechas_corte:
 
-        resultados = analizar_divisa_completa(
-            df_currency,
+        resultados = analizar_divisa_por_release(
+            series_release,
             currency,
-            indicadores_currency,
-            fecha_corte=fecha_corte,
+            fecha_corte,
         )
 
         resultado_score = calcular_currency_score(
