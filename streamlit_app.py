@@ -1870,6 +1870,28 @@ def construir_df_currency_por_release(
                     "Comparison": ultimo["Comparison"],
                 })
 
+
+        # ===================================================
+        # DEBUG TEMPORAL GDP EODHD
+        # ===================================================
+
+        debug_gdp = df_releases[
+            df_releases["Indicator"]
+            .astype(str)
+            .str.contains("GDP", case=False, na=False)
+        ].copy()
+
+        st.write("### DEBUG GDP EODHD")
+
+        st.dataframe(
+            debug_gdp[
+                ["ReleaseDate", "Indicator", "Period", "Comparison"]
+            ].sort_values("ReleaseDate", ascending=False),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
         st.write("### AUDITORÍA EODHD — USD")
         st.dataframe(
             pd.DataFrame(auditoria_eodhd),
