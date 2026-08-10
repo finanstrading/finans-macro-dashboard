@@ -1920,18 +1920,6 @@ def calcular_drivers_historicos_currency_score(
         historico_score
         .copy()
         .sort_values("Fecha")
-        .reset_idef calcular_drivers_historicos_currency_score(
-    currency,
-    historico_score,
-):
-
-    if historico_score is None or historico_score.empty:
-        return []
-
-    historico = (
-        historico_score
-        .copy()
-        .sort_values("Fecha")
         .reset_index(drop=True)
     )
 
