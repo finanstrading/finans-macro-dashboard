@@ -1619,6 +1619,15 @@ def construir_df_currency_por_release(
                 ],
                 "comparison": "",
             },
+
+            "CAD": {
+
+                "GDP Annual Growth Rate (YoY)": {
+                    "names": ["GDP Growth Rate"],
+                    "comparison": "qoq",
+                },
+
+            },
         },
 
 
@@ -1690,7 +1699,7 @@ def construir_df_currency_por_release(
                 "names": ["Average Cash Earnings"],
                 "comparison": "yoy",
             },
-            
+
             "Business Confidence": {
                 "names": ["Tankan Large Manufacturers Index"],
                 "comparison": "",
