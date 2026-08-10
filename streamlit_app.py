@@ -40,6 +40,10 @@ MERCADOS = {
     "CHF": ["Dashboard_CHF", " Dashboard_CHF"],
 }
 
+RELEASE_AWARE_CURRENCIES = {
+    "USD",
+}
+
 COLOR_DORADO = "#C9A227"
 COLOR_DORADO_CLARO = "#E3C85B"
 COLOR_NEGRO = "#111111"
@@ -1213,7 +1217,7 @@ def construir_df_currency_por_release(
     currency = str(currency).strip().upper()
 
     # Por ahora esta arquitectura nueva se aplica únicamente a USD.
-    if currency != "USD":
+    if currency not in RELEASE_AWARE_CURRENCIES:
         return {}
 
     df_releases = cargar_macro_releases()
