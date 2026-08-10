@@ -1620,14 +1620,6 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
-            "CAD": {
-
-                "GDP Annual Growth Rate (YoY)": {
-                    "names": ["GDP Growth Rate"],
-                    "comparison": "qoq",
-                },
-
-            },
         },
 
 
@@ -1952,6 +1944,15 @@ def construir_df_currency_por_release(
             "Employment": {
                 "names": ["Unemployment Rate"],
                 "comparison": "",
+            },
+
+            "CAD": {
+
+                "GDP Annual Growth Rate (YoY)": {
+                    "names": ["GDP Growth Rate"],
+                    "comparison": "qoq",
+                },
+
             },
         },
 
