@@ -1501,14 +1501,49 @@ def construir_df_currency_por_release(
         if releases_indicador.empty:
             continue
 
-        # ===================================================
-        # MATCH:
-        #
-        # Dashboard_USD aporta Valor
-        # EODHD aporta ReleaseDate
-        # ===================================================
+# ===================================================
+# CONSERVAR TODA LA SERIE ORIGINAL DEL DASHBOARD
+#
+# EODHD solamente sustituye la fecha económica
+# por la fecha real de publicación cuando existe
+# matching para ese periodo.
+# ===================================================
 
-        serie = datos_dashboard.merge(
+        datos_dashboard_completo = pd.DataFrame({
+            "Fecha_original": dashboard["Fecha"],
+            "Periodo": dashboard["_Periodo"],
+            "Valor": convertir_valores(
+                dashboard[columna]
+            ),
+        })
+
+        datos_dashboard_completo = (
+            datos_dashboard_completo
+            .dropna(
+                subset=[
+                    "Fecha_original",
+                    "Periodo",
+                    "Valor",
+                ]
+            )
+            .sort_values("Fecha_original")
+            .drop_duplicates(
+                subset=["Periodo"],
+                keep="last",
+            )
+            .reset_index(drop=True)
+        )
+
+        if datos_dashboard_completo.empty:
+            continue
+
+
+        # -----------------------------------------------
+        # LEFT JOIN:
+        # ningún valor del Dashboard desaparece
+        # -----------------------------------------------
+
+        serie = datos_dashboard_completo.merge(
             releases_indicador[
                 [
                     "Periodo",
@@ -1517,37 +1552,61 @@ def construir_df_currency_por_release(
                 ]
             ],
             on="Periodo",
-            how="inner",
+            how="left",
         )
+
+
+        # -----------------------------------------------
+        # FECHA EFECTIVA
+        #
+        # Si conocemos ReleaseDate:
+        #     usamos fecha real de publicación.
+        #
+        # Si no:
+        #     conservamos la fecha histórica original.
+        # -----------------------------------------------
+
+        serie["Fecha"] = serie[
+            "ReleaseDate"
+        ].fillna(
+            serie["Fecha_original"]
+        )
+
 
         serie = (
             serie
             .dropna(
                 subset=[
-                    "ReleaseDate",
+                    "Fecha",
                     "Valor",
                 ]
             )
-            .sort_values("ReleaseDate")
+            .sort_values("Fecha")
             .reset_index(drop=True)
         )
 
-        if serie.empty:
-            continue
+
+        # -----------------------------------------------
+        # Mantener Period incluso cuando no existe EODHD
+        # -----------------------------------------------
+
+        serie["Period"] = (
+            serie["Period"]
+            .fillna(
+                serie["Periodo"]
+                .astype(str)
+            )
+        )
+
 
         series_por_indicador[nombre_score] = (
             serie[
                 [
-                    "ReleaseDate",
+                    "Fecha",
                     "Valor",
                     "Period",
                 ]
-            ]
-            .rename(
-                columns={
-                    "ReleaseDate": "Fecha",
-                }
-            )
+            ].copy()
         )
 
     return series_por_indicador
