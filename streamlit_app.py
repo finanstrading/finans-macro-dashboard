@@ -1805,6 +1805,32 @@ def construir_df_currency_por_release(
         {},
     )
 
+
+    if currency == "JPY":
+
+    st.write("### CATÁLOGO COMPLETO EODHD — JPY")
+
+    catalogo_jpy = (
+        df_releases[
+            [
+                "Indicator",
+                "Comparison",
+            ]
+        ]
+        .drop_duplicates()
+        .sort_values(
+            ["Indicator", "Comparison"],
+            na_position="last",
+        )
+        .reset_index(drop=True)
+    )
+
+    st.dataframe(
+        catalogo_jpy,
+        use_container_width=True,
+        hide_index=True,
+    )
+
     if currency == "JPY":
 
         st.write("### DEBUG JPY — INDICADORES PENDIENTES")
