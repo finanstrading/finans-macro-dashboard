@@ -1512,14 +1512,14 @@ def calcular_drivers_historicos_currency_score(
         releases_intervalo,
     )
 
-        cambios_historicos.append({
+    cambios_historicos.append({
             "Fecha": fecha_actual,
             "Fecha anterior": fecha_anterior,
             "Score anterior": score_anterior,
             "Score actual": score_actual,
             "Cambio": round(cambio_score, 2),
             "Drivers": drivers,
-        })
+    })
 
     return cambios_historicos
 
