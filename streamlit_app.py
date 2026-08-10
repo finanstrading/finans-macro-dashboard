@@ -1619,6 +1619,50 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
+            "CPI YoY": {
+                "names": ["CPI"],
+                "comparison": "yoy",
+            },
+
+            "Core CPI YoY": {
+                "names": ["Core CPI"],
+                "comparison": "yoy",
+            },
+
+            "Retail Sales MoM": {
+                "names": ["Retail Sales"],
+                "comparison": "mom",
+            },
+
+            "Unemployment Rate": {
+                "names": ["Unemployment Rate"],
+                "comparison": "",
+            },
+
+            "Services PMI": {
+                "names": [
+                    "Services PMI",
+                    "S&P Global Services PMI",
+                    "Jibun Bank Services PMI",
+                ],
+                "comparison": "",
+            },
+
+            "Consumer Confidence": {
+                "names": ["Consumer Confidence"],
+                "comparison": "",
+            },
+
+            "Household Spending YoY": {
+                "names": ["Household Spending"],
+                "comparison": "yoy",
+            },
+
+            "Average Cash Earnings YoY": {
+                "names": ["Average Cash Earnings"],
+                "comparison": "yoy",
+            },
+
             # OJO:
             # Tokyo Core NO sustituye a Tokyo CPI general.
             # Por tanto Tokyo CPI YoY queda deliberadamente en fallback.
