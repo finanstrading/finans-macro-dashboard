@@ -3453,8 +3453,9 @@ try:
         render_logout(AUTH_PROFILE)
 
 
-        # ===================================================
+    # ===================================================
     # CONVERSIÓN DE VALORES
+    # PMI RELEASE-AWARE: usar EODHD cuando esté disponible
     # ===================================================
 
     df["Valor"] = convertir_valores(df[indicador])
@@ -3465,6 +3466,43 @@ try:
         .sort_values("Fecha")
         .reset_index(drop=True)
     )
+
+    # Para indicadores con serie release-aware, usamos la misma
+    # serie que utiliza el Currency Score.
+    indicadores_divisa = obtener_indicadores(df)
+
+    series_release_vista = construir_df_currency_por_release(
+        df,
+        divisa,
+        indicadores_divisa,
+    )
+
+    nombre_score_vista = (
+        MAPA_INDICADORES_IA
+        .get(str(divisa).strip().upper(), {})
+        .get(indicador, indicador)
+    )
+
+    serie_release_vista = series_release_vista.get(
+        nombre_score_vista
+    )
+
+    if (
+        serie_release_vista is not None
+        and not serie_release_vista.empty
+    ):
+
+        datos_release_vista = (
+            serie_release_vista[
+                ["Fecha", "Valor"]
+            ]
+            .dropna(subset=["Fecha", "Valor"])
+            .sort_values("Fecha")
+            .reset_index(drop=True)
+        )
+
+        if not datos_release_vista.empty:
+            datos_completos = datos_release_vista
 
     if datos_completos.empty:
         st.warning("Este indicador todavía no contiene datos disponibles.")
