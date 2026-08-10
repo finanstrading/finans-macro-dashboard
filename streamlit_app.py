@@ -1292,15 +1292,6 @@ def construir_df_currency_por_release(
                 "comparison": "",
             },
 
-            # Por si el nombre llega sin pasar por MAPA_INDICADORES_IA
-            "PMI Manufactura": {
-                "names": [
-                    "ISM Manufacturing PMI",
-                    "S&P Global Manufacturing PMI",
-                ],
-                "comparison": "",
-            },
-
             "CPI YoY": {
                 "names": ["CPI"],
                 "comparison": "yoy",
