@@ -2113,6 +2113,26 @@ def construir_df_currency_por_release(
             columna_normalizada,
         )
 
+        # Indicadores que NO deben recibir matching EODHD automático
+        sin_release_eodhd = {
+            "CAD": {
+                "Consumer Confidence",
+            },
+        }
+
+        if (
+            currency in sin_release_eodhd
+            and nombre_score in sin_release_eodhd[currency]
+        ):
+            auditoria_eodhd.append({
+                "Indicador": nombre_score,
+                "Estado": "⚪ FALLBACK",
+                "Último ReleaseDate": None,
+                "Match EODHD": None,
+                "Comparison": None,
+            })
+            continue
+
         config = aliases_eodhd.get(
             nombre_score
         )
