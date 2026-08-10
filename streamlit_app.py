@@ -1494,16 +1494,16 @@ if not series_release:
         ]
     )
 
-    if not indicadores_currency:
-        return pd.DataFrame(
-            columns=[
-                "Fecha",
-                "Score",
-                "Coverage",
-            ]
-        )
+if not indicadores_currency:
+    return pd.DataFrame(
+        columns=[
+            "Fecha",
+            "Score",
+            "Coverage",
+        ]
+    )
 
-    fechas_disponibles = []
+fechas_disponibles = []
 
 for datos_indicador in series_release.values():
 
