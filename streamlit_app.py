@@ -2187,23 +2187,6 @@ def calcular_drivers_historicos_currency_score(
             indicadores_currency,
         )
 
-    if currency_normalizada == "GBP":
-        st.write("DEBUG GBP — series_release")
-        st.write(
-            "Indicadores:",
-            list(series_release.keys())
-        )
-
-        for indicador_debug, df_debug in series_release.items():
-
-            if (
-                df_debug is not None
-                and not df_debug.empty
-            ):
-                st.write(
-                    indicador_debug,
-                    df_debug.tail(3),
-                )
 
     macro_releases = cargar_macro_releases()
 
@@ -2260,7 +2243,7 @@ def calcular_drivers_historicos_currency_score(
         # ===================================================
 
         if (
-            currency_normalizada == "USD"
+            currency_normalizada in RELEASE_AWARE_CURRENCIES
             and series_release
         ):
 
