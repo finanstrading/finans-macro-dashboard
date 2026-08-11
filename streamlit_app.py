@@ -549,7 +549,7 @@ def construir_url(nombre_hoja):
     )
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_datos_mercado(nombres_posibles):
     errores = []
 
@@ -2038,10 +2038,13 @@ def construir_df_currency_por_release(
 
             serie_fallback = pd.DataFrame({
                 "Fecha": dashboard["Fecha"],
+                "FechaPeriodo": dashboard["Fecha"],
                 "Valor": convertir_valores(
                     dashboard[columna]
                 ),
                 "Period": dashboard["_Periodo"].astype(str),
+                "Previous": None,
+                "Estimate": None,
                 "FuenteFecha": "Fallback Dashboard",
             })
 
@@ -2149,10 +2152,13 @@ def construir_df_currency_por_release(
 
             serie_fallback = pd.DataFrame({
                 "Fecha": dashboard["Fecha"],
+                "FechaPeriodo": dashboard["Fecha"],
                 "Valor": convertir_valores(
                     dashboard[columna]
                 ),
                 "Period": dashboard["_Periodo"].astype(str),
+                "Previous": None,
+                "Estimate": None,
                 "FuenteFecha": "Fallback Dashboard",
             })
 
@@ -2322,13 +2328,15 @@ def construir_df_currency_por_release(
 
             serie_fallback = pd.DataFrame({
                 "Fecha": dashboard["Fecha"],
+                "FechaPeriodo": dashboard["Fecha"],
                 "Valor": convertir_valores(
                     dashboard[columna]
                 ),
                 "Period": dashboard["_Periodo"].astype(str),
+                "Previous": None,
+                "Estimate": None,
                 "FuenteFecha": "Fallback Dashboard",
             })
-
             serie_fallback = (
                 serie_fallback
                 .dropna(
@@ -4392,10 +4400,7 @@ try:
     previous_release = convertir_valores(
         pd.Series([ultimo_registro.get("Previous")])
     ).iloc[0]
-    previous_release = pd.to_numeric(
-        ultimo_registro.get("Previous"),
-        errors="coerce",
-    )
+
     ultima_fecha = ultimo_registro["Fecha"]
 
     if len(datos_completos) >= 2:
