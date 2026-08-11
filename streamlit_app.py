@@ -2465,6 +2465,8 @@ def construir_df_currency_por_release(
                     "ReleaseDate",
                     "Period",
                     "Actual",
+                    "Previous",
+                    "Estimate",
                     "Indicator",
                 ]
             ],
@@ -2579,6 +2581,8 @@ def construir_df_currency_por_release(
                     "FechaPeriodo",
                     "Valor",
                     "Period",
+                    "Previous",
+                    "Estimate",
                     "FuenteFecha",
                 ]
             ].copy()
@@ -3576,6 +3580,8 @@ try:
                 [
                     "FechaPeriodo",
                     "Valor",
+                    "Previous",
+                    "Estimate",
                 ]
             ]
             .dropna(
@@ -4379,18 +4385,50 @@ try:
 
     ultimo_registro = datos_completos.iloc[-1]
     ultimo_valor = float(ultimo_registro["Valor"])
+    estimacion_ultimo = convertir_valores(
+        pd.Series([ultimo_registro.get("Estimate")])
+    ).iloc[0]
+
+    previous_release = convertir_valores(
+        pd.Series([ultimo_registro.get("Previous")])
+    ).iloc[0]
+    previous_release = pd.to_numeric(
+        ultimo_registro.get("Previous"),
+        errors="coerce",
+    )
     ultima_fecha = ultimo_registro["Fecha"]
 
     if len(datos_completos) >= 2:
-        valor_anterior = float(datos_completos.iloc[-2]["Valor"])
-        variacion = ultimo_valor - valor_anterior
+        valor_anterior_historico = float(
+            datos_completos.iloc[-2]["Valor"]
+        )
     else:
-        valor_anterior = None
-        variacion = None
+        valor_anterior_historico = None
+
+    valor_anterior = (
+        float(previous_release)
+        if pd.notna(previous_release)
+        else valor_anterior_historico
+    )
+
+    variacion = (
+        ultimo_valor - valor_anterior
+        if valor_anterior is not None
+        else None
+    )
 
     sufijo = determinar_sufijo(indicador)
 
     ultimo_texto = formatear_valor(ultimo_valor, sufijo)
+
+    prevision_texto = (
+        formatear_valor(
+            float(estimacion_ultimo),
+            sufijo,
+        )
+        if pd.notna(estimacion_ultimo)
+        else "Sin previsión"
+        )
 
     anterior_texto = (
         formatear_valor(valor_anterior, sufijo)
@@ -4452,49 +4490,64 @@ try:
     # TARJETAS DE MÉTRICAS
     # ===================================================
 
-    columna_1, columna_2, columna_3, columna_4 = st.columns(4)
+    (
+        columna_1,
+        columna_2,
+        columna_3,
+        columna_4,
+        columna_5,
+    ) = st.columns(5)
 
     with columna_1:
         st.markdown(
             crear_tarjeta(
                 "Último dato",
                 ultimo_texto,
-                f"Publicación {fecha_texto}"
+                f"Periodo {fecha_texto}",
             ),
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     with columna_2:
         st.markdown(
             crear_tarjeta(
-                "Dato anterior",
-                anterior_texto,
-                "Registro inmediatamente anterior"
+                "Previsión",
+                prevision_texto,
+                "Consenso previo al dato",
             ),
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     with columna_3:
         st.markdown(
             crear_tarjeta(
-                "Variación",
-                signo_variacion if signo_variacion else "—",
-                variacion_texto,
-                clase_variacion
+                "Dato anterior",
+                anterior_texto,
+                "Lectura anterior",
             ),
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     with columna_4:
         st.markdown(
             crear_tarjeta(
-                "Publicaciones",
-                publicaciones_texto,
-                f"Desde {fecha_minima.strftime('%m/%Y')}"
+                "Variación",
+                signo_variacion if signo_variacion else "—",
+                variacion_texto,
+                clase_variacion,
             ),
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
+    with columna_5:
+        st.markdown(
+            crear_tarjeta(
+                "Publicaciones",
+                publicaciones_texto,
+                f"Desde {fecha_minima.strftime('%m/%Y')}",
+            ),
+            unsafe_allow_html=True,
+        )
 
     # ===================================================
     # FILTRO TEMPORAL
