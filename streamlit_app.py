@@ -4424,6 +4424,7 @@ try:
     factores_unidad_eodhd = {
         ("USD", "NFP"): 1000,
         ("AUD", "Employment"): 1000,
+        ("CHF", "Employment"): 1000,
     }
 
     clave_unidad = (
