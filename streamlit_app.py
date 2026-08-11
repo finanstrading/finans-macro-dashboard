@@ -2483,6 +2483,18 @@ def construir_df_currency_por_release(
         )
 
         # ===================================================
+        # PROXIES TEMPORALES:
+        # usar únicamente ReleaseDate como reloj.
+        # Nunca heredar Actual / Previous / Estimate
+        # del indicador proxy.
+        # ===================================================
+
+        if es_proxy_release:
+            serie["Actual"] = None
+            serie["Previous"] = None
+            serie["Estimate"] = None
+
+        # ===================================================
         # PMI: USAR VALOR ACTUAL DE EODHD CUANDO ESTÉ DISPONIBLE
         # ===================================================
 
