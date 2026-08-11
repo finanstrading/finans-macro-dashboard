@@ -549,7 +549,7 @@ def construir_url(nombre_hoja):
     )
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=600, show_spinner=False)
 def cargar_datos_mercado(nombres_posibles):
     errores = []
 
@@ -581,7 +581,7 @@ def cargar_datos_mercado(nombres_posibles):
     )
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_interpretaciones_ia():
     """
     Carga la hoja AI_Interpretations desde Google Sheets.
@@ -604,7 +604,7 @@ def cargar_interpretaciones_ia():
 
     return df_ia
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_macro_releases():
 
     nombre_hoja = "Macro_Releases"
