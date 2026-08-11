@@ -4401,6 +4401,23 @@ try:
         pd.Series([ultimo_registro.get("Previous")])
     ).iloc[0]
 
+    # ===================================================
+    # NORMALIZACIÓN NFP
+    # EODHD expresa NFP en miles de empleos.
+    # El Dashboard trabaja en empleos completos.
+    # ===================================================
+
+    if (
+        str(divisa).strip().upper() == "USD"
+        and str(indicador).strip() == "NFP"
+    ):
+
+        if pd.notna(estimacion_ultimo):
+            estimacion_ultimo = float(estimacion_ultimo) * 1000
+
+        if pd.notna(previous_release):
+            previous_release = float(previous_release) * 1000
+
     ultima_fecha = ultimo_registro["Fecha"]
 
     if len(datos_completos) >= 2:
