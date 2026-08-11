@@ -4414,21 +4414,39 @@ try:
     ).iloc[0]
 
     # ===================================================
-    # NORMALIZACIÓN NFP
-    # EODHD expresa NFP en miles de empleos.
-    # El Dashboard trabaja en empleos completos.
+    # NORMALIZACIÓN DE UNIDADES EODHD -> DASHBOARD
+    #
+    # Algunos indicadores de empleo llegan desde EODHD
+    # expresados en miles, mientras el Dashboard histórico
+    # utiliza personas/unidades completas.
     # ===================================================
 
-    if (
-        str(divisa).strip().upper() == "USD"
-        and str(indicador).strip() == "NFP"
-    ):
+    factores_unidad_eodhd = {
+        ("USD", "NFP"): 1000,
+        ("AUD", "Employment"): 1000,
+    }
 
-        if pd.notna(estimacion_ultimo):
-            estimacion_ultimo = float(estimacion_ultimo) * 1000
+    clave_unidad = (
+        str(divisa).strip().upper(),
+        str(indicador).strip(),
+    )
 
-        if pd.notna(previous_release):
-            previous_release = float(previous_release) * 1000
+    factor_unidad = factores_unidad_eodhd.get(
+        clave_unidad,
+        1,
+    )
+
+    if pd.notna(estimacion_ultimo):
+        estimacion_ultimo = (
+            float(estimacion_ultimo)
+            * factor_unidad
+        )
+
+    if pd.notna(previous_release):
+        previous_release = (
+            float(previous_release)
+            * factor_unidad
+        )
 
     ultima_fecha = ultimo_registro["Fecha"]
 
