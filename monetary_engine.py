@@ -925,6 +925,179 @@ def analizar_indicador(fechas, valores, indicador, divisa):
     score_base = calcular_score(componentes, pesos)
     score_ajustado = ajustar_por_relevancia(score_base, relevancia)
 
+    # ============================================================
+    # GUARDRAIL DIRECCIONAL — INFLACIÓN
+    #
+    # El modelo estructural sigue utilizando:
+    # nivel, tendencia, momentum, persistencia e histórico.
+    #
+    # Pero si el último dato de inflación baja, el score del
+    # indicador no puede subir respecto al estado anterior.
+    #
+    # Si existe contradicción, utilizamos como movimiento mínimo
+    # la variación del componente principal de mandato.
+    # ============================================================
+
+    if tipo == "inflacion" and len(serie) >= 3:
+
+        serie_anterior = serie.iloc[:-1].copy()
+
+        ultimo_anterior = float(serie_anterior.iloc[-1])
+        penultimo_anterior = float(serie_anterior.iloc[-2])
+
+        percentil_anterior = calcular_percentil(
+            ultimo_anterior,
+            serie_anterior,
+        )
+
+        resultado_anterior = {
+            "divisa": divisa,
+            "indicador": indicador,
+            "ultimo_valor": round(ultimo_anterior, 2),
+            "valor_anterior": round(penultimo_anterior, 2),
+            "variacion": round(
+                ultimo_anterior - penultimo_anterior,
+                2,
+            ),
+            "media_historica": round(
+                float(serie_anterior.mean()),
+                2,
+            ),
+            "maximo_historico": round(
+                float(serie_anterior.max()),
+                2,
+            ),
+            "minimo_historico": round(
+                float(serie_anterior.min()),
+                2,
+            ),
+            "percentil": percentil_anterior,
+            "categoria_percentil": clasificar_percentil(
+                percentil_anterior
+            ),
+            "zscore": calcular_zscore(
+                ultimo_anterior,
+                serie_anterior,
+            ),
+            "volatilidad": calcular_volatilidad(
+                serie_anterior
+            ),
+            "momentum_3": calcular_momentum(
+                serie_anterior,
+                3,
+            ),
+            "momentum_6": calcular_momentum(
+                serie_anterior,
+                6,
+            ),
+            "momentum_12": calcular_momentum(
+                serie_anterior,
+                12,
+            ),
+            "distancia_maximo": round(
+                float(
+                    serie_anterior.max()
+                    - ultimo_anterior
+                ),
+                2,
+            ),
+            "distancia_minimo": round(
+                float(
+                    ultimo_anterior
+                    - serie_anterior.min()
+                ),
+                2,
+            ),
+            "tendencia_3": calcular_tendencia(
+                serie_anterior,
+                3,
+            ),
+            "tendencia_6": calcular_tendencia(
+                serie_anterior,
+                6,
+            ),
+            "tendencia_12": calcular_tendencia(
+                serie_anterior,
+                12,
+            ),
+        }
+
+        componentes_anteriores, pesos_anteriores, _ = motor(
+            serie_anterior,
+            resultado_anterior,
+            indicador,
+            float(
+                config_banco["objetivo_inflacion"]
+            ),
+        )
+
+        score_base_anterior = calcular_score(
+            componentes_anteriores,
+            pesos_anteriores,
+        )
+
+        score_ajustado_anterior = ajustar_por_relevancia(
+            score_base_anterior,
+            relevancia,
+        )
+
+        # Cambio directo del componente principal de inflación.
+        mandato_actual = componentes.get(
+            "Mandato de estabilidad de precios"
+        )
+
+        mandato_anterior = componentes_anteriores.get(
+            "Mandato de estabilidad de precios"
+        )
+
+        peso_mandato = pesos.get(
+            "Mandato de estabilidad de precios",
+            0.45,
+        )
+
+        if (
+            mandato_actual is not None
+            and mandato_anterior is not None
+        ):
+            cambio_directo = (
+                mandato_actual - mandato_anterior
+            ) * peso_mandato * relevancia
+        else:
+            cambio_directo = 0.0
+
+        # --------------------------------------------------------
+        # Inflación baja:
+        # nunca permitir que el score suba.
+        # --------------------------------------------------------
+
+        if (
+            ultimo < anterior
+            and score_ajustado >= score_ajustado_anterior
+        ):
+            score_ajustado = (
+                score_ajustado_anterior
+                + min(cambio_directo, -0.1)
+            )
+
+        # --------------------------------------------------------
+        # Inflación sube:
+        # nunca permitir que el score baje.
+        # --------------------------------------------------------
+
+        elif (
+            ultimo > anterior
+            and score_ajustado <= score_ajustado_anterior
+        ):
+            score_ajustado = (
+                score_ajustado_anterior
+                + max(cambio_directo, 0.1)
+            )
+
+        score_ajustado = round(
+            _limitar(score_ajustado),
+            1,
+        )
+
     resultado.update({
         "macro_score": score_ajustado,
         "macro_score_base": score_base,
