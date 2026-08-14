@@ -3667,29 +3667,6 @@ try:
             revision="release_v13",
         )
 
-        # ===================================================
-        # SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
-        # RELEASE-AWARE DEL HISTÓRICO
-        # ===================================================
-
-        if (
-            historico_score is not None
-            and not historico_score.empty
-        ):
-            ultima_fila_score = (
-                historico_score
-                .sort_values("Fecha")
-                .iloc[-1]
-            )
-
-            score = float(
-                ultima_fila_score["Score"]
-            )
-
-            coverage = float(
-                ultima_fila_score["Coverage"]
-            )
-
 
         drivers_historicos = (
         calcular_drivers_historicos_currency_score(
@@ -3817,7 +3794,11 @@ try:
         with col3:
             st.metric(
                 "COBERTURA",
-                f"{coverage * 100:.0f}%"
+                "Indicadores clave",
+                help=(
+                    "El Currency Score utiliza una selección de "
+                    "indicadores macroeconómicos representativos."
+                ),
             )
 
         # ===================================================
