@@ -2670,49 +2670,7 @@ def calcular_historico_currency_score(
     revision="release_v13",
 ):
 
-if vista == "Currency Score":
 
-    score = currency_score.get("score")
-    coverage = currency_score.get("coverage", 0)
-    families = currency_score.get("families", {})
-    ranking_divisas = calcular_ranking_divisas()
-
-    historico_score = calcular_historico_currency_score(
-        divisa,
-        frecuencia="W",
-        periodos=26,
-        revision="release_v13",
-    )
-
-# ===================================================
-# SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
-# RELEASE-AWARE DEL HISTÓRICO
-# ===================================================
-
-if (
-    historico_score is not None
-    and not historico_score.empty
-):
-    ultima_fila_score = (
-        historico_score
-        .sort_values("Fecha")
-        .iloc[-1]
-    )
-
-    score = float(
-        ultima_fila_score["Score"]
-    )
-
-    coverage = float(
-        ultima_fila_score["Coverage"]
-    )
-
-drivers_historicos = (
-    calcular_drivers_historicos_currency_score(
-        divisa,
-        historico_score,
-    )
-)
 
     df_currency, _ = cargar_datos_mercado(
         tuple(MERCADOS[currency])
@@ -3711,6 +3669,28 @@ try:
             revision="release_v13",
         )
 
+    # ===================================================
+    # SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
+    # RELEASE-AWARE DEL HISTÓRICO
+    # ===================================================
+
+    if (
+        historico_score is not None
+        and not historico_score.empty
+    ):
+        ultima_fila_score = (
+            historico_score
+            .sort_values("Fecha")
+            .iloc[-1]
+        )
+
+        score = float(
+            ultima_fila_score["Score"]
+        )
+
+        coverage = float(
+            ultima_fila_score["Coverage"]
+        )
 
         drivers_historicos = (
         calcular_drivers_historicos_currency_score(
