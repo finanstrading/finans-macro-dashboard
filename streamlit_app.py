@@ -11,7 +11,7 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
-# =================================================== 
+# ===================================================
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
@@ -3666,6 +3666,29 @@ try:
             periodos=26,
             revision="release_v13",
         )
+
+        # ===================================================
+        # SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
+        # RELEASE-AWARE DEL HISTÓRICO
+        # ===================================================
+
+        if (
+            historico_score is not None
+            and not historico_score.empty
+        ):
+            ultima_fila_score = (
+                historico_score
+                .sort_values("Fecha")
+                .iloc[-1]
+            )
+
+            score = float(
+                ultima_fila_score["Score"]
+            )
+
+            coverage = float(
+                ultima_fila_score["Coverage"]
+            )
 
 
         drivers_historicos = (
