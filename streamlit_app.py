@@ -2670,6 +2670,29 @@ def calcular_historico_currency_score(
     revision="release_v13",
 ):
 
+# ===================================================
+# SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
+# RELEASE-AWARE DEL HISTÓRICO
+# ===================================================
+
+if (
+    historico_score is not None
+    and not historico_score.empty
+):
+    ultima_fila_score = (
+        historico_score
+        .sort_values("Fecha")
+        .iloc[-1]
+    )
+
+    score = float(
+        ultima_fila_score["Score"]
+    )
+
+    coverage = float(
+        ultima_fila_score["Coverage"]
+    )
+
     df_currency, _ = cargar_datos_mercado(
         tuple(MERCADOS[currency])
     )
