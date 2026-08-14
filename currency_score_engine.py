@@ -379,7 +379,7 @@ def calcular_score_familia(
         if not resultado:
             continue
 
-        score = resultado.get("macro_score_base")
+        score = resultado.get("macro_score")
 
         if score is None:
             continue
