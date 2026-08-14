@@ -4175,47 +4175,11 @@ try:
                                 "Impacto estimado"
                             )
 
-        st.markdown(
-            """
-            <div style="
-                display:flex;
-                align-items:center;
-                gap:12px;
-                margin-top:12px;
-                margin-bottom:4px;
-            ">
-                <div style="
-                    font-size:32px;
-                    font-weight:800;
-                    color:#111111;
-                ">
-                    Ranking macro
-                </div>
+        st.markdown("## Ranking macro")
 
-                <div style="
-                    background:#FFF7D6;
-                    border:1px solid #E7C95A;
-                    color:#9A7200;
-                    border-radius:999px;
-                    padding:6px 12px;
-                    font-size:13px;
-                    font-weight:800;
-                    letter-spacing:0.04em;
-                ">
-                    🎯 ALTA PRECISIÓN
-                </div>
-            </div>
-
-            <div style="
-                color:#6B7280;
-                font-size:14px;
-                margin-bottom:18px;
-            ">
-                Comparación integral basada en el conjunto completo
-                de indicadores disponibles.
-            </div>
-            """,
-            unsafe_allow_html=True,
+        st.caption(
+            "ALTA PRECISIÓN · Comparación integral basada en el "
+            "conjunto completo de indicadores disponibles."
         )
 
         for posicion, item in enumerate(
@@ -4291,10 +4255,10 @@ try:
                 f'</div>'
             )
 
-        st.markdown(
-            html_ranking,
-            unsafe_allow_html=True,
-        )
+            st.markdown(
+                html_ranking,
+                unsafe_allow_html=True,
+            )
 
         st.markdown("## Componentes macro")
 
