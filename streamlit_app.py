@@ -4178,8 +4178,8 @@ try:
         st.markdown("## Ranking macro")
 
         st.caption(
-            "Comparación de presión macroeconómica entre las "
-            "principales divisas de Macro FX."
+            "ALTA PRECISIÓN · Comparación integral basada en el "
+            "conjunto completo de indicadores disponibles."
         )
 
         for posicion, item in enumerate(
