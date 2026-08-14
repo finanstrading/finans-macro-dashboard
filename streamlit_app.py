@@ -4177,9 +4177,26 @@ try:
 
         st.markdown("## Ranking macro")
 
+        st.markdown(
+            """
+            <div style="
+                display:inline-block;
+                background:#FFF7D6;
+                border:1px solid #E7C95A;
+                color:#9A7200;
+                border-radius:8px;
+                padding:6px 12px;
+                font-size:14px;
+                font-weight:700;
+                margin:2px 0 8px 0;
+            ">🎯 ALTA PRECISIÓN</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
         st.caption(
-            "ALTA PRECISIÓN · Comparación integral basada en el "
-            "conjunto completo de indicadores disponibles."
+            "Comparación integral basada en el conjunto completo "
+            "de indicadores disponibles."
         )
 
         for posicion, item in enumerate(
