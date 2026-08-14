@@ -465,6 +465,31 @@ def motor_inflacion(serie, resultado, indicador, objetivo):
             f"{objetivo:.1f}%"
         )
 
+    # ==========================================================
+    # MOMENTUM DE INFLACIÓN CON COHERENCIA DIRECCIONAL
+    #
+    # El momentum conserva información sobre aceleración /
+    # desaceleración, pero no puede invertir la dirección
+    # económica del último dato.
+    #
+    # Inflación baja  -> momentum <= neutral (50)
+    # Inflación sube  -> momentum >= neutral (50)
+    # Sin cambio      -> se conserva el cálculo original
+    # ==========================================================
+
+    score_impulso = score_momentum(resultado)
+
+    if anterior is not None:
+
+        if ultimo < anterior:
+            # Desinflación: puede ser más o menos intensa,
+            # pero no puede convertirse en señal hawkish.
+            score_impulso = min(score_impulso, 50.0)
+
+        elif ultimo > anterior:
+            # Aceleración de inflación: puede ser más o menos
+            # intensa, pero no puede convertirse en señal dovish.
+            score_impulso = max(score_impulso, 50.0)
 
     componentes = {
         "Mandato de estabilidad de precios": _limitar(score_mandato),
