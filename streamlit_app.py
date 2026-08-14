@@ -4291,10 +4291,10 @@ try:
                 f'</div>'
             )
 
-            st.markdown(
-                html_ranking,
-                unsafe_allow_html=True,
-            )
+        st.markdown(
+            html_ranking,
+            unsafe_allow_html=True,
+        )
 
         st.markdown("## Componentes macro")
 
