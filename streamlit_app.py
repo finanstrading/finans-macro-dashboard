@@ -3699,27 +3699,6 @@ try:
         drivers_historicos = []
         drivers_ultimo_cambio = None
 
-            currency_score = calcular_currency_score(
-                divisa,
-                resultados_divisa,
-            )
-
-        score = currency_score.get("score")
-        coverage = currency_score.get("coverage", 0)
-        families = currency_score.get("families", {})
-
-        ranking_divisas = calcular_ranking_divisas()
-
-        historico_score = calcular_historico_currency_score(
-            divisa,
-            frecuencia="W",
-            periodos=26,
-            revision="release_v13",
-        )
-
-        drivers_historicos = []
-        drivers_ultimo_cambio = None
-
         # ===================================================
         # SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
         # RELEASE-AWARE DEL HISTÓRICO
