@@ -3440,7 +3440,7 @@ def determinar_sufijo(nombre_indicador):
         "pce",
         "ppi",
         "household spending",
-        "earnings"
+        "earnings",
     ]
 
     # Los PMI son índices, por tanto no llevan %.
@@ -3448,19 +3448,7 @@ def determinar_sufijo(nombre_indicador):
         palabra in nombre
         for palabra in palabras_porcentaje
     ) else ""
-    
-    st.sidebar.markdown(
-        '<div class="sidebar-section-label">VISTA</div>',
-        unsafe_allow_html=True
-    )
 
-    vista = st.sidebar.radio(
-        "Vista",
-        ["Indicadores", "Currency Score"],
-        index=0,
-        label_visibility="collapsed",
-        key="macro_fx_view"
-    )
 
 # ===================================================
 # BARRA LATERAL — MERCADO
@@ -3478,14 +3466,14 @@ with st.sidebar:
             </div>
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     st.divider()
 
     st.markdown(
         '<div class="control-title">Mercado</div>',
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     divisa = st.selectbox(
@@ -3493,7 +3481,20 @@ with st.sidebar:
         options=list(MERCADOS.keys()),
         index=0,
         label_visibility="collapsed",
-        key="selector_divisa"
+        key="selector_divisa",
+    )
+
+    st.markdown(
+        '<div class="control-title">Vista</div>',
+        unsafe_allow_html=True,
+    )
+
+    vista = st.radio(
+        "VISTA",
+        ["Indicador", "Currency Score"],
+        index=0,
+        label_visibility="collapsed",
+        key="selector_vista",
     )
 
 
@@ -3531,165 +3532,150 @@ try:
 
 
     # ===================================================
-    # RESTO DE CONTROLES
+    # CONTROLES ESPECÍFICOS DE INDICADOR
     # ===================================================
 
-    with st.sidebar:
-        st.markdown(
-            '<div class="control-title">Indicador</div>',
-            unsafe_allow_html=True
-        )
+    if vista == "Indicador":
 
-        indicador = st.selectbox(
-            "Indicador",
-            indicadores,
-            label_visibility="collapsed",
-            key=f"indicador_{divisa}"
-        )
-
-        st.markdown(
-            '<div class="control-title">Periodo</div>',
-            unsafe_allow_html=True
-        )
-
-        periodo = st.radio(
-            "Periodo",
-            options=["1A", "3A", "5A", "10A", "Todo"],
-            index=1,
-            horizontal=False,
-            label_visibility="collapsed",
-            key=f"periodo_{divisa}_{indicador}"
-        )
-
-        st.markdown(
-            '<div class="control-title">Escala vertical</div>',
-            unsafe_allow_html=True
-        )
-
-        modo_escala = st.radio(
-            "Escala vertical",
-            options=["Automática", "Sin extremos", "Manual"],
-            index=0,
-            horizontal=False,
-            label_visibility="collapsed",
-            key=f"escala_{divisa}_{indicador}"
-        )
-
-        st.markdown(
-            """
-            <div class="sidebar-info">
-                <strong>Datos:</strong> Macro FX Database<br>
-                <strong>Actualización:</strong> Automática
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        render_logout(AUTH_PROFILE)
-
-
-    # ===================================================
-    # CONVERSIÓN DE VALORES
-    # PMI RELEASE-AWARE: usar EODHD cuando esté disponible
-    # ===================================================
-
-    df["Valor"] = convertir_valores(df[indicador])
-
-    datos_completos = (
-        df[["Fecha", "Valor"]]
-        .dropna()
-        .sort_values("Fecha")
-        .reset_index(drop=True)
-    )
-
-    # Para indicadores con serie release-aware, usamos la misma
-    # serie que utiliza el Currency Score.
-    indicadores_divisa = obtener_indicadores(df)
-
-    series_release_vista = construir_df_currency_por_release(
-        df,
-        divisa,
-        indicadores_divisa,
-    )
-
-    nombre_score_vista = (
-        MAPA_INDICADORES_IA
-        .get(str(divisa).strip().upper(), {})
-        .get(indicador, indicador)
-    )
-
-    serie_release_vista = series_release_vista.get(
-        nombre_score_vista
-    )
-
-    if (
-        serie_release_vista is not None
-        and not serie_release_vista.empty
-    ):
-
-        datos_release_vista = (
-            serie_release_vista[
-                [
-                    "FechaPeriodo",
-                    "Valor",
-                    "Previous",
-                    "Estimate",
-                ]
-            ]
-            .dropna(
-                subset=[
-                    "FechaPeriodo",
-                    "Valor",
-                ]
+        with st.sidebar:
+            st.markdown(
+                '<div class="control-title">Indicador</div>',
+                unsafe_allow_html=True,
             )
-            .rename(
-                columns={
-                    "FechaPeriodo": "Fecha"
-                }
+
+            indicador = st.selectbox(
+                "Indicador",
+                indicadores,
+                label_visibility="collapsed",
+                key=f"indicador_{divisa}",
             )
+
+            st.markdown(
+                '<div class="control-title">Periodo</div>',
+                unsafe_allow_html=True,
+            )
+
+            periodo = st.radio(
+                "Periodo",
+                options=["1A", "3A", "5A", "10A", "Todo"],
+                index=1,
+                horizontal=False,
+                label_visibility="collapsed",
+                key=f"periodo_{divisa}_{indicador}",
+            )
+
+            st.markdown(
+                '<div class="control-title">Escala vertical</div>',
+                unsafe_allow_html=True,
+            )
+
+            modo_escala = st.radio(
+                "Escala vertical",
+                options=["Automática", "Sin extremos", "Manual"],
+                index=0,
+                horizontal=False,
+                label_visibility="collapsed",
+                key=f"escala_{divisa}_{indicador}",
+            )
+
+        # ===================================================
+        # CONVERSIÓN DE VALORES
+        # PMI RELEASE-AWARE: usar EODHD cuando esté disponible
+        # ===================================================
+
+        df["Valor"] = convertir_valores(df[indicador])
+
+        datos_completos = (
+            df[["Fecha", "Valor"]]
+            .dropna()
             .sort_values("Fecha")
             .reset_index(drop=True)
         )
 
-        if not datos_release_vista.empty:
-            datos_completos = datos_release_vista
+        indicadores_divisa = obtener_indicadores(df)
 
-    if datos_completos.empty:
-        st.warning("Este indicador todavía no contiene datos disponibles.")
-        st.stop()
+        series_release_vista = construir_df_currency_por_release(
+            df,
+            divisa,
+            indicadores_divisa,
+        )
 
-    analisis = analizar_indicador(
-        datos_completos["Fecha"],
-        datos_completos["Valor"],
-        indicador,
-        divisa
-    )
+        nombre_score_vista = (
+            MAPA_INDICADORES_IA
+            .get(str(divisa).strip().upper(), {})
+            .get(indicador, indicador)
+        )
 
-    resultados_divisa = obtener_resultados_divisa_actual(
-        divisa,
-        revision="actual_v1",
-    )
+        serie_release_vista = series_release_vista.get(
+            nombre_score_vista
+        )
 
-# ===================================================
-# SELECTOR DE VISTA
-# ===================================================
+        if (
+            serie_release_vista is not None
+            and not serie_release_vista.empty
+        ):
 
-    vista = st.sidebar.radio(
-        "VISTA",
-        ["Indicador", "Currency Score"],
-        index=0,
-    )
+            datos_release_vista = (
+                serie_release_vista[
+                    [
+                        "FechaPeriodo",
+                        "Valor",
+                        "Previous",
+                        "Estimate",
+                    ]
+                ]
+                .dropna(
+                    subset=[
+                        "FechaPeriodo",
+                        "Valor",
+                    ]
+                )
+                .rename(
+                    columns={
+                        "FechaPeriodo": "Fecha"
+                    }
+                )
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
 
-    currency_score = calcular_currency_score(
-        divisa,
-        resultados_divisa,
-    )
+            if not datos_release_vista.empty:
+                datos_completos = datos_release_vista
 
-    if vista == "Currency Score":
+        if datos_completos.empty:
+            st.warning(
+                "Este indicador todavía no contiene datos disponibles."
+            )
+            st.stop()
+
+        analisis = analizar_indicador(
+            datos_completos["Fecha"],
+            datos_completos["Valor"],
+            indicador,
+            divisa,
+        )
+
+
+    # ===================================================
+    # VISTA CURRENCY SCORE
+    # ===================================================
+
+    elif vista == "Currency Score":
+
+        resultados_divisa = obtener_resultados_divisa_actual(
+            divisa,
+            revision="actual_v1",
+        )
+
+        currency_score = calcular_currency_score(
+            divisa,
+            resultados_divisa,
+        )
 
         score = currency_score.get("score")
         coverage = currency_score.get("coverage", 0)
         families = currency_score.get("families", {})
+
         ranking_divisas = calcular_ranking_divisas()
 
         historico_score = calcular_historico_currency_score(
@@ -3698,6 +3684,9 @@ try:
             periodos=26,
             revision="release_v13",
         )
+
+        drivers_historicos = []
+        drivers_ultimo_cambio = None
 
         # ===================================================
         # SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
@@ -3729,10 +3718,30 @@ try:
                 )
             )
 
-            drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
-                divisa,
-                historico_score,
+            drivers_ultimo_cambio = (
+                calcular_drivers_ultimo_cambio(
+                    divisa,
+                    historico_score,
+                )
             )
+
+
+    # ===================================================
+    # ELEMENTOS COMUNES DE SIDEBAR
+    # ===================================================
+
+    with st.sidebar:
+        st.markdown(
+            """
+            <div class="sidebar-info">
+                <strong>Datos:</strong> Macro FX Database<br>
+                <strong>Actualización:</strong> Automática
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        render_logout(AUTH_PROFILE)
 
 
 
