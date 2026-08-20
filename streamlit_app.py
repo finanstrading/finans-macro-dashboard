@@ -3769,6 +3769,77 @@ try:
         render_logout(AUTH_PROFILE)
 
 
+    if vista == "Currency Score":
+
+        def obtener_score_historico(historico, semanas_atras):
+            if historico.empty:
+                return None
+
+            historico = (
+                historico
+                .sort_values("Fecha")
+                .reset_index(drop=True)
+            )
+
+            fecha_actual = historico["Fecha"].max()
+            fecha_objetivo = (
+                fecha_actual
+                - pd.Timedelta(weeks=semanas_atras)
+            )
+
+            datos_previos = historico[
+                historico["Fecha"] <= fecha_objetivo
+            ]
+
+            if datos_previos.empty:
+                return None
+
+            return float(
+                datos_previos.iloc[-1]["Score"]
+            )
+
+        score_1s = obtener_score_historico(
+            historico_score,
+            1,
+        )
+
+        score_1m = obtener_score_historico(
+            historico_score,
+            4,
+        )
+
+        score_3m = obtener_score_historico(
+            historico_score,
+            13,
+        )
+
+        cambio_1s = (
+            score - score_1s
+            if score is not None and score_1s is not None
+            else None
+        )
+
+        cambio_1m = (
+            score - score_1m
+            if score is not None and score_1m is not None
+            else None
+        )
+
+        cambio_3m = (
+            score - score_3m
+            if score is not None and score_3m is not None
+            else None
+        )
+
+        rating = (
+            clasificar_currency_score(score)
+            if score is not None
+            else "Sin evaluación"
+        )
+
+        # aquí sigue TODO el render del Currency Score
+
+
 
         def obtener_score_historico(historico, semanas_atras):
             if historico.empty:
