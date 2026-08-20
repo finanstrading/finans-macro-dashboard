@@ -1206,6 +1206,34 @@ def analizar_divisa_completa(
 
     return resultados
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def obtener_resultados_divisa_actual(divisa, revision="actual_v1"):
+
+    df_currency, _ = cargar_datos_mercado(
+        tuple(MERCADOS[divisa])
+    )
+
+    df_currency["Fecha"] = convertir_fechas(
+        df_currency["DATE"]
+    )
+
+    df_currency = (
+        df_currency
+        .dropna(subset=["Fecha"])
+        .sort_values("Fecha")
+        .reset_index(drop=True)
+    )
+
+    indicadores_currency = obtener_indicadores(
+        df_currency
+    )
+
+    return analizar_divisa_completa(
+        df_currency,
+        divisa,
+        indicadores_currency,
+    )
+
 def construir_df_currency_por_release(
     df_currency,
     currency,
@@ -3263,7 +3291,7 @@ def calcular_drivers_ultimo_cambio(
         "drivers": drivers,
     }
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def calcular_ranking_divisas():
 
     ranking = []
@@ -3635,10 +3663,9 @@ try:
         divisa
     )
 
-    resultados_divisa = analizar_divisa_completa(
-        df,
+    resultados_divisa = obtener_resultados_divisa_actual(
         divisa,
-        indicadores,
+        revision="actual_v1",
     )
 
 # ===================================================
@@ -3704,12 +3731,6 @@ try:
                 divisa,
                 historico_score,
             )
-
-
-        drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
-        divisa,
-        historico_score,
-        )
 
 
 
