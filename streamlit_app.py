@@ -2667,7 +2667,7 @@ def calcular_historico_currency_score(
     currency,
     frecuencia="W",
     periodos=26,
-    revision="release_v13",
+    revision="release_v14",
 ):
 
 
@@ -3667,7 +3667,7 @@ try:
             divisa,
             frecuencia="W",
             periodos=26,
-            revision="release_v13",
+            revision="release_v14",
         )
 
         # ===================================================
