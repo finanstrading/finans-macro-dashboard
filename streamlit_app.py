@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import time
 import plotly.graph_objects as go
 from urllib.parse import quote  
 
@@ -3658,22 +3659,44 @@ try:
 
     if vista == "Currency Score":
 
+        t_total = time.perf_counter()
+
+        # 1. Currency Score actual
+        t0 = time.perf_counter()
+
         score = currency_score.get("score")
         coverage = currency_score.get("coverage", 0)
         families = currency_score.get("families", {})
+
+        print(
+            f"[TIEMPO] Score actual {divisa}: "
+            f"{time.perf_counter() - t0:.2f}s"
+        )
+
+        # 2. Ranking de divisas
+        t0 = time.perf_counter()
+
         ranking_divisas = calcular_ranking_divisas()
+
+        print(
+            f"[TIEMPO] Ranking: "
+            f"{time.perf_counter() - t0:.2f}s"
+        )
+
+        # 3. Histórico
+        t0 = time.perf_counter()
 
         historico_score = calcular_historico_currency_score(
             divisa,
             frecuencia="W",
             periodos=26,
-            revision="release_v14",
+            revision="release_v13",
         )
 
-        # ===================================================
-        # SINCRONIZAR SCORE ACTUAL CON EL ÚLTIMO ESTADO
-        # RELEASE-AWARE DEL HISTÓRICO
-        # ===================================================
+        print(
+            f"[TIEMPO] Histórico {divisa}: "
+            f"{time.perf_counter() - t0:.2f}s"
+        )
 
         if (
             historico_score is not None
@@ -3693,6 +3716,8 @@ try:
                 ultima_fila_score["Coverage"]
             )
 
+            t0 = time.perf_counter()
+
             drivers_historicos = (
                 calcular_drivers_historicos_currency_score(
                     divisa,
@@ -3700,9 +3725,27 @@ try:
                 )
             )
 
+            print(
+                f"[TIEMPO] Drivers históricos {divisa}: "
+                f"{time.perf_counter() - t0:.2f}s"
+            )
+            )
+
+            t0 = time.perf_counter()
+
             drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
                 divisa,
                 historico_score,
+            )
+
+            print(
+                f"[TIEMPO] Drivers último cambio {divisa}: "
+                f"{time.perf_counter() - t0:.2f}s"
+            )
+
+            print(
+                f"[TIEMPO] TOTAL Currency Score {divisa}: "
+                f"{time.perf_counter() - t_total:.2f}s"
             )
 
 
