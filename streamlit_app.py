@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -3662,15 +3663,46 @@ try:
 
     elif vista == "Currency Score":
 
+        t_total = time.perf_counter()
+
+        t0 = time.perf_counter()
         resultados_divisa = obtener_resultados_divisa_actual(
             divisa,
             revision="actual_v1",
         )
+        print(f"[PERF] {divisa} resultados_divisa: {time.perf_counter() - t0:.2f}s")
 
+        t0 = time.perf_counter()
         currency_score = calcular_currency_score(
             divisa,
             resultados_divisa,
         )
+        print(f"[PERF] {divisa} currency_score: {time.perf_counter() - t0:.2f}s")
+
+        score = currency_score.get("score")
+        coverage = currency_score.get("coverage", 0)
+        families = currency_score.get("families", {})
+
+        t0 = time.perf_counter()
+        ranking_divisas = calcular_ranking_divisas()
+        print(f"[PERF] ranking_divisas: {time.perf_counter() - t0:.2f}s")
+
+        t0 = time.perf_counter()
+        historico_score = calcular_historico_currency_score(
+            divisa,
+            frecuencia="W",
+            periodos=26,
+            revision="release_v13",
+        )
+        print(f"[PERF] {divisa} historico_score: {time.perf_counter() - t0:.2f}s")
+
+        drivers_historicos = []
+        drivers_ultimo_cambio = None
+
+            currency_score = calcular_currency_score(
+                divisa,
+                resultados_divisa,
+            )
 
         score = currency_score.get("score")
         coverage = currency_score.get("coverage", 0)
@@ -3711,12 +3743,22 @@ try:
                 ultima_fila_score["Coverage"]
             )
 
+            t0 = time.perf_counter()
+
             drivers_historicos = (
                 calcular_drivers_historicos_currency_score(
                     divisa,
                     historico_score,
                 )
             )
+
+            print(
+                f"[PERF] {divisa} drivers_historicos: "
+                f"{time.perf_counter() - t0:.2f}s"
+            )
+
+
+            t0 = time.perf_counter()
 
             drivers_ultimo_cambio = (
                 calcular_drivers_ultimo_cambio(
@@ -3725,6 +3767,10 @@ try:
                 )
             )
 
+            print(
+                f"[PERF] {divisa} ultimo_cambio: "
+                f"{time.perf_counter() - t0:.2f}s"
+            )
 
     # ===================================================
     # ELEMENTOS COMUNES DE SIDEBAR
