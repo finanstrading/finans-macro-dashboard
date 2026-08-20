@@ -2939,6 +2939,7 @@ def calcular_drivers_currency_score(
 
     return drivers
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def calcular_drivers_historicos_currency_score(
     currency,
     historico_score,
@@ -3165,6 +3166,7 @@ def calcular_drivers_historicos_currency_score(
 
     return cambios_historicos
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def calcular_drivers_ultimo_cambio(
     currency,
     historico_score,
