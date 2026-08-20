@@ -3729,7 +3729,6 @@ try:
                 f"[TIEMPO] Drivers históricos {divisa}: "
                 f"{time.perf_counter() - t0:.2f}s"
             )
-            )
 
             t0 = time.perf_counter()
 
