@@ -3716,112 +3716,112 @@ if pagina_principal == "FX Live Drivers":
         key="live_currency",
     )
 
-# ===================================================
-# FX LIVE DRIVERS — DATOS REALES
-# ===================================================
+    # ===================================================
+    # FX LIVE DRIVERS — DATOS REALES
+    # ===================================================
 
-resultado_news = cargar_live_drivers_newsapi(
-    divisa_live
-)
-
-if divisa_live not in {"USD", "CHF"}:
-
-    st.info(
-        f"{divisa_live} se activará después de validar "
-        "primero USD y CHF."
+    resultado_news = cargar_live_drivers_newsapi(
+        divisa_live
     )
 
-elif not resultado_news["ok"]:
-
-    st.error(
-        "No se pudieron cargar los titulares de NewsAPI.ai: "
-        + resultado_news["error"]
-    )
-
-else:
-
-    articles = resultado_news["articles"]
-
-    st.caption(
-        f"{len(articles)} titulares recibidos · "
-        "Actualización máxima cada 10 minutos"
-    )
-
-    if not articles:
+    if divisa_live not in {"USD", "CHF"}:
 
         st.info(
-            f"No se encontraron titulares recientes para "
-            f"{divisa_live}."
+            f"{divisa_live} se activará después de validar "
+            "primero USD y CHF."
         )
 
-    for article in articles[:10]:
+    elif not resultado_news["ok"]:
 
-        title = str(
-            article.get("title")
-            or "Sin título"
-        ).strip()
-
-        source = (
-            article.get("source", {})
-            or {}
-        ).get(
-            "title",
-            "Fuente desconocida"
+        st.error(
+            "No se pudieron cargar los titulares de NewsAPI.ai: "
+            + resultado_news["error"]
         )
 
-        date_time = (
-            article.get("dateTime")
-            or article.get("date")
-            or ""
+    else:
+
+        articles = resultado_news["articles"]
+
+        st.caption(
+            f"{len(articles)} titulares recibidos · "
+            "Actualización máxima cada 10 minutos"
         )
 
-        url = (
-            article.get("url")
-            or ""
-        )
+        if not articles:
 
-        st.markdown(
-            f"""
-            <div style="
-                background:#FFFFFF;
-                border:1px solid #E5E7EB;
-                border-radius:14px;
-                padding:1rem 1.1rem;
-                margin-bottom:0.75rem;
-            ">
+            st.info(
+                f"No se encontraron titulares recientes para "
+                f"{divisa_live}."
+            )
 
+        for article in articles[:10]:
+
+            title = str(
+                article.get("title")
+                or "Sin título"
+            ).strip()
+
+            source = (
+                article.get("source", {})
+                or {}
+            ).get(
+                "title",
+                "Fuente desconocida"
+            )
+
+            date_time = (
+                article.get("dateTime")
+                or article.get("date")
+                or ""
+            )
+
+            url = (
+                article.get("url")
+                or ""
+            )
+
+            st.markdown(
+                f"""
                 <div style="
-                    color:#9A7A10;
-                    font-size:0.72rem;
-                    font-weight:800;
-                    letter-spacing:0.06em;
-                    margin-bottom:0.4rem;
+                    background:#FFFFFF;
+                    border:1px solid #E5E7EB;
+                    border-radius:14px;
+                    padding:1rem 1.1rem;
+                    margin-bottom:0.75rem;
                 ">
-                    {divisa_live} · {source} · {date_time}
-                </div>
 
-                <div style="
-                    color:#111111;
-                    font-size:1rem;
-                    font-weight:750;
-                    line-height:1.45;
-                ">
-                    {title}
-                </div>
+                    <div style="
+                        color:#9A7A10;
+                        font-size:0.72rem;
+                        font-weight:800;
+                        letter-spacing:0.06em;
+                        margin-bottom:0.4rem;
+                    ">
+                        {divisa_live} · {source} · {date_time}
+                    </div>
 
-                <div style="
-                    margin-top:0.55rem;
-                    font-size:0.8rem;
-                ">
-                    <a href="{url}" target="_blank">
-                        Abrir fuente
-                    </a>
-                </div>
+                    <div style="
+                        color:#111111;
+                        font-size:1rem;
+                        font-weight:750;
+                        line-height:1.45;
+                    ">
+                        {title}
+                    </div>
 
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+                    <div style="
+                        margin-top:0.55rem;
+                        font-size:0.8rem;
+                    ">
+                        <a href="{url}" target="_blank">
+                            Abrir fuente
+                        </a>
+                    </div>
+
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     st.stop()
 
