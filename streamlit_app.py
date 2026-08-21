@@ -3619,7 +3619,7 @@ def cargar_live_drivers_newsapi(divisa):
         "keywordOper": "or",
 
         # Buscar tanto en título como en cuerpo
-        "keywordLoc": "body,title",
+        "keywordLoc": "title",
 
         "articlesPage": 1,
         "articlesCount": 20,
