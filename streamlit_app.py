@@ -3622,7 +3622,7 @@ def cargar_live_drivers_newsapi(divisa):
         "keywordLoc": "title",
 
         "articlesPage": 1,
-        "articlesCount": 20,
+        "articlesCount": 50,
         "articlesSortBy": "date",
         "articlesSortByAsc": False,
 
