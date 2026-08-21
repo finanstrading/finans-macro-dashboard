@@ -3748,9 +3748,11 @@ with st.sidebar:
 
 def clasificar_catalizador_fx(article, divisa):
     """
-    Clasifica un artículo FX por categoría y relevancia.
+    Clasifica catalizadores FX usando contexto y prioridades.
     No realiza llamadas externas.
     """
+
+    divisa = str(divisa).strip().upper()
 
     title = str(article.get("title") or "").lower()
     body = str(
@@ -3761,117 +3763,422 @@ def clasificar_catalizador_fx(article, divisa):
 
     texto = f"{title} {body}"
 
-    categorias = {
-        "BANCO CENTRAL": [
-            "central bank", "federal reserve", "fed",
-            "ecb", "european central bank",
-            "bank of england", "boe",
-            "bank of japan", "boj",
-            "swiss national bank", "snb",
-            "reserve bank of australia", "rba",
-            "reserve bank of new zealand", "rbnz",
-            "bank of canada", "boc",
-            "interest rate", "rate decision",
-            "monetary policy"
+
+    # ===================================================
+    # FUNCIONES AUXILIARES
+    # ===================================================
+
+    def contiene(texto_objetivo, terminos):
+        return any(
+            termino in texto_objetivo
+            for termino in terminos
+        )
+
+    def contiene_titulo(terminos):
+        return contiene(title, terminos)
+
+
+    # ===================================================
+    # REFERENCIAS INEQUÍVOCAS A BANCOS CENTRALES
+    # ===================================================
+
+    central_bank_terms = {
+
+        "USD": [
+            "federal reserve",
+            "fomc",
+            "kevin warsh",
+            "fed chair",
+            "fed governor",
+            "fed president",
         ],
 
-        "YIELDS / BONOS": [
-            "treasury", "treasuries", "bond yield",
-            "bond yields", "yield", "yields",
-            "gilts", "bund", "bunds",
-            "government bonds", "bond market",
-            "buyback"
+        "CHF": [
+            "swiss national bank",
+            "snb",
+            "martin schlegel",
+            "snb chairman",
         ],
 
-        "INFLACIÓN": [
-            "inflation", "cpi", "consumer prices",
-            "pce", "ppi", "price pressures"
+        "EUR": [
+            "european central bank",
+            "ecb",
+            "ecb president",
         ],
 
-        "COMERCIO / ARANCELES": [
-            "tariff", "tariffs", "trade war",
-            "trade deal", "trade agreement",
-            "trade talks", "trade negotiations",
-            "import tariff", "export restrictions"
+        "GBP": [
+            "bank of england",
+            "boe",
+            "monetary policy committee",
+            "mpc",
         ],
 
-        "FISCAL": [
-            "fiscal", "budget", "deficit",
-            "government spending", "tax cuts",
-            "tax increase", "debt ceiling",
-            "government debt"
+        "JPY": [
+            "bank of japan",
+            "boj",
         ],
 
-        "GEOPOLÍTICA": [
-            "war", "iran", "israel", "ukraine",
-            "russia", "china tensions",
-            "middle east", "hormuz",
-            "sanctions", "military",
-            "ceasefire", "conflict"
+        "AUD": [
+            "reserve bank of australia",
+            "rba",
         ],
 
-        "INTERVENCIÓN FX": [
-            "currency intervention",
-            "fx intervention",
-            "foreign exchange intervention",
-            "intervene in currency",
-            "intervention in the currency market"
+        "NZD": [
+            "reserve bank of new zealand",
+            "rbnz",
         ],
 
-        "RIESGO POLÍTICO": [
-            "election", "elections",
-            "political crisis", "government collapse",
-            "prime minister", "president",
-            "parliament", "coalition"
+        "CAD": [
+            "bank of canada",
+            "boc",
         ],
     }
 
-    categoria = "OTROS"
+    cb_references = central_bank_terms.get(
+        divisa,
+        []
+    )
 
-    for nombre_categoria, palabras in categorias.items():
-        if any(palabra in texto for palabra in palabras):
-            categoria = nombre_categoria
-            break
 
-    alta = [
-        "rate decision",
-        "interest rate",
-        "monetary policy",
+    # ===================================================
+    # 1. INTERVENCIÓN FX
+    # Máxima prioridad
+    # ===================================================
+
+    intervention_terms = [
         "currency intervention",
         "fx intervention",
-        "treasury yields",
-        "bond yields",
-        "inflation",
-        "cpi",
+        "foreign exchange intervention",
+        "intervene in the currency market",
+        "intervene in foreign exchange",
+        "support the currency",
+        "weaken the currency",
+    ]
+
+    if contiene(texto, intervention_terms):
+
+        relevancia = (
+            "ALTA"
+            if contiene_titulo(intervention_terms)
+            else "MEDIA"
+        )
+
+        return {
+            "categoria": "INTERVENCIÓN FX",
+            "relevancia": relevancia,
+        }
+
+
+    # ===================================================
+    # 2. COMERCIO / ARANCELES
+    # Antes que banco central
+    # ===================================================
+
+    trade_terms = [
+        "tariff",
         "tariffs",
-        "sanctions",
-        "war",
+        "trade war",
+        "trade deal",
+        "trade agreement",
+        "trade talks",
+        "trade negotiations",
+        "import tariff",
+        "export tariff",
+        "import duties",
+        "trade restrictions",
+        "export restrictions",
+    ]
+
+    if contiene(texto, trade_terms):
+
+        relevancia = (
+            "ALTA"
+            if contiene_titulo([
+                "tariff",
+                "tariffs",
+                "trade war",
+                "trade deal",
+                "trade agreement",
+            ])
+            else "MEDIA"
+        )
+
+        return {
+            "categoria": "COMERCIO / ARANCELES",
+            "relevancia": relevancia,
+        }
+
+
+    # ===================================================
+    # 3. GEOPOLÍTICA
+    # Exigimos contexto geopolítico real
+    # ===================================================
+
+    geopolitical_entities = [
+        "iran",
+        "israel",
+        "ukraine",
+        "russia",
+        "north korea",
+        "middle east",
         "hormuz",
+        "taiwan",
     ]
 
-    media = [
-        "trade",
-        "budget",
-        "deficit",
-        "election",
-        "government",
-        "president",
-        "prime minister",
-        "geopolitical",
-        "bonds",
-        "treasury",
+    geopolitical_actions = [
+        "war",
+        "military",
+        "attack",
+        "strike",
+        "missile",
+        "sanctions",
+        "ceasefire",
+        "invasion",
+        "conflict",
+        "escalation",
+        "nuclear",
+        "blockade",
     ]
 
-    if any(palabra in texto for palabra in alta):
-        relevancia = "ALTA"
-    elif any(palabra in texto for palabra in media):
-        relevancia = "MEDIA"
-    else:
-        relevancia = "BAJA"
+    has_geo_entity = contiene(
+        texto,
+        geopolitical_entities
+    )
+
+    has_geo_action = contiene(
+        texto,
+        geopolitical_actions
+    )
+
+    if has_geo_entity and has_geo_action:
+
+        relevancia = (
+            "ALTA"
+            if (
+                contiene_titulo(geopolitical_entities)
+                and contiene_titulo(geopolitical_actions)
+            )
+            else "MEDIA"
+        )
+
+        return {
+            "categoria": "GEOPOLÍTICA",
+            "relevancia": relevancia,
+        }
+
+
+    # ===================================================
+    # 4. BANCO CENTRAL
+    # Debe existir una referencia inequívoca
+    # ===================================================
+
+    monetary_terms = [
+        "interest rate",
+        "interest rates",
+        "rate hike",
+        "rate cut",
+        "monetary policy",
+        "policy rate",
+        "inflation outlook",
+        "hawkish",
+        "dovish",
+        "tightening",
+        "easing",
+    ]
+
+    has_cb_reference = contiene(
+        texto,
+        cb_references
+    )
+
+    has_monetary_context = contiene(
+        texto,
+        monetary_terms
+    )
+
+    if has_cb_reference:
+
+        # Una declaración explícita del banco central
+        # ya es relevante aunque el titular no mencione rates.
+        if (
+            contiene_titulo(cb_references)
+            or has_monetary_context
+        ):
+            relevancia = "ALTA"
+        else:
+            relevancia = "MEDIA"
+
+        return {
+            "categoria": "BANCO CENTRAL",
+            "relevancia": relevancia,
+        }
+
+
+    # ===================================================
+    # 5. RENDIMIENTOS / BONOS
+    # ===================================================
+
+    bond_terms = [
+        "treasury yield",
+        "treasury yields",
+        "bond yield",
+        "bond yields",
+        "treasury market",
+        "bond market",
+        "treasuries",
+        "government bonds",
+        "bond buyback",
+        "bond buybacks",
+        "treasury buyback",
+        "treasury buybacks",
+        "gilts",
+        "bunds",
+    ]
+
+    treasury_context = [
+        "u.s. treasury",
+        "us treasury",
+        "treasury department",
+        "scott bessent",
+    ]
+
+    if (
+        contiene(texto, bond_terms)
+        or (
+            contiene(texto, treasury_context)
+            and contiene(
+                texto,
+                [
+                    "bond",
+                    "bonds",
+                    "yield",
+                    "yields",
+                    "buyback",
+                    "buybacks",
+                ],
+            )
+        )
+    ):
+
+        relevancia = (
+            "ALTA"
+            if (
+                contiene_titulo(bond_terms)
+                or (
+                    contiene_titulo(treasury_context)
+                    and contiene_titulo(
+                        [
+                            "bond",
+                            "bonds",
+                            "yield",
+                            "yields",
+                            "buyback",
+                        ]
+                    )
+                )
+            )
+            else "MEDIA"
+        )
+
+        return {
+            "categoria": "RENDIMIENTOS / BONOS",
+            "relevancia": relevancia,
+        }
+
+
+    # ===================================================
+    # 6. INFLACIÓN
+    # ===================================================
+
+    inflation_terms = [
+        "inflation",
+        "consumer price index",
+        "cpi",
+        "core cpi",
+        "pce inflation",
+        "core pce",
+        "producer prices",
+        "ppi",
+        "price pressures",
+    ]
+
+    if contiene(texto, inflation_terms):
+
+        relevancia = (
+            "ALTA"
+            if contiene_titulo(inflation_terms)
+            else "MEDIA"
+        )
+
+        return {
+            "categoria": "INFLACIÓN",
+            "relevancia": relevancia,
+        }
+
+
+    # ===================================================
+    # 7. POLÍTICA FISCAL
+    # ===================================================
+
+    fiscal_terms = [
+        "fiscal policy",
+        "budget deficit",
+        "federal deficit",
+        "government deficit",
+        "debt ceiling",
+        "government spending",
+        "fiscal stimulus",
+        "tax cuts",
+        "tax increase",
+        "government debt",
+    ]
+
+    if contiene(texto, fiscal_terms):
+
+        relevancia = (
+            "ALTA"
+            if contiene_titulo(fiscal_terms)
+            else "MEDIA"
+        )
+
+        return {
+            "categoria": "FISCAL",
+            "relevancia": relevancia,
+        }
+
+
+    # ===================================================
+    # 8. RIESGO POLÍTICO
+    # Solo eventos capaces de afectar política económica
+    # ===================================================
+
+    political_risk_terms = [
+        "government collapse",
+        "snap election",
+        "confidence vote",
+        "no confidence vote",
+        "coalition collapse",
+        "political crisis",
+        "finance minister resigns",
+        "prime minister resigns",
+        "president resigns",
+    ]
+
+    if contiene(texto, political_risk_terms):
+
+        return {
+            "categoria": "RIESGO POLÍTICO",
+            "relevancia": "MEDIA",
+        }
+
+
+    # ===================================================
+    # SIN CATALIZADOR FX CLARO
+    # ===================================================
 
     return {
-        "categoria": categoria,
-        "relevancia": relevancia,
+        "categoria": "OTROS",
+        "relevancia": "BAJA",
     }
 
 # ===================================================
