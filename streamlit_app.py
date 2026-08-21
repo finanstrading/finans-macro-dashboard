@@ -3820,7 +3820,12 @@ if pagina_principal == "FX Live Drivers":
 
     else:
 
-        articles = resultado_news["articles"]
+        articles_raw = resultado_news["articles"]
+
+        articles = filtrar_articulos_fx(
+            articles_raw,
+            divisa_live,
+        )
 
         st.caption(
             f"{len(articles)} titulares recibidos · "
