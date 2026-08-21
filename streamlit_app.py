@@ -14,7 +14,7 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
-# =================================================== 
+# ===================================================
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
@@ -3544,13 +3544,6 @@ def cargar_live_drivers_newsapi(divisa):
             "US Treasury",
             "US dollar",
             "U.S. dollar",
-            "USD/JPY",
-            "EUR/USD",
-            "GBP/USD",
-            "AUD/USD",
-            "NZD/USD",
-            "USD/CAD",
-            "USD/CHF",
             "dollar",
         ],
 
