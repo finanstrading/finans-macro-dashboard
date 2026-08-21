@@ -4796,229 +4796,229 @@ if pagina_principal == "FX Live Drivers":
     # FX LIVE DRIVERS — DATOS REALES
     # ===================================================
 
-live_container = st.container()
+    live_container = st.container()
 
-with live_container:
+    with live_container:
 
-    resultado_news = cargar_live_drivers_newsapi(
-        divisa_live
-    )
-
-    if not resultado_news["ok"]:
-
-        st.error(
-            "No se pudieron cargar los titulares de NewsAPI.ai: "
-            + resultado_news["error"]
+        resultado_news = cargar_live_drivers_newsapi(
+            divisa_live
         )
 
-    else:
+        if not resultado_news["ok"]:
 
-        articles_raw = resultado_news["articles"]
-
-        articles = filtrar_articulos_fx(
-            articles_raw,
-            divisa_live,
-        )
-
-        # ===================================================
-        # ELIMINAR TITULARES DUPLICADOS / MUY SIMILARES
-        # ===================================================
-
-        from difflib import SequenceMatcher
-        import re
-
-        def normalizar_titulo_noticia(titulo):
-            titulo = str(titulo or "").lower()
-
-            # Quitar nombre del medio al final: "| WNYC", "- Reuters", etc.
-            titulo = re.sub(r"\s*[|\-–—]\s*[^|\-–—]{2,40}$", "", titulo)
-
-            # Quitar puntuación
-            titulo = re.sub(r"[^\w\s]", " ", titulo)
-
-            # Normalizar espacios
-            titulo = " ".join(titulo.split())
-
-            return titulo
-
-
-        def titulos_son_similares(titulo_1, titulo_2):
-            t1 = normalizar_titulo_noticia(titulo_1)
-            t2 = normalizar_titulo_noticia(titulo_2)
-
-            if not t1 or not t2:
-                return False
-
-            # Coincidencia casi literal
-            similitud = SequenceMatcher(
-                None,
-                t1,
-                t2
-            ).ratio()
-
-            if similitud >= 0.82:
-                return True
-
-            # Comprobar cuánto vocabulario importante comparten
-            palabras_1 = set(t1.split())
-            palabras_2 = set(t2.split())
-
-            if not palabras_1 or not palabras_2:
-                return False
-
-            palabras_comunes = palabras_1 & palabras_2
-
-            cobertura = len(palabras_comunes) / min(
-                len(palabras_1),
-                len(palabras_2)
-            )
-
-            if cobertura >= 0.80:
-                return True
-
-            return False
-
-
-        articles_unicos = []
-
-        for article in articles:
-
-            titulo_actual = str(
-                article.get("title")
-                or ""
-            ).strip()
-
-            if not titulo_actual:
-                continue
-
-            es_duplicado = False
-
-            for article_guardado in articles_unicos:
-
-                titulo_guardado = str(
-                    article_guardado.get("title")
-                    or ""
-                ).strip()
-
-                if titulos_son_similares(
-                    titulo_actual,
-                    titulo_guardado
-                ):
-                    es_duplicado = True
-                    break
-
-            if not es_duplicado:
-                articles_unicos.append(article)
-
-        articles = articles_unicos
-
-
-        if not articles:
-
-            st.info(
-                f"No se encontraron titulares recientes para "
-                f"{divisa_live}."
+            st.error(
+                "No se pudieron cargar los titulares de NewsAPI.ai: "
+                + resultado_news["error"]
             )
 
         else:
 
-            # ===================================================
-            # PREPARAR SOLO LOS DRIVERS QUE REALMENTE SE MOSTRARÁN
-            # ===================================================
+            articles_raw = resultado_news["articles"]
 
-            articles_finales = []
-
-            for article in articles[:10]:
-
-                clasificacion = clasificar_catalizador_fx(
-                    article,
-                    divisa_live
-                )
-
-                categoria = clasificacion["categoria"]
-                relevancia = clasificacion["relevancia"]
-
-                # No mostrar ruido de baja relevancia
-                if relevancia == "BAJA" or categoria == "OTROS":
-                    continue
-
-                articles_finales.append(
-                    (article, categoria, relevancia)
-                )
-
-
-            # ===================================================
-            # CONTADOR REAL DE DRIVERS VISIBLES
-            # ===================================================
-
-            st.caption(
-                f"{len(articles_finales)} drivers activos · "
-                "Actualización máxima cada 10 minutos"
+            articles = filtrar_articulos_fx(
+                articles_raw,
+                divisa_live,
             )
 
-
             # ===================================================
-            # RENDERIZAR TARJETAS
+            # ELIMINAR TITULARES DUPLICADOS / MUY SIMILARES
             # ===================================================
 
-            if not articles_finales:
+            from difflib import SequenceMatcher
+            import re
+
+            def normalizar_titulo_noticia(titulo):
+                titulo = str(titulo or "").lower()
+
+                # Quitar nombre del medio al final: "| WNYC", "- Reuters", etc.
+                titulo = re.sub(r"\s*[|\-–—]\s*[^|\-–—]{2,40}$", "", titulo)
+
+                # Quitar puntuación
+                titulo = re.sub(r"[^\w\s]", " ", titulo)
+
+                # Normalizar espacios
+                titulo = " ".join(titulo.split())
+
+                return titulo
+
+
+            def titulos_son_similares(titulo_1, titulo_2):
+                t1 = normalizar_titulo_noticia(titulo_1)
+                t2 = normalizar_titulo_noticia(titulo_2)
+
+                if not t1 or not t2:
+                    return False
+
+                # Coincidencia casi literal
+                similitud = SequenceMatcher(
+                    None,
+                    t1,
+                    t2
+                ).ratio()
+
+                if similitud >= 0.82:
+                    return True
+
+                # Comprobar cuánto vocabulario importante comparten
+                palabras_1 = set(t1.split())
+                palabras_2 = set(t2.split())
+
+                if not palabras_1 or not palabras_2:
+                    return False
+
+                palabras_comunes = palabras_1 & palabras_2
+
+                cobertura = len(palabras_comunes) / min(
+                    len(palabras_1),
+                    len(palabras_2)
+                )
+
+                if cobertura >= 0.80:
+                    return True
+
+                return False
+
+
+            articles_unicos = []
+
+            for article in articles:
+
+                titulo_actual = str(
+                    article.get("title")
+                    or ""
+                ).strip()
+
+                if not titulo_actual:
+                    continue
+
+                es_duplicado = False
+
+                for article_guardado in articles_unicos:
+
+                    titulo_guardado = str(
+                        article_guardado.get("title")
+                        or ""
+                    ).strip()
+
+                    if titulos_son_similares(
+                        titulo_actual,
+                        titulo_guardado
+                    ):
+                        es_duplicado = True
+                        break
+
+                if not es_duplicado:
+                    articles_unicos.append(article)
+
+            articles = articles_unicos
+
+
+            if not articles:
 
                 st.info(
-                    f"No se encontraron catalizadores relevantes "
-                    f"para {divisa_live} en este momento."
+                    f"No se encontraron titulares recientes para "
+                    f"{divisa_live}."
                 )
 
             else:
 
-                for article, categoria, relevancia in articles_finales:
+                # ===================================================
+                # PREPARAR SOLO LOS DRIVERS QUE REALMENTE SE MOSTRARÁN
+                # ===================================================
 
-                    title = str(
-                        article.get("title")
-                        or "Sin título"
-                    ).strip()
+                articles_finales = []
 
-                    url = (
-                        article.get("url")
-                        or ""
+                for article in articles[:10]:
+
+                    clasificacion = clasificar_catalizador_fx(
+                        article,
+                        divisa_live
                     )
 
-                    html_article = (
-                        f'<div style="background:#FFFFFF;'
-                        f'border:1px solid #E5E7EB;'
-                        f'border-radius:14px;'
-                        f'padding:1rem 1.15rem;'
-                        f'margin-bottom:0.85rem;">'
+                    categoria = clasificacion["categoria"]
+                    relevancia = clasificacion["relevancia"]
 
-                        f'<div style="color:#9A7A10;'
-                        f'font-size:0.72rem;'
-                        f'font-weight:800;'
-                        f'letter-spacing:0.05em;'
-                        f'margin-bottom:0.45rem;">'
-                        f'{divisa_live} · {categoria} · {relevancia}'
-                        f'</div>'
+                    # No mostrar ruido de baja relevancia
+                    if relevancia == "BAJA" or categoria == "OTROS":
+                        continue
 
-                        f'<div style="color:#111111;'
-                        f'font-size:1.02rem;'
-                        f'font-weight:750;'
-                        f'line-height:1.45;">'
-                        f'{title}'
-                        f'</div>'
-
-                        f'<div style="margin-top:0.65rem;'
-                        f'font-size:0.82rem;">'
-                        f'<a href="{url}" target="_blank" '
-                        f'style="color:#2563EB;text-decoration:none;">'
-                        f'Abrir fuente ↗'
-                        f'</a>'
-                        f'</div>'
-
-                        f'</div>'
+                    articles_finales.append(
+                        (article, categoria, relevancia)
                     )
 
-                    st.markdown(
-                        html_article,
-                        unsafe_allow_html=True,
+
+                # ===================================================
+                # CONTADOR REAL DE DRIVERS VISIBLES
+                # ===================================================
+
+                st.caption(
+                    f"{len(articles_finales)} drivers activos · "
+                    "Actualización máxima cada 10 minutos"
+                )
+
+
+                # ===================================================
+                # RENDERIZAR TARJETAS
+                # ===================================================
+
+                if not articles_finales:
+
+                    st.info(
+                        f"No se encontraron catalizadores relevantes "
+                        f"para {divisa_live} en este momento."
                     )
+
+                else:
+
+                    for article, categoria, relevancia in articles_finales:
+
+                        title = str(
+                            article.get("title")
+                            or "Sin título"
+                        ).strip()
+
+                        url = (
+                            article.get("url")
+                            or ""
+                        )
+
+                        html_article = (
+                            f'<div style="background:#FFFFFF;'
+                            f'border:1px solid #E5E7EB;'
+                            f'border-radius:14px;'
+                            f'padding:1rem 1.15rem;'
+                            f'margin-bottom:0.85rem;">'
+
+                            f'<div style="color:#9A7A10;'
+                            f'font-size:0.72rem;'
+                            f'font-weight:800;'
+                            f'letter-spacing:0.05em;'
+                            f'margin-bottom:0.45rem;">'
+                            f'{divisa_live} · {categoria} · {relevancia}'
+                            f'</div>'
+
+                            f'<div style="color:#111111;'
+                            f'font-size:1.02rem;'
+                            f'font-weight:750;'
+                            f'line-height:1.45;">'
+                            f'{title}'
+                            f'</div>'
+
+                            f'<div style="margin-top:0.65rem;'
+                            f'font-size:0.82rem;">'
+                            f'<a href="{url}" target="_blank" '
+                            f'style="color:#2563EB;text-decoration:none;">'
+                            f'Abrir fuente ↗'
+                            f'</a>'
+                            f'</div>'
+
+                            f'</div>'
+                        )
+
+                        st.markdown(
+                            html_article,
+                            unsafe_allow_html=True,
+                        )
                 
 
 
