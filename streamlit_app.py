@@ -4007,7 +4007,19 @@ def clasificar_catalizador_fx(article, divisa):
         "interest rate",
         "interest rates",
         "rate hike",
+        "rate hikes",
         "rate cut",
+        "rate cuts",
+        "cut rates",
+        "cuts rates",
+        "raise rates",
+        "raises rates",
+        "hike rates",
+        "hikes rates",
+        "lower rates",
+        "lowers rates",
+        "negative rates",
+        "below zero",
         "policy rate",
         "monetary policy",
         "hawkish",
@@ -4015,6 +4027,31 @@ def clasificar_catalizador_fx(article, divisa):
         "tightening",
         "easing",
         "inflation outlook",
+    ]
+
+    # Expresiones que implican una señal de política monetaria
+    # especialmente directa para la divisa.
+    strong_policy_terms = [
+        "rate hike",
+        "rate hikes",
+        "rate cut",
+        "rate cuts",
+        "cut rates",
+        "cuts rates",
+        "raise rates",
+        "raises rates",
+        "hike rates",
+        "hikes rates",
+        "lower rates",
+        "lowers rates",
+        "negative rates",
+        "below zero",
+        "policy rate",
+        "further easing",
+        "further tightening",
+        "pause rates",
+        "hold rates",
+        "keep rates",
     ]
 
     cb_en_titulo = en_titulo(
@@ -4025,25 +4062,51 @@ def clasificar_catalizador_fx(article, divisa):
         monetary_terms
     )
 
-    # Banco central claramente protagonista.
+    politica_fuerte_en_titulo = en_titulo(
+        strong_policy_terms
+    )
+
+
+    # ===================================================
+    # CASO 1
+    # Banco central / miembro claramente protagonista
+    # ===================================================
+
     if cb_en_titulo:
 
-        relevancia = (
-            "ALTA"
-            if monetario_en_titulo
-            else "MEDIA"
-        )
+        # Declaración explícita sobre tipos o stance monetario:
+        # driver directo de la divisa.
+        if politica_fuerte_en_titulo:
 
+            return {
+                "categoria": "BANCO CENTRAL",
+                "relevancia": "ALTA",
+            }
+
+        # El titular habla del banco central y tiene
+        # contexto monetario, pero no una señal directa.
+        if monetario_en_titulo:
+
+            return {
+                "categoria": "BANCO CENTRAL",
+                "relevancia": "MEDIA",
+            }
+
+        # Comentario general de un miembro del banco central.
         return {
             "categoria": "BANCO CENTRAL",
-            "relevancia": relevancia,
+            "relevancia": "MEDIA",
         }
 
-    # Si el banco central solo aparece en el cuerpo,
-    # exigimos contexto monetario también en el titular.
+
+    # ===================================================
+    # CASO 2
+    # Banco central solo aparece en el cuerpo
+    # ===================================================
+
     if (
         contiene(body, cb_terms)
-        and monetario_en_titulo
+        and politica_fuerte_en_titulo
     ):
 
         return {
