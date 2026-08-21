@@ -4915,110 +4915,110 @@ with live_container:
 
         if not articles:
 
-                    st.info(
-                        f"No se encontraron titulares recientes para "
-                        f"{divisa_live}."
+            st.info(
+                f"No se encontraron titulares recientes para "
+                f"{divisa_live}."
+            )
+
+        else:
+
+            # ===================================================
+            # PREPARAR SOLO LOS DRIVERS QUE REALMENTE SE MOSTRARÁN
+            # ===================================================
+
+            articles_finales = []
+
+            for article in articles[:10]:
+
+                clasificacion = clasificar_catalizador_fx(
+                    article,
+                    divisa_live
+                )
+
+                categoria = clasificacion["categoria"]
+                relevancia = clasificacion["relevancia"]
+
+                # No mostrar ruido de baja relevancia
+                if relevancia == "BAJA" or categoria == "OTROS":
+                    continue
+
+                articles_finales.append(
+                    (article, categoria, relevancia)
+                )
+
+
+            # ===================================================
+            # CONTADOR REAL DE DRIVERS VISIBLES
+            # ===================================================
+
+            st.caption(
+                f"{len(articles_finales)} drivers activos · "
+                "Actualización máxima cada 10 minutos"
+            )
+
+
+            # ===================================================
+            # RENDERIZAR TARJETAS
+            # ===================================================
+
+            if not articles_finales:
+
+                st.info(
+                    f"No se encontraron catalizadores relevantes "
+                    f"para {divisa_live} en este momento."
+                )
+
+            else:
+
+                for article, categoria, relevancia in articles_finales:
+
+                    title = str(
+                        article.get("title")
+                        or "Sin título"
+                    ).strip()
+
+                    url = (
+                        article.get("url")
+                        or ""
                     )
 
-                else:
+                    html_article = (
+                        f'<div style="background:#FFFFFF;'
+                        f'border:1px solid #E5E7EB;'
+                        f'border-radius:14px;'
+                        f'padding:1rem 1.15rem;'
+                        f'margin-bottom:0.85rem;">'
 
-                    # ===================================================
-                    # PREPARAR SOLO LOS DRIVERS QUE REALMENTE SE MOSTRARÁN
-                    # ===================================================
+                        f'<div style="color:#9A7A10;'
+                        f'font-size:0.72rem;'
+                        f'font-weight:800;'
+                        f'letter-spacing:0.05em;'
+                        f'margin-bottom:0.45rem;">'
+                        f'{divisa_live} · {categoria} · {relevancia}'
+                        f'</div>'
 
-                    articles_finales = []
+                        f'<div style="color:#111111;'
+                        f'font-size:1.02rem;'
+                        f'font-weight:750;'
+                        f'line-height:1.45;">'
+                        f'{title}'
+                        f'</div>'
 
-                    for article in articles[:10]:
+                        f'<div style="margin-top:0.65rem;'
+                        f'font-size:0.82rem;">'
+                        f'<a href="{url}" target="_blank" '
+                        f'style="color:#2563EB;text-decoration:none;">'
+                        f'Abrir fuente ↗'
+                        f'</a>'
+                        f'</div>'
 
-                        clasificacion = clasificar_catalizador_fx(
-                            article,
-                            divisa_live
-                        )
-
-                        categoria = clasificacion["categoria"]
-                        relevancia = clasificacion["relevancia"]
-
-                        # No mostrar ruido de baja relevancia
-                        if relevancia == "BAJA" or categoria == "OTROS":
-                            continue
-
-                        articles_finales.append(
-                            (article, categoria, relevancia)
-                        )
-
-
-                    # ===================================================
-                    # CONTADOR REAL DE DRIVERS VISIBLES
-                    # ===================================================
-
-                    st.caption(
-                        f"{len(articles_finales)} drivers activos · "
-                        "Actualización máxima cada 10 minutos"
+                        f'</div>'
                     )
 
-
-                    # ===================================================
-                    # RENDERIZAR TARJETAS
-                    # ===================================================
-
-                    if not articles_finales:
-
-                        st.info(
-                            f"No se encontraron catalizadores relevantes "
-                            f"para {divisa_live} en este momento."
-                        )
-
-                    else:
-
-                        for article, categoria, relevancia in articles_finales:
-
-                            title = str(
-                                article.get("title")
-                                or "Sin título"
-                            ).strip()
-
-                            url = (
-                                article.get("url")
-                                or ""
-                            )
-
-                            html_article = (
-                                f'<div style="background:#FFFFFF;'
-                                f'border:1px solid #E5E7EB;'
-                                f'border-radius:14px;'
-                                f'padding:1rem 1.15rem;'
-                                f'margin-bottom:0.85rem;">'
-
-                                f'<div style="color:#9A7A10;'
-                                f'font-size:0.72rem;'
-                                f'font-weight:800;'
-                                f'letter-spacing:0.05em;'
-                                f'margin-bottom:0.45rem;">'
-                                f'{divisa_live} · {categoria} · {relevancia}'
-                                f'</div>'
-
-                                f'<div style="color:#111111;'
-                                f'font-size:1.02rem;'
-                                f'font-weight:750;'
-                                f'line-height:1.45;">'
-                                f'{title}'
-                                f'</div>'
-
-                                f'<div style="margin-top:0.65rem;'
-                                f'font-size:0.82rem;">'
-                                f'<a href="{url}" target="_blank" '
-                                f'style="color:#2563EB;text-decoration:none;">'
-                                f'Abrir fuente ↗'
-                                f'</a>'
-                                f'</div>'
-
-                                f'</div>'
-                            )
-
-                            st.markdown(
-                                html_article,
-                                unsafe_allow_html=True,
-                            )
+                    st.markdown(
+                        html_article,
+                        unsafe_allow_html=True,
+                    )
                 
 
 
