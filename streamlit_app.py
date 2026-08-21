@@ -2912,6 +2912,7 @@ def calcular_drivers_currency_score(
 
     return drivers
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def calcular_drivers_historicos_currency_score(
     currency,
     historico_score,
@@ -3138,6 +3139,7 @@ def calcular_drivers_historicos_currency_score(
 
     return cambios_historicos
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def calcular_drivers_ultimo_cambio(
     currency,
     historico_score,
@@ -3264,7 +3266,7 @@ def calcular_drivers_ultimo_cambio(
         "drivers": drivers,
     }
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def calcular_ranking_divisas():
 
     ranking = []
@@ -3746,12 +3748,6 @@ try:
                 f"[TIEMPO] TOTAL Currency Score {divisa}: "
                 f"{time.perf_counter() - t_total:.2f}s"
             )
-
-
-        drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
-        divisa,
-        historico_score,
-        )
 
 
 
