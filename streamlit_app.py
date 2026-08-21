@@ -3867,13 +3867,6 @@ def clasificar_catalizador_fx(article, divisa):
             "relevancia": "ALTA",
         }
 
-    if contiene(texto, intervention_terms):
-
-        return {
-            "categoria": "INTERVENCIÓN FX",
-            "relevancia": "MEDIA",
-        }
-
 
     # ===================================================
     # 2. COMERCIO / ARANCELES
