@@ -4310,34 +4310,96 @@ if pagina_principal == "FX Live Drivers":
         )
 
         # ===================================================
-        # ELIMINAR TITULARES DUPLICADOS
+        # ELIMINAR TITULARES DUPLICADOS / MUY SIMILARES
         # ===================================================
 
+        from difflib import SequenceMatcher
+        import re
+
+        def normalizar_titulo_noticia(titulo):
+            titulo = str(titulo or "").lower()
+
+            # Quitar nombre del medio al final: "| WNYC", "- Reuters", etc.
+            titulo = re.sub(r"\s*[|\-–—]\s*[^|\-–—]{2,40}$", "", titulo)
+
+            # Quitar puntuación
+            titulo = re.sub(r"[^\w\s]", " ", titulo)
+
+            # Normalizar espacios
+            titulo = " ".join(titulo.split())
+
+            return titulo
+
+
+        def titulos_son_similares(titulo_1, titulo_2):
+            t1 = normalizar_titulo_noticia(titulo_1)
+            t2 = normalizar_titulo_noticia(titulo_2)
+
+            if not t1 or not t2:
+                return False
+
+            # Coincidencia casi literal
+            similitud = SequenceMatcher(
+                None,
+                t1,
+                t2
+            ).ratio()
+
+            if similitud >= 0.82:
+                return True
+
+            # Comprobar cuánto vocabulario importante comparten
+            palabras_1 = set(t1.split())
+            palabras_2 = set(t2.split())
+
+            if not palabras_1 or not palabras_2:
+                return False
+
+            palabras_comunes = palabras_1 & palabras_2
+
+            cobertura = len(palabras_comunes) / min(
+                len(palabras_1),
+                len(palabras_2)
+            )
+
+            if cobertura >= 0.80:
+                return True
+
+            return False
+
+
         articles_unicos = []
-        titulos_vistos = set()
 
         for article in articles:
 
-            titulo = str(
+            titulo_actual = str(
                 article.get("title")
                 or ""
-            ).strip().lower()
+            ).strip()
 
-            if not titulo:
+            if not titulo_actual:
                 continue
 
-            titulo_normalizado = " ".join(
-                titulo.split()
-            )
+            es_duplicado = False
 
-            if titulo_normalizado in titulos_vistos:
-                continue
+            for article_guardado in articles_unicos:
 
-            titulos_vistos.add(titulo_normalizado)
-            articles_unicos.append(article)
+                titulo_guardado = str(
+                    article_guardado.get("title")
+                    or ""
+                ).strip()
+
+                if titulos_son_similares(
+                    titulo_actual,
+                    titulo_guardado
+                ):
+                    es_duplicado = True
+                    break
+
+            if not es_duplicado:
+                articles_unicos.append(article)
 
         articles = articles_unicos
-
 
         st.caption(
             f"{len(articles)} catalizadores filtrados · "
