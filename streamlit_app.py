@@ -4000,6 +4000,17 @@ if pagina_principal == "FX Live Drivers":
             )
 
         for article in articles[:10]:
+            clasificacion = clasificar_catalizador_fx(
+                article,
+                divisa_live
+            )
+
+            categoria = clasificacion["categoria"]
+            relevancia = clasificacion["relevancia"]
+
+            # No mostrar ruido de baja relevancia
+            if relevancia == "BAJA" or categoria == "OTROS":
+                continue
 
             title = str(
                 article.get("title")
@@ -4037,7 +4048,7 @@ if pagina_principal == "FX Live Drivers":
                 f'font-weight:800;'
                 f'letter-spacing:0.05em;'
                 f'margin-bottom:0.45rem;">'
-                f'{divisa_live} · {source} · {date_time}'
+                f'{divisa_live} · {categoria} · {relevancia}'
                 f'</div>'
 
                 f'<div style="color:#111111;'
