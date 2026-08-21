@@ -3606,6 +3606,76 @@ def cargar_live_drivers_newsapi(divisa):
             "articles": [],
         }
 
+def filtrar_articulos_fx(articles, divisa):
+    """
+    Primer filtro de relevancia para FX Live Drivers.
+    Elimina ruido evidente sin utilizar IA.
+    """
+
+    divisa = str(divisa).upper()
+
+    fx_terms = [
+        "central bank", "federal reserve", "fed", "fomc",
+        "interest rate", "interest rates", "rate cut", "rate hike",
+        "monetary policy", "inflation", "cpi", "pce",
+
+        "treasury", "treasuries", "bond", "bonds",
+        "yield", "yields",
+
+        "dollar", "usd", "currency", "currencies",
+        "foreign exchange", "forex",
+
+        "fiscal", "deficit", "debt", "budget",
+        "tax", "taxes", "spending",
+
+        "tariff", "tariffs", "trade deal", "trade war",
+        "sanctions", "export", "imports", "trade talks",
+
+        "iran", "russia", "ukraine", "china",
+        "north korea", "middle east",
+        "war", "ceasefire",
+
+        "intervention", "currency intervention",
+    ]
+
+    currency_terms = {
+        "USD": [
+            "federal reserve", "fed", "fomc",
+            "u.s. treasury", "us treasury",
+            "dollar", "usd",
+            "kevin warsh", "scott bessent",
+        ],
+        "CHF": [
+            "swiss national bank", "snb",
+            "martin schlegel",
+            "swiss franc", "franc", "chf",
+        ],
+    }
+
+    relevant = []
+
+    for article in articles:
+
+        title = str(article.get("title") or "")
+        body = str(article.get("body") or "")
+
+        text = f"{title} {body}".lower()
+
+        has_fx_topic = any(
+            term in text
+            for term in fx_terms
+        )
+
+        has_currency_reference = any(
+            term in text
+            for term in currency_terms.get(divisa, [])
+        )
+
+        if has_fx_topic and has_currency_reference:
+            relevant.append(article)
+
+    return relevant
+
 # ===================================================
 # NAVEGACIÓN PRINCIPAL
 # ===================================================
@@ -3790,16 +3860,7 @@ if pagina_principal == "FX Live Drivers":
                 or ""
             )
 
-            html_article = f"""<div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;padding:1rem 1.1rem;margin-bottom:0.75rem;">
-<div style="color:#9A7A10;font-size:0.72rem;font-weight:800;letter-spacing:0.06em;margin-bottom:0.4rem;">{divisa_live} · {source} · {date_time}</div>
-<div style="color:#111111;font-size:1rem;font-weight:750;line-height:1.45;">{title}</div>
-<div style="margin-top:0.55rem;font-size:0.8rem;"><a href="{url}" target="_blank">Abrir fuente</a></div>
-</div>"""
 
-            st.markdown(
-                html_article,
-                unsafe_allow_html=True,
-            )
 
     st.stop()
 
