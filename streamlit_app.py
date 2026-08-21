@@ -3536,14 +3536,6 @@ def cargar_live_drivers_newsapi(divisa):
     queries = {
 
         "USD": [
-            "Kevin Warsh",
-            "Federal Reserve",
-            "FOMC",
-            "Scott Bessent",
-            "U.S. Treasury",
-            "US Treasury",
-            "US dollar",
-            "U.S. dollar",
             "dollar",
         ],
 
