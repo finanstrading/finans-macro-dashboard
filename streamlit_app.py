@@ -3865,41 +3865,43 @@ if pagina_principal == "FX Live Drivers":
                 or ""
             )
 
-            st.markdown(
-                f"""
-                <div style="
-                    background:#FFFFFF;
-                    border:1px solid #E5E7EB;
-                    border-radius:12px;
-                    padding:1rem 1.1rem;
-                    margin-bottom:0.8rem;
-                ">
-                    <div style="
-                        font-size:1rem;
-                        font-weight:750;
-                        color:#111111;
-                        margin-bottom:0.4rem;
-                    ">
-                        {title}
-                    </div>
+            html_article = (
+                f'<div style="background:#FFFFFF;'
+                f'border:1px solid #E5E7EB;'
+                f'border-radius:14px;'
+                f'padding:1rem 1.15rem;'
+                f'margin-bottom:0.85rem;">'
 
-                    <div style="
-                        font-size:0.78rem;
-                        color:#6B7280;
-                    ">
-                        {source} · {date_time}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+                f'<div style="color:#9A7A10;'
+                f'font-size:0.72rem;'
+                f'font-weight:800;'
+                f'letter-spacing:0.05em;'
+                f'margin-bottom:0.45rem;">'
+                f'{divisa_live} · {source} · {date_time}'
+                f'</div>'
+
+                f'<div style="color:#111111;'
+                f'font-size:1.02rem;'
+                f'font-weight:750;'
+                f'line-height:1.45;">'
+                f'{title}'
+                f'</div>'
+
+                f'<div style="margin-top:0.65rem;'
+                f'font-size:0.82rem;">'
+                f'<a href="{url}" target="_blank" '
+                f'style="color:#2563EB;text-decoration:none;">'
+                f'Abrir fuente ↗'
+                f'</a>'
+                f'</div>'
+
+                f'</div>'
             )
 
-            if url:
-                st.link_button(
-                    "Abrir noticia",
-                    url,
-                    use_container_width=False,
-                )
+            st.markdown(
+                html_article,
+                unsafe_allow_html=True,
+            )
 
 
 
