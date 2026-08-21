@@ -4309,6 +4309,41 @@ if pagina_principal == "FX Live Drivers":
             divisa_live,
         )
 
+        # ===================================================
+        # ELIMINAR TITULARES DUPLICADOS
+        # ===================================================
+
+        articles_unicos = []
+        titulos_vistos = set()
+
+        for article in articles:
+
+            titulo = str(
+                article.get("title")
+                or ""
+            ).strip().lower()
+
+            if not titulo:
+                continue
+
+            titulo_normalizado = " ".join(
+                titulo.split()
+            )
+
+            if titulo_normalizado in titulos_vistos:
+                continue
+
+            titulos_vistos.add(titulo_normalizado)
+            articles_unicos.append(article)
+
+        articles = articles_unicos
+
+
+        st.caption(
+            f"{len(articles)} catalizadores filtrados · "
+            "Actualización máxima cada 10 minutos"
+        )
+
         st.caption(
             f"{len(articles)} catalizadores filtrados · "
             "Actualización máxima cada 10 minutos"
