@@ -3513,7 +3513,7 @@ def determinar_sufijo(nombre_indicador):
 # FX LIVE DRIVERS — NEWSAPI
 # ===================================================
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def cargar_live_drivers_newsapi(divisa):
     """
     MVP inicial:
@@ -3554,16 +3554,26 @@ def cargar_live_drivers_newsapi(divisa):
 
     payload = {
         "action": "getArticles",
+
+        # Consulta booleana
         "keyword": queries[divisa],
+        "keywordSearchMode": "exact",
+
+        # Buscar tanto en título como en cuerpo
+        "keywordLoc": "body,title",
+
         "articlesPage": 1,
         "articlesCount": 20,
         "articlesSortBy": "date",
         "articlesSortByAsc": False,
-        "articlesArticleBodyLen": -1,
+
         "resultType": "articles",
         "dataType": ["news"],
-        "apiKey": api_key,
+
+        # Últimos 7 días
         "forceMaxDataTimeWindow": 7,
+
+        "apiKey": api_key,
     }
 
     try:
