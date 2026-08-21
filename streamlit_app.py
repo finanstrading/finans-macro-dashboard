@@ -3748,13 +3748,16 @@ with st.sidebar:
 
 def clasificar_catalizador_fx(article, divisa):
     """
-    Clasifica catalizadores FX usando contexto y prioridades.
-    No realiza llamadas externas.
+    Clasificación contextual de catalizadores FX.
+
+    Prioriza el tema principal del TITULAR.
+    El cuerpo se utiliza solamente como contexto secundario.
     """
 
     divisa = str(divisa).strip().upper()
 
     title = str(article.get("title") or "").lower()
+
     body = str(
         article.get("body")
         or article.get("summary")
@@ -3774,12 +3777,12 @@ def clasificar_catalizador_fx(article, divisa):
             for termino in terminos
         )
 
-    def contiene_titulo(terminos):
+    def en_titulo(terminos):
         return contiene(title, terminos)
 
 
     # ===================================================
-    # REFERENCIAS INEQUÍVOCAS A BANCOS CENTRALES
+    # REFERENCIAS A BANCOS CENTRALES
     # ===================================================
 
     central_bank_terms = {
@@ -3787,17 +3790,10 @@ def clasificar_catalizador_fx(article, divisa):
         "USD": [
             "federal reserve",
             "fomc",
-            "kevin warsh",
             "fed chair",
             "fed governor",
             "fed president",
-        ],
-
-        "CHF": [
-            "swiss national bank",
-            "snb",
-            "martin schlegel",
-            "snb chairman",
+            "kevin warsh",
         ],
 
         "EUR": [
@@ -3818,6 +3814,12 @@ def clasificar_catalizador_fx(article, divisa):
             "boj",
         ],
 
+        "CHF": [
+            "swiss national bank",
+            "snb",
+            "martin schlegel",
+        ],
+
         "AUD": [
             "reserve bank of australia",
             "rba",
@@ -3834,7 +3836,7 @@ def clasificar_catalizador_fx(article, divisa):
         ],
     }
 
-    cb_references = central_bank_terms.get(
+    cb_terms = central_bank_terms.get(
         divisa,
         []
     )
@@ -3849,29 +3851,32 @@ def clasificar_catalizador_fx(article, divisa):
         "currency intervention",
         "fx intervention",
         "foreign exchange intervention",
-        "intervene in the currency market",
+        "intervene in currency",
         "intervene in foreign exchange",
+        "intervene in the currency market",
+        "support the yen",
+        "support the franc",
         "support the currency",
         "weaken the currency",
     ]
 
-    if contiene(texto, intervention_terms):
-
-        relevancia = (
-            "ALTA"
-            if contiene_titulo(intervention_terms)
-            else "MEDIA"
-        )
+    if en_titulo(intervention_terms):
 
         return {
             "categoria": "INTERVENCIÓN FX",
-            "relevancia": relevancia,
+            "relevancia": "ALTA",
+        }
+
+    if contiene(texto, intervention_terms):
+
+        return {
+            "categoria": "INTERVENCIÓN FX",
+            "relevancia": "MEDIA",
         }
 
 
     # ===================================================
     # 2. COMERCIO / ARANCELES
-    # Antes que banco central
     # ===================================================
 
     trade_terms = [
@@ -3882,158 +3887,30 @@ def clasificar_catalizador_fx(article, divisa):
         "trade agreement",
         "trade talks",
         "trade negotiations",
+        "trade deadline",
         "import tariff",
+        "import tariffs",
         "export tariff",
         "import duties",
-        "trade restrictions",
         "export restrictions",
+        "trade restrictions",
     ]
 
-    if contiene(texto, trade_terms):
-
-        relevancia = (
-            "ALTA"
-            if contiene_titulo([
-                "tariff",
-                "tariffs",
-                "trade war",
-                "trade deal",
-                "trade agreement",
-            ])
-            else "MEDIA"
-        )
+    if en_titulo(trade_terms):
 
         return {
             "categoria": "COMERCIO / ARANCELES",
-            "relevancia": relevancia,
+            "relevancia": "ALTA",
         }
 
 
     # ===================================================
-    # 3. GEOPOLÍTICA
-    # Exigimos contexto geopolítico real
+    # 3. RENDIMIENTOS / BONOS
+    #
+    # Va ANTES que Banco Central.
     # ===================================================
 
-    geopolitical_entities = [
-        "iran",
-        "israel",
-        "ukraine",
-        "russia",
-        "north korea",
-        "middle east",
-        "hormuz",
-        "taiwan",
-    ]
-
-    geopolitical_actions = [
-        "war",
-        "military",
-        "attack",
-        "strike",
-        "missile",
-        "sanctions",
-        "ceasefire",
-        "invasion",
-        "conflict",
-        "escalation",
-        "nuclear",
-        "blockade",
-    ]
-
-    has_geo_entity = contiene(
-        texto,
-        geopolitical_entities
-    )
-
-    has_geo_action = contiene(
-        texto,
-        geopolitical_actions
-    )
-
-    if has_geo_entity and has_geo_action:
-
-        relevancia = (
-            "ALTA"
-            if (
-                contiene_titulo(geopolitical_entities)
-                and contiene_titulo(geopolitical_actions)
-            )
-            else "MEDIA"
-        )
-
-        return {
-            "categoria": "GEOPOLÍTICA",
-            "relevancia": relevancia,
-        }
-
-
-    # ===================================================
-    # 4. BANCO CENTRAL
-    # Debe existir una referencia inequívoca
-    # ===================================================
-
-    monetary_terms = [
-        "interest rate",
-        "interest rates",
-        "rate hike",
-        "rate cut",
-        "monetary policy",
-        "policy rate",
-        "inflation outlook",
-        "hawkish",
-        "dovish",
-        "tightening",
-        "easing",
-    ]
-
-    has_cb_reference = contiene(
-        texto,
-        cb_references
-    )
-
-    has_monetary_context = contiene(
-        texto,
-        monetary_terms
-    )
-
-    # Referencia explícita al banco central en el titular
-    cb_en_titulo = contiene_titulo(cb_references)
-
-    # Política monetaria explícita en el titular
-    monetario_en_titulo = contiene_titulo(monetary_terms)
-
-    # CASO 1:
-    # Banco central / miembro claramente mencionado en el titular.
-    if cb_en_titulo:
-
-        relevancia = (
-            "ALTA"
-            if monetario_en_titulo or has_monetary_context
-            else "MEDIA"
-        )
-
-        return {
-            "categoria": "BANCO CENTRAL",
-            "relevancia": relevancia,
-        }
-
-
-    # CASO 2:
-    # El banco central solo aparece en el cuerpo.
-    # Exigimos además contexto monetario explícito.
-    if has_cb_reference and has_monetary_context:
-
-        return {
-            "categoria": "BANCO CENTRAL",
-            "relevancia": "MEDIA",
-        }
-
-
-    # ===================================================
-    # 5. RENDIMIENTOS / BONOS
-    # ===================================================
-
-    bond_terms = [
+    bond_title_terms = [
         "treasury yield",
         "treasury yields",
         "bond yield",
@@ -4042,74 +3919,155 @@ def clasificar_catalizador_fx(article, divisa):
         "bond market",
         "treasuries",
         "government bonds",
+        "treasury bonds",
         "bond buyback",
         "bond buybacks",
         "treasury buyback",
         "treasury buybacks",
+        "borrowing costs",
+        "long-term yields",
+        "long term yields",
         "gilts",
         "bunds",
+        "bond selloff",
+        "bond sell-off",
     ]
 
-    treasury_context = [
+    treasury_terms = [
         "u.s. treasury",
         "us treasury",
         "treasury department",
         "scott bessent",
     ]
 
-    if (
-        contiene(texto, bond_terms)
-        or (
-            contiene(texto, treasury_context)
-            and contiene(
-                texto,
-                [
-                    "bond",
-                    "bonds",
-                    "yield",
-                    "yields",
-                    "buyback",
-                    "buybacks",
-                ],
-            )
-        )
-    ):
+    generic_bond_terms = [
+        "bond",
+        "bonds",
+        "yield",
+        "yields",
+        "buyback",
+        "buybacks",
+        "debt market",
+        "borrowing costs",
+    ]
 
-        relevancia = (
-            "ALTA"
-            if (
-                contiene_titulo(bond_terms)
-                or (
-                    contiene_titulo(treasury_context)
-                    and contiene_titulo(
-                        [
-                            "bond",
-                            "bonds",
-                            "yield",
-                            "yields",
-                            "buyback",
-                        ]
-                    )
-                )
-            )
-            else "MEDIA"
-        )
+    # Caso fuerte:
+    # el titular habla directamente de bonos/yields.
+    if en_titulo(bond_title_terms):
 
         return {
             "categoria": "RENDIMIENTOS / BONOS",
-            "relevancia": relevancia,
+            "relevancia": "ALTA",
+        }
+
+    # Treasury/Bessent + bonos/yields en el titular.
+    if (
+        en_titulo(treasury_terms)
+        and en_titulo(generic_bond_terms)
+    ):
+
+        return {
+            "categoria": "RENDIMIENTOS / BONOS",
+            "relevancia": "ALTA",
+        }
+
+    # El titular habla de Treasury/Bessent,
+    # y el cuerpo confirma el contexto de deuda/yields.
+    if (
+        en_titulo(treasury_terms)
+        and contiene(body, generic_bond_terms)
+    ):
+
+        return {
+            "categoria": "RENDIMIENTOS / BONOS",
+            "relevancia": "MEDIA",
+        }
+
+    # Titular sobre acciones/mercados cuyo movimiento se explica
+    # explícitamente por yields/bonos.
+    market_terms = [
+        "stocks",
+        "shares",
+        "wall street",
+        "equities",
+        "markets",
+        "european stocks",
+        "futures",
+    ]
+
+    if (
+        en_titulo(market_terms)
+        and en_titulo(generic_bond_terms)
+    ):
+
+        return {
+            "categoria": "RENDIMIENTOS / BONOS",
+            "relevancia": "MEDIA",
         }
 
 
     # ===================================================
-    # 6. INFLACIÓN
+    # 4. BANCO CENTRAL
+    # ===================================================
+
+    monetary_terms = [
+        "interest rate",
+        "interest rates",
+        "rate hike",
+        "rate cut",
+        "policy rate",
+        "monetary policy",
+        "hawkish",
+        "dovish",
+        "tightening",
+        "easing",
+        "inflation outlook",
+    ]
+
+    cb_en_titulo = en_titulo(
+        cb_terms
+    )
+
+    monetario_en_titulo = en_titulo(
+        monetary_terms
+    )
+
+    # Banco central claramente protagonista.
+    if cb_en_titulo:
+
+        relevancia = (
+            "ALTA"
+            if monetario_en_titulo
+            else "MEDIA"
+        )
+
+        return {
+            "categoria": "BANCO CENTRAL",
+            "relevancia": relevancia,
+        }
+
+    # Si el banco central solo aparece en el cuerpo,
+    # exigimos contexto monetario también en el titular.
+    if (
+        contiene(body, cb_terms)
+        and monetario_en_titulo
+    ):
+
+        return {
+            "categoria": "BANCO CENTRAL",
+            "relevancia": "MEDIA",
+        }
+
+
+    # ===================================================
+    # 5. INFLACIÓN
     # ===================================================
 
     inflation_terms = [
         "inflation",
         "consumer price index",
-        "cpi",
         "core cpi",
+        "cpi",
         "pce inflation",
         "core pce",
         "producer prices",
@@ -4117,22 +4075,16 @@ def clasificar_catalizador_fx(article, divisa):
         "price pressures",
     ]
 
-    if contiene(texto, inflation_terms):
-
-        relevancia = (
-            "ALTA"
-            if contiene_titulo(inflation_terms)
-            else "MEDIA"
-        )
+    if en_titulo(inflation_terms):
 
         return {
             "categoria": "INFLACIÓN",
-            "relevancia": relevancia,
+            "relevancia": "ALTA",
         }
 
 
     # ===================================================
-    # 7. POLÍTICA FISCAL
+    # 6. FISCAL
     # ===================================================
 
     fiscal_terms = [
@@ -4146,28 +4098,89 @@ def clasificar_catalizador_fx(article, divisa):
         "tax cuts",
         "tax increase",
         "government debt",
+        "national debt",
     ]
 
-    if contiene(texto, fiscal_terms):
-
-        relevancia = (
-            "ALTA"
-            if contiene_titulo(fiscal_terms)
-            else "MEDIA"
-        )
+    if en_titulo(fiscal_terms):
 
         return {
             "categoria": "FISCAL",
-            "relevancia": relevancia,
+            "relevancia": "MEDIA",
+        }
+
+
+    # ===================================================
+    # 7. GEOPOLÍTICA
+    #
+    # Exigimos que el contexto geopolítico sea realmente
+    # protagonista del titular.
+    # ===================================================
+
+    geo_entities = [
+        "iran",
+        "israel",
+        "ukraine",
+        "russia",
+        "north korea",
+        "middle east",
+        "hormuz",
+        "taiwan",
+        "hezbollah",
+    ]
+
+    geo_actions = [
+        "war",
+        "sanctions",
+        "attack",
+        "strike",
+        "missile",
+        "military",
+        "ceasefire",
+        "invasion",
+        "conflict",
+        "escalation",
+        "nuclear",
+        "blockade",
+    ]
+
+    geo_entity_title = en_titulo(
+        geo_entities
+    )
+
+    geo_action_title = en_titulo(
+        geo_actions
+    )
+
+    # Los dos aparecen en el titular:
+    # catalizador geopolítico claro.
+    if (
+        geo_entity_title
+        and geo_action_title
+    ):
+
+        return {
+            "categoria": "GEOPOLÍTICA",
+            "relevancia": "ALTA",
+        }
+
+    # Entidad geopolítica en titular +
+    # acción relevante confirmada en cuerpo.
+    if (
+        geo_entity_title
+        and contiene(body, geo_actions)
+    ):
+
+        return {
+            "categoria": "GEOPOLÍTICA",
+            "relevancia": "MEDIA",
         }
 
 
     # ===================================================
     # 8. RIESGO POLÍTICO
-    # Solo eventos capaces de afectar política económica
     # ===================================================
 
-    political_risk_terms = [
+    political_terms = [
         "government collapse",
         "snap election",
         "confidence vote",
@@ -4179,7 +4192,7 @@ def clasificar_catalizador_fx(article, divisa):
         "president resigns",
     ]
 
-    if contiene(texto, political_risk_terms):
+    if en_titulo(political_terms):
 
         return {
             "categoria": "RIESGO POLÍTICO",
@@ -4188,7 +4201,7 @@ def clasificar_catalizador_fx(article, divisa):
 
 
     # ===================================================
-    # SIN CATALIZADOR FX CLARO
+    # SIN CATALIZADOR CLARO
     # ===================================================
 
     return {
