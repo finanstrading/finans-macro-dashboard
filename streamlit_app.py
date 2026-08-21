@@ -3561,9 +3561,73 @@ if pagina_principal == "FX Live Drivers":
         unsafe_allow_html=True,
     )
 
-    st.info(
-        "FX Live Drivers está preparado. "
-        "En el siguiente paso conectaremos las fuentes de noticias."
+    # ===================================================
+    # FX LIVE DRIVERS — SELECTOR DE DIVISA
+    # ===================================================
+
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stSegmentedControl"] button {
+            font-weight: 700;
+        }
+
+        .live-drivers-status {
+            margin-top: 1.2rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            background: #FFFFFF;
+        }
+
+        .live-drivers-status-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: #9A7A10;
+            margin-bottom: 0.35rem;
+        }
+
+        .live-drivers-status-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    divisa_live = st.segmented_control(
+        "Divisa",
+        options=[
+            "USD",
+            "EUR",
+            "GBP",
+            "JPY",
+            "CHF",
+            "AUD",
+            "NZD",
+            "CAD",
+        ],
+        default="USD",
+        selection_mode="single",
+        label_visibility="collapsed",
+        key="live_currency",
+    )
+
+    st.markdown(
+        f"""
+        <div class="live-drivers-status">
+            <div class="live-drivers-status-title">
+                {divisa_live} · LIVE DRIVERS
+            </div>
+            <div class="live-drivers-status-text">
+                Preparado para recibir catalizadores de {divisa_live}.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     st.stop()
