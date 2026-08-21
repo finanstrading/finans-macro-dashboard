@@ -3656,22 +3656,55 @@ def filtrar_articulos_fx(articles, divisa):
 
     for article in articles:
 
-        title = str(article.get("title") or "")
-        body = str(article.get("body") or "")
+        title = str(article.get("title") or "").lower()
+        body = str(article.get("body") or "").lower()
 
-        text = f"{title} {body}".lower()
+        currency_list = currency_terms.get(divisa, [])
 
-        has_fx_topic = any(
-            term in text
+        title_has_fx_topic = any(
+            term in title
             for term in fx_terms
         )
 
-        has_currency_reference = any(
-            term in text
-            for term in currency_terms.get(divisa, [])
+        title_has_currency_reference = any(
+            term in title
+            for term in currency_list
         )
 
-        if has_fx_topic and has_currency_reference:
+        body_has_fx_topic = any(
+            term in body
+            for term in fx_terms
+        )
+
+        body_has_currency_reference = any(
+            term in body
+            for term in currency_list
+        )
+
+        # Regla 1:
+        # Si titular contiene tema macro + referencia de divisa,
+        # lo consideramos claramente relevante.
+        strong_match = (
+            title_has_fx_topic
+            and title_has_currency_reference
+        )
+
+        # Regla 2:
+        # Si solo una parte aparece en titular, exigimos que
+        # la otra aparezca también en el cuerpo.
+        medium_match = (
+            (
+                title_has_fx_topic
+                and body_has_currency_reference
+            )
+            or
+            (
+                title_has_currency_reference
+                and body_has_fx_topic
+            )
+        )
+
+        if strong_match or medium_match:
             relevant.append(article)
 
     return relevant
