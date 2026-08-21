@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time
+import hashlib
 import plotly.graph_objects as go
 from urllib.parse import quote  
 
@@ -550,7 +551,7 @@ def construir_url(nombre_hoja):
     )
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_datos_mercado(nombres_posibles):
     errores = []
 
@@ -1141,6 +1142,65 @@ def obtener_indicadores(df):
         if columna not in columnas_excluidas
         and convertir_valores(df[columna]).notna().any()
     ]
+
+def calcular_data_version(df_currency, currency):
+    """
+    Genera una huella de los datos utilizados por Currency Score.
+
+    Si cambia cualquier valor del Dashboard o cualquier release
+    relevante de la divisa, cambia también data_version.
+    """
+
+    currency = str(currency).strip().upper()
+
+    hash_obj = hashlib.sha256()
+
+    # -----------------------------------------------
+    # 1. Datos del Dashboard / Google Sheet
+    # -----------------------------------------------
+
+    df_version = (
+        df_currency
+        .copy()
+        .fillna("<NA>")
+        .astype(str)
+    )
+
+    hash_dashboard = pd.util.hash_pandas_object(
+        df_version,
+        index=True,
+    ).values.tobytes()
+
+    hash_obj.update(hash_dashboard)
+
+    # -----------------------------------------------
+    # 2. Macro Releases
+    # -----------------------------------------------
+
+    try:
+        releases = cargar_macro_releases()
+
+        releases_currency = (
+            releases[
+                releases["Currency"].eq(currency)
+            ]
+            .copy()
+            .fillna("<NA>")
+            .astype(str)
+        )
+
+        hash_releases = pd.util.hash_pandas_object(
+            releases_currency,
+            index=True,
+        ).values.tobytes()
+
+        hash_obj.update(hash_releases)
+
+    except Exception:
+        pass
+
+    return hash_obj.hexdigest()[:20]
+
 def analizar_divisa_completa(
     df,
     divisa,
@@ -2666,9 +2726,10 @@ def analizar_divisa_por_release(
 @st.cache_data(ttl=3600, show_spinner=False)
 def calcular_historico_currency_score(
     currency,
+    data_version,
     frecuencia="W",
     periodos=26,
-    revision="release_v14",
+    revision="release_v15",
 ):
 
 
@@ -2687,7 +2748,7 @@ def calcular_historico_currency_score(
         .sort_values("Fecha")
         .reset_index(drop=True)
     )
-
+        
     if df_currency.empty:
         return pd.DataFrame(
             columns=[
@@ -3494,6 +3555,11 @@ try:
         )
         st.stop()
 
+    data_version = calcular_data_version(
+        df,
+        divisa,
+    )
+
     indicadores = obtener_indicadores(df)
 
     if not indicadores:
@@ -3690,9 +3756,10 @@ try:
 
         historico_score = calcular_historico_currency_score(
             divisa,
+            data_version,
             frecuencia="W",
             periodos=26,
-            revision="release_v13",
+            revision="release_v15",
         )
 
         print(
