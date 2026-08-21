@@ -3534,14 +3534,46 @@ def cargar_live_drivers_newsapi(divisa):
     divisa = str(divisa).strip().upper()
 
     queries = {
+
         "USD": (
             "Kevin Warsh OR Federal Reserve OR FOMC OR "
             "Scott Bessent OR U.S. Treasury OR Trump"
         ),
 
+        "EUR": (
+            "European Central Bank OR ECB OR Christine Lagarde OR "
+            "euro OR eurozone OR European Union"
+        ),
+
+        "GBP": (
+            "Bank of England OR BOE OR Andrew Bailey OR "
+            "UK Treasury OR pound sterling OR GBP"
+        ),
+
+        "JPY": (
+            "Bank of Japan OR BOJ OR Kazuo Ueda OR "
+            "Japanese yen OR yen OR Japan Ministry of Finance OR "
+            "Japan currency intervention OR JGB"
+        ),
+
         "CHF": (
             "Swiss National Bank OR SNB OR Martin Schlegel OR "
-            "Swiss franc"
+            "Petra Tschudin OR Swiss franc"
+        ),
+
+        "AUD": (
+            "Reserve Bank of Australia OR RBA OR Michele Bullock OR "
+            "Australian dollar OR AUD"
+        ),
+
+        "NZD": (
+            "Reserve Bank of New Zealand OR RBNZ OR "
+            "New Zealand dollar OR NZD"
+        ),
+
+        "CAD": (
+            "Bank of Canada OR BOC OR Tiff Macklem OR "
+            "Canadian dollar OR CAD"
         ),
     }
 
