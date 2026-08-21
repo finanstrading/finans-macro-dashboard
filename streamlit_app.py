@@ -3667,37 +3667,19 @@ def cargar_live_drivers_newsapi(divisa):
 
 def filtrar_articulos_fx(articles, divisa):
     """
-    Primer filtro de relevancia para FX Live Drivers.
-    Elimina ruido evidente sin utilizar IA.
+    Filtra artículos para FX Live Drivers.
+
+    Objetivo:
+    1. El artículo debe estar claramente relacionado con la divisa/país.
+    2. Debe contener un catalizador macro, monetario, fiscal o geopolítico.
+    3. Evitar que menciones secundarias en el cuerpo asignen una noticia
+       a una divisa incorrecta.
     """
 
-    divisa = str(divisa).upper()
-
-    fx_terms = [
-        "central bank", "federal reserve", "fed", "fomc",
-        "interest rate", "interest rates", "rate cut", "rate hike",
-        "monetary policy", "inflation", "cpi", "pce",
-
-        "treasury", "treasuries", "bond", "bonds",
-        "yield", "yields",
-
-        "dollar", "usd", "currency", "currencies",
-        "foreign exchange", "forex",
-
-        "fiscal", "deficit", "debt", "budget",
-        "tax", "taxes", "spending",
-
-        "tariff", "tariffs", "trade deal", "trade war",
-        "sanctions", "export", "imports", "trade talks",
-
-        "iran", "russia", "ukraine", "china",
-        "north korea", "middle east",
-        "war", "ceasefire",
-
-        "intervention", "currency intervention",
-    ]
+    divisa = str(divisa).strip().upper()
 
     currency_terms = {
+
         "USD": [
             "federal reserve", "fed", "fomc",
             "u.s. treasury", "us treasury",
@@ -3728,8 +3710,8 @@ def filtrar_articulos_fx(articles, divisa):
 
         "CHF": [
             "swiss national bank", "snb",
-            "martin schlegel",
-            "swiss franc", "franc", "chf",
+            "martin schlegel", "petra tschudin",
+            "swiss franc", "chf",
         ],
 
         "AUD": [
@@ -3751,60 +3733,117 @@ def filtrar_articulos_fx(articles, divisa):
         ],
     }
 
+    catalyst_terms = [
+
+        # Bancos centrales / política monetaria
+        "central bank",
+        "interest rate",
+        "interest rates",
+        "rate cut",
+        "rate cuts",
+        "rate hike",
+        "rate hikes",
+        "monetary policy",
+        "policy rate",
+
+        # Inflación / actividad
+        "inflation",
+        "cpi",
+        "pce",
+        "gdp",
+        "employment",
+        "unemployment",
+        "payroll",
+        "wages",
+
+        # Bonos / yields
+        "treasury",
+        "treasuries",
+        "bond",
+        "bonds",
+        "yield",
+        "yields",
+
+        # Política fiscal
+        "fiscal",
+        "deficit",
+        "debt",
+        "budget",
+        "tax",
+        "taxes",
+        "government spending",
+
+        # Comercio
+        "tariff",
+        "tariffs",
+        "trade deal",
+        "trade war",
+        "trade talks",
+        "sanctions",
+
+        # FX
+        "currency intervention",
+        "fx intervention",
+        "foreign exchange intervention",
+
+        # Geopolítica
+        "war",
+        "ceasefire",
+        "conflict",
+    ]
+
     relevant = []
+
+    currency_list = currency_terms.get(divisa, [])
 
     for article in articles:
 
-        title = str(article.get("title") or "").lower()
-        body = str(article.get("body") or "").lower()
+        title = str(
+            article.get("title")
+            or ""
+        ).lower()
 
-        currency_list = currency_terms.get(divisa, [])
+        body = str(
+            article.get("body")
+            or article.get("summary")
+            or ""
+        ).lower()
 
-        title_has_fx_topic = any(
-            term in title
-            for term in fx_terms
-        )
+        # ---------------------------------------------------
+        # 1. La referencia a la divisa debe aparecer
+        #    obligatoriamente en el TITULAR.
+        # ---------------------------------------------------
 
-        title_has_currency_reference = any(
+        currency_in_title = any(
             term in title
             for term in currency_list
         )
 
-        body_has_fx_topic = any(
+        if not currency_in_title:
+            continue
+
+        # ---------------------------------------------------
+        # 2. Debe existir además un catalizador macro.
+        #    Puede aparecer en titular o cuerpo.
+        # ---------------------------------------------------
+
+        catalyst_in_title = any(
+            term in title
+            for term in catalyst_terms
+        )
+
+        catalyst_in_body = any(
             term in body
-            for term in fx_terms
+            for term in catalyst_terms
         )
 
-        body_has_currency_reference = any(
-            term in body
-            for term in currency_list
-        )
+        if not (
+            catalyst_in_title
+            or catalyst_in_body
+        ):
+            continue
 
-        # Regla 1:
-        # Si titular contiene tema macro + referencia de divisa,
-        # lo consideramos claramente relevante.
-        strong_match = (
-            title_has_fx_topic
-            and title_has_currency_reference
-        )
-
-        # Regla 2:
-        # Si solo una parte aparece en titular, exigimos que
-        # la otra aparezca también en el cuerpo.
-        medium_match = (
-            (
-                title_has_fx_topic
-                and body_has_currency_reference
-            )
-            or
-            (
-                title_has_currency_reference
-                and body_has_fx_topic
-            )
-        )
-
-        if strong_match or medium_match:
-            relevant.append(article)
+        relevant.append(article)
 
     return relevant
 
