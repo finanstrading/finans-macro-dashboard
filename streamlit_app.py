@@ -3677,10 +3677,50 @@ def filtrar_articulos_fx(articles, divisa):
             "dollar", "usd",
             "kevin warsh", "scott bessent",
         ],
+
+        "EUR": [
+            "european central bank", "ecb",
+            "euro", "eur", "eurozone",
+            "christine lagarde",
+        ],
+
+        "GBP": [
+            "bank of england", "boe",
+            "pound", "sterling", "gbp",
+            "andrew bailey", "uk treasury",
+        ],
+
+        "JPY": [
+            "bank of japan", "boj",
+            "japanese yen", "yen", "jpy",
+            "kazuo ueda",
+            "japan ministry of finance",
+            "japanese ministry of finance",
+            "jgb", "japanese government bond",
+        ],
+
         "CHF": [
             "swiss national bank", "snb",
             "martin schlegel",
             "swiss franc", "franc", "chf",
+        ],
+
+        "AUD": [
+            "reserve bank of australia", "rba",
+            "australian dollar", "aussie dollar",
+            "aud", "michele bullock",
+        ],
+
+        "NZD": [
+            "reserve bank of new zealand", "rbnz",
+            "new zealand dollar", "kiwi dollar",
+            "nzd",
+        ],
+
+        "CAD": [
+            "bank of canada", "boc",
+            "canadian dollar", "cad",
+            "tiff macklem",
         ],
     }
 
