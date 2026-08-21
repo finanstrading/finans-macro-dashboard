@@ -3535,46 +3535,72 @@ def cargar_live_drivers_newsapi(divisa):
 
     queries = {
 
-        "USD": (
-            "Kevin Warsh OR Federal Reserve OR FOMC OR "
-            "Scott Bessent OR U.S. Treasury OR Trump"
-        ),
+        "USD": [
+            "Kevin Warsh",
+            "Federal Reserve",
+            "FOMC",
+            "Scott Bessent",
+            "U.S. Treasury",
+            "US dollar",
+        ],
 
-        "EUR": (
-            "European Central Bank OR ECB OR Christine Lagarde OR "
-            "euro OR eurozone OR European Union"
-        ),
+        "EUR": [
+            "European Central Bank",
+            "ECB",
+            "Christine Lagarde",
+            "euro",
+            "eurozone",
+        ],
 
-        "GBP": (
-            "Bank of England OR BOE OR Andrew Bailey OR "
-            "UK Treasury OR pound sterling OR GBP"
-        ),
+        "GBP": [
+            "Bank of England",
+            "BOE",
+            "Andrew Bailey",
+            "UK Treasury",
+            "pound sterling",
+            "GBP",
+        ],
 
-        "JPY": (
-            "Bank of Japan OR BOJ OR Kazuo Ueda OR "
-            "Japanese yen OR yen OR Japan Ministry of Finance OR "
-            "Japan currency intervention OR JGB"
-        ),
+        "JPY": [
+            "Bank of Japan",
+            "BOJ",
+            "Kazuo Ueda",
+            "Japanese yen",
+            "Japan Ministry of Finance",
+            "currency intervention",
+            "JGB",
+        ],
 
-        "CHF": (
-            "Swiss National Bank OR SNB OR Martin Schlegel OR "
-            "Petra Tschudin OR Swiss franc"
-        ),
+        "CHF": [
+            "Swiss National Bank",
+            "SNB",
+            "Martin Schlegel",
+            "Petra Tschudin",
+            "Swiss franc",
+        ],
 
-        "AUD": (
-            "Reserve Bank of Australia OR RBA OR Michele Bullock OR "
-            "Australian dollar OR AUD"
-        ),
+        "AUD": [
+            "Reserve Bank of Australia",
+            "RBA",
+            "Michele Bullock",
+            "Australian dollar",
+            "AUD",
+        ],
 
-        "NZD": (
-            "Reserve Bank of New Zealand OR RBNZ OR "
-            "New Zealand dollar OR NZD"
-        ),
+        "NZD": [
+            "Reserve Bank of New Zealand",
+            "RBNZ",
+            "New Zealand dollar",
+            "NZD",
+        ],
 
-        "CAD": (
-            "Bank of Canada OR BOC OR Tiff Macklem OR "
-            "Canadian dollar OR CAD"
-        ),
+        "CAD": [
+            "Bank of Canada",
+            "BOC",
+            "Tiff Macklem",
+            "Canadian dollar",
+            "CAD",
+        ],
     }
 
     if divisa not in queries:
@@ -3587,10 +3613,10 @@ def cargar_live_drivers_newsapi(divisa):
     payload = {
         "action": "getArticles",
 
-        # Consulta booleana
-        # Consulta booleana
+        # NewsAPI.ai acepta varios keywords como lista.
+        # "or" significa que basta con que coincida uno.
         "keyword": queries[divisa],
-        "keywordSearchMode": "boolean",
+        "keywordOper": "or",
 
         # Buscar tanto en título como en cuerpo
         "keywordLoc": "body,title",
