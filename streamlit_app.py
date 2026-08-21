@@ -3497,7 +3497,7 @@ def determinar_sufijo(nombre_indicador):
     )
 
 # ===================================================
-# BARRA LATERAL — MERCADO
+# NAVEGACIÓN PRINCIPAL
 # ===================================================
 
 with st.sidebar:
@@ -3516,6 +3516,64 @@ with st.sidebar:
     )
 
     st.divider()
+
+    st.markdown(
+        '<div class="control-title">Navegación</div>',
+        unsafe_allow_html=True
+    )
+
+    pagina_principal = st.radio(
+        "Navegación",
+        options=[
+            "Dashboard",
+            "FX Live Drivers",
+        ],
+        index=0,
+        label_visibility="collapsed",
+        key="pagina_principal",
+    )
+
+
+# ===================================================
+# FX LIVE DRIVERS
+# ===================================================
+
+if pagina_principal == "FX Live Drivers":
+
+    with st.sidebar:
+        render_logout(AUTH_PROFILE)
+
+    st.markdown(
+        """
+        <div class="dashboard-header">
+            <div class="dashboard-eyebrow">
+                MACRO FX · LIVE
+            </div>
+            <div class="dashboard-title">
+                FX Live Drivers
+            </div>
+            <div class="dashboard-subtitle">
+                Declaraciones de bancos centrales, política económica
+                y catalizadores relevantes para el mercado FX.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.info(
+        "FX Live Drivers está preparado. "
+        "En el siguiente paso conectaremos las fuentes de noticias."
+    )
+
+    st.stop()
+
+
+# ===================================================
+# DASHBOARD
+# ===================================================
+
+with st.sidebar:
 
     st.markdown(
         '<div class="control-title">Mercado</div>',
