@@ -4136,6 +4136,7 @@ def filtrar_articulos_fx(articles, divisa):
             currency_movement_terms,
         )
 
+
         # -----------------------------------------------
         # H. DECISIÓN FINAL
         # -----------------------------------------------
@@ -4150,22 +4151,6 @@ def filtrar_articulos_fx(articles, divisa):
             continue
 
         relevant.append(article)
-
-                # -----------------------------------------------
-                # I. DECISIÓN FINAL
-                # -----------------------------------------------
-
-                if not (
-                    catalyst_in_title
-                    or central_bank_direct
-                    or (
-                        currency_move_in_title
-                        and contiene(body, catalyst_terms)
-                    )
-                ):
-                    continue
-
-                relevant.append(article)
 
     return relevant
 
