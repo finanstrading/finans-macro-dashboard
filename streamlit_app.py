@@ -4811,6 +4811,13 @@ if pagina_principal == "FX Live Drivers":
 
         articles_raw = resultado_news["articles"]
 
+        st.write(
+            f"DEBUG {divisa_live} - recibidos API:",
+            len(articles_raw)
+        )
+        for a in articles_raw[:10]:
+            st.write(a.get("title", "SIN TITULO"))
+
         articles = filtrar_articulos_fx(
             articles_raw,
             divisa_live,
@@ -4920,13 +4927,10 @@ if pagina_principal == "FX Live Drivers":
                 f"{divisa_live}."
             )
 
-        html_articles = []
-
         for article in articles[:10]:
-
             clasificacion = clasificar_catalizador_fx(
                 article,
-                divisa_live,
+                divisa_live
             )
 
             categoria = clasificacion["categoria"]
@@ -4940,6 +4944,20 @@ if pagina_principal == "FX Live Drivers":
                 article.get("title")
                 or "Sin título"
             ).strip()
+
+            source = (
+                article.get("source", {})
+                or {}
+            ).get(
+                "title",
+                "Fuente desconocida"
+            )
+
+            date_time = (
+                article.get("dateTime")
+                or article.get("date")
+                or ""
+            )
 
             url = (
                 article.get("url")
@@ -4979,18 +4997,9 @@ if pagina_principal == "FX Live Drivers":
                 f'</div>'
             )
 
-            html_articles.append(html_article)
-
-
-        if html_articles:
             st.markdown(
-                "".join(html_articles),
+                html_article,
                 unsafe_allow_html=True,
-            )
-        else:
-            st.info(
-                "No se encontraron catalizadores relevantes "
-                "para esta divisa en este momento."
             )
 
 
