@@ -3746,6 +3746,133 @@ with st.sidebar:
         key="pagina_principal",
     )
 
+def clasificar_catalizador_fx(article, divisa):
+    """
+    Clasifica un artículo FX por categoría y relevancia.
+    No realiza llamadas externas.
+    """
+
+    title = str(article.get("title") or "").lower()
+    body = str(
+        article.get("body")
+        or article.get("summary")
+        or ""
+    ).lower()
+
+    texto = f"{title} {body}"
+
+    categorias = {
+        "BANCO CENTRAL": [
+            "central bank", "federal reserve", "fed",
+            "ecb", "european central bank",
+            "bank of england", "boe",
+            "bank of japan", "boj",
+            "swiss national bank", "snb",
+            "reserve bank of australia", "rba",
+            "reserve bank of new zealand", "rbnz",
+            "bank of canada", "boc",
+            "interest rate", "rate decision",
+            "monetary policy"
+        ],
+
+        "YIELDS / BONOS": [
+            "treasury", "treasuries", "bond yield",
+            "bond yields", "yield", "yields",
+            "gilts", "bund", "bunds",
+            "government bonds", "bond market",
+            "buyback"
+        ],
+
+        "INFLACIÓN": [
+            "inflation", "cpi", "consumer prices",
+            "pce", "ppi", "price pressures"
+        ],
+
+        "COMERCIO / ARANCELES": [
+            "tariff", "tariffs", "trade war",
+            "trade deal", "trade agreement",
+            "trade talks", "trade negotiations",
+            "import tariff", "export restrictions"
+        ],
+
+        "FISCAL": [
+            "fiscal", "budget", "deficit",
+            "government spending", "tax cuts",
+            "tax increase", "debt ceiling",
+            "government debt"
+        ],
+
+        "GEOPOLÍTICA": [
+            "war", "iran", "israel", "ukraine",
+            "russia", "china tensions",
+            "middle east", "hormuz",
+            "sanctions", "military",
+            "ceasefire", "conflict"
+        ],
+
+        "INTERVENCIÓN FX": [
+            "currency intervention",
+            "fx intervention",
+            "foreign exchange intervention",
+            "intervene in currency",
+            "intervention in the currency market"
+        ],
+
+        "RIESGO POLÍTICO": [
+            "election", "elections",
+            "political crisis", "government collapse",
+            "prime minister", "president",
+            "parliament", "coalition"
+        ],
+    }
+
+    categoria = "OTROS"
+
+    for nombre_categoria, palabras in categorias.items():
+        if any(palabra in texto for palabra in palabras):
+            categoria = nombre_categoria
+            break
+
+    alta = [
+        "rate decision",
+        "interest rate",
+        "monetary policy",
+        "currency intervention",
+        "fx intervention",
+        "treasury yields",
+        "bond yields",
+        "inflation",
+        "cpi",
+        "tariffs",
+        "sanctions",
+        "war",
+        "hormuz",
+    ]
+
+    media = [
+        "trade",
+        "budget",
+        "deficit",
+        "election",
+        "government",
+        "president",
+        "prime minister",
+        "geopolitical",
+        "bonds",
+        "treasury",
+    ]
+
+    if any(palabra in texto for palabra in alta):
+        relevancia = "ALTA"
+    elif any(palabra in texto for palabra in media):
+        relevancia = "MEDIA"
+    else:
+        relevancia = "BAJA"
+
+    return {
+        "categoria": categoria,
+        "relevancia": relevancia,
+    }
 
 # ===================================================
 # FX LIVE DRIVERS
