@@ -3865,6 +3865,42 @@ if pagina_principal == "FX Live Drivers":
                 or ""
             )
 
+            st.markdown(
+                f"""
+                <div style="
+                    background:#FFFFFF;
+                    border:1px solid #E5E7EB;
+                    border-radius:12px;
+                    padding:1rem 1.1rem;
+                    margin-bottom:0.8rem;
+                ">
+                    <div style="
+                        font-size:1rem;
+                        font-weight:750;
+                        color:#111111;
+                        margin-bottom:0.4rem;
+                    ">
+                        {title}
+                    </div>
+
+                    <div style="
+                        font-size:0.78rem;
+                        color:#6B7280;
+                    ">
+                        {source} · {date_time}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if url:
+                st.link_button(
+                    "Abrir noticia",
+                    url,
+                    use_container_width=False,
+                )
+
 
 
     st.stop()
