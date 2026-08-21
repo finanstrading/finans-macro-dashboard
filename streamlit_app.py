@@ -3483,19 +3483,118 @@ def determinar_sufijo(nombre_indicador):
         palabra in nombre
         for palabra in palabras_porcentaje
     ) else ""
-    
-    st.sidebar.markdown(
-        '<div class="sidebar-section-label">VISTA</div>',
-        unsafe_allow_html=True
-    )
 
-    vista = st.sidebar.radio(
-        "Vista",
-        ["Indicadores", "Currency Score"],
-        index=0,
-        label_visibility="collapsed",
-        key="macro_fx_view"
-    )
+def determinar_sufijo(nombre_indicador):
+    nombre = nombre_indicador.lower()
+
+    palabras_porcentaje = [
+        "cpi",
+        "inflation",
+        "retail sales",
+        "unemployment",
+        "desempleo",
+        "salario",
+        "wage",
+        "% change",
+        "gdp",
+        "pce",
+        "ppi",
+        "household spending",
+        "earnings"
+    ]
+
+    return "%" if any(
+        palabra in nombre
+        for palabra in palabras_porcentaje
+    ) else ""
+
+
+# ===================================================
+# FX LIVE DRIVERS — NEWSAPI
+# ===================================================
+
+@st.cache_data(ttl=600, show_spinner=False)
+def cargar_live_drivers_newsapi(divisa):
+    """
+    MVP inicial:
+    obtiene titulares recientes desde NewsAPI.ai
+    para USD y CHF.
+    """
+
+    try:
+        api_key = st.secrets["newsapi"]["api_key"]
+
+    except Exception:
+        return {
+            "ok": False,
+            "error": "Falta configurar NewsAPI.ai en Streamlit Secrets.",
+            "articles": [],
+        }
+
+    divisa = str(divisa).strip().upper()
+
+    queries = {
+        "USD": (
+            "Kevin Warsh OR Federal Reserve OR FOMC OR "
+            "Scott Bessent OR U.S. Treasury OR Trump"
+        ),
+
+        "CHF": (
+            "Swiss National Bank OR SNB OR Martin Schlegel OR "
+            "Swiss franc"
+        ),
+    }
+
+    if divisa not in queries:
+        return {
+            "ok": True,
+            "error": None,
+            "articles": [],
+        }
+
+    payload = {
+        "action": "getArticles",
+        "keyword": queries[divisa],
+        "articlesPage": 1,
+        "articlesCount": 20,
+        "articlesSortBy": "date",
+        "articlesSortByAsc": False,
+        "articlesArticleBodyLen": -1,
+        "resultType": "articles",
+        "dataType": ["news"],
+        "apiKey": api_key,
+        "forceMaxDataTimeWindow": 7,
+    }
+
+    try:
+        response = requests.post(
+            "https://eventregistry.org/api/v1/article/getArticles",
+            json=payload,
+            timeout=20,
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        articles = (
+            data
+            .get("articles", {})
+            .get("results", [])
+        )
+
+        return {
+            "ok": True,
+            "error": None,
+            "articles": articles,
+        }
+
+    except Exception as error:
+        return {
+            "ok": False,
+            "error": str(error),
+            "articles": [],
+        }
 
 # ===================================================
 # NAVEGACIÓN PRINCIPAL
@@ -3617,19 +3716,112 @@ if pagina_principal == "FX Live Drivers":
         key="live_currency",
     )
 
-    st.markdown(
-        f"""
-        <div class="live-drivers-status">
-            <div class="live-drivers-status-title">
-                {divisa_live} · LIVE DRIVERS
-            </div>
-            <div class="live-drivers-status-text">
-                Preparado para recibir catalizadores de {divisa_live}.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+# ===================================================
+# FX LIVE DRIVERS — DATOS REALES
+# ===================================================
+
+resultado_news = cargar_live_drivers_newsapi(
+    divisa_live
+)
+
+if divisa_live not in {"USD", "CHF"}:
+
+    st.info(
+        f"{divisa_live} se activará después de validar "
+        "primero USD y CHF."
     )
+
+elif not resultado_news["ok"]:
+
+    st.error(
+        "No se pudieron cargar los titulares de NewsAPI.ai: "
+        + resultado_news["error"]
+    )
+
+else:
+
+    articles = resultado_news["articles"]
+
+    st.caption(
+        f"{len(articles)} titulares recibidos · "
+        "Actualización máxima cada 10 minutos"
+    )
+
+    if not articles:
+
+        st.info(
+            f"No se encontraron titulares recientes para "
+            f"{divisa_live}."
+        )
+
+    for article in articles[:10]:
+
+        title = str(
+            article.get("title")
+            or "Sin título"
+        ).strip()
+
+        source = (
+            article.get("source", {})
+            or {}
+        ).get(
+            "title",
+            "Fuente desconocida"
+        )
+
+        date_time = (
+            article.get("dateTime")
+            or article.get("date")
+            or ""
+        )
+
+        url = (
+            article.get("url")
+            or ""
+        )
+
+        st.markdown(
+            f"""
+            <div style="
+                background:#FFFFFF;
+                border:1px solid #E5E7EB;
+                border-radius:14px;
+                padding:1rem 1.1rem;
+                margin-bottom:0.75rem;
+            ">
+
+                <div style="
+                    color:#9A7A10;
+                    font-size:0.72rem;
+                    font-weight:800;
+                    letter-spacing:0.06em;
+                    margin-bottom:0.4rem;
+                ">
+                    {divisa_live} · {source} · {date_time}
+                </div>
+
+                <div style="
+                    color:#111111;
+                    font-size:1rem;
+                    font-weight:750;
+                    line-height:1.45;
+                ">
+                    {title}
+                </div>
+
+                <div style="
+                    margin-top:0.55rem;
+                    font-size:0.8rem;
+                ">
+                    <a href="{url}" target="_blank">
+                        Abrir fuente
+                    </a>
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.stop()
 
