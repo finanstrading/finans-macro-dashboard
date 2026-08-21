@@ -3589,7 +3589,7 @@ def cargar_live_drivers_newsapi(divisa):
 
         # Consulta booleana
         "keyword": queries[divisa],
-        "keywordSearchMode": "exact",
+        "keywordSearchMode": "simple",
 
         # Buscar tanto en título como en cuerpo
         "keywordLoc": "body,title",
