@@ -4355,14 +4355,7 @@ if pagina_principal == "FX Live Drivers":
         divisa_live
     )
 
-    if divisa_live not in {"USD", "CHF"}:
-
-        st.info(
-            f"{divisa_live} se activará después de validar "
-            "primero USD y CHF."
-        )
-
-    elif not resultado_news["ok"]:
+    if not resultado_news["ok"]:
 
         st.error(
             "No se pudieron cargar los titulares de NewsAPI.ai: "
