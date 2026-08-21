@@ -3996,21 +3996,36 @@ def clasificar_catalizador_fx(article, divisa):
         monetary_terms
     )
 
-    if has_cb_reference:
+    # Referencia explícita al banco central en el titular
+    cb_en_titulo = contiene_titulo(cb_references)
 
-        # Una declaración explícita del banco central
-        # ya es relevante aunque el titular no mencione rates.
-        if (
-            contiene_titulo(cb_references)
-            or has_monetary_context
-        ):
-            relevancia = "ALTA"
-        else:
-            relevancia = "MEDIA"
+    # Política monetaria explícita en el titular
+    monetario_en_titulo = contiene_titulo(monetary_terms)
+
+    # CASO 1:
+    # Banco central / miembro claramente mencionado en el titular.
+    if cb_en_titulo:
+
+        relevancia = (
+            "ALTA"
+            if monetario_en_titulo or has_monetary_context
+            else "MEDIA"
+        )
 
         return {
             "categoria": "BANCO CENTRAL",
             "relevancia": relevancia,
+        }
+
+
+    # CASO 2:
+    # El banco central solo aparece en el cuerpo.
+    # Exigimos además contexto monetario explícito.
+    if has_cb_reference and has_monetary_context:
+
+        return {
+            "categoria": "BANCO CENTRAL",
+            "relevancia": "MEDIA",
         }
 
 
