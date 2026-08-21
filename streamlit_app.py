@@ -4811,13 +4811,6 @@ if pagina_principal == "FX Live Drivers":
 
         articles_raw = resultado_news["articles"]
 
-        st.write(
-            f"DEBUG {divisa_live} - recibidos API:",
-            len(articles_raw)
-        )
-        for a in articles_raw[:10]:
-            st.write(a.get("title", "SIN TITULO"))
-
         articles = filtrar_articulos_fx(
             articles_raw,
             divisa_live,
