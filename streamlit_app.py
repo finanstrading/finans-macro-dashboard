@@ -3561,10 +3561,7 @@ def cargar_live_drivers_newsapi(divisa):
             "euro area",
             "EUR/USD",
             "EUR/GBP",
-            "euro rises",
-            "euro falls",
-            "euro strengthens",
-            "euro weakens",
+            "euro",
         ],
 
         "GBP": [
