@@ -4406,11 +4406,6 @@ if pagina_principal == "FX Live Drivers":
             "Actualización máxima cada 10 minutos"
         )
 
-        st.caption(
-            f"{len(articles)} catalizadores filtrados · "
-            "Actualización máxima cada 10 minutos"
-        )
-
         if not articles:
 
             st.info(
