@@ -4137,41 +4137,11 @@ def filtrar_articulos_fx(articles, divisa):
         )
 
         # -----------------------------------------------
-        # H. EXCEPCIÓN: BANCO CENTRAL
-        #
-        # Una noticia directamente sobre Fed/ECB/BoE/etc.
-        # puede ser relevante aunque el titular no contenga
-        # literalmente inflation/rate/yield.
-        # -----------------------------------------------
-
-        central_bank_direct = contiene(
-            title,
-            [
-                "federal reserve",
-                "fomc",
-                "european central bank",
-                "ecb",
-                "bank of england",
-                "boe",
-                "bank of japan",
-                "boj",
-                "swiss national bank",
-                "snb",
-                "reserve bank of australia",
-                "rba",
-                "reserve bank of new zealand",
-                "rbnz",
-                "bank of canada",
-            ],
-        )
-
-        # -----------------------------------------------
-        # I. DECISIÓN FINAL
+        # H. DECISIÓN FINAL
         # -----------------------------------------------
 
         if not (
             catalyst_in_title
-            or central_bank_direct
             or (
                 currency_move_in_title
                 and contiene(body, catalyst_terms)
@@ -4180,6 +4150,22 @@ def filtrar_articulos_fx(articles, divisa):
             continue
 
         relevant.append(article)
+
+                # -----------------------------------------------
+                # I. DECISIÓN FINAL
+                # -----------------------------------------------
+
+                if not (
+                    catalyst_in_title
+                    or central_bank_direct
+                    or (
+                        currency_move_in_title
+                        and contiene(body, catalyst_terms)
+                    )
+                ):
+                    continue
+
+                relevant.append(article)
 
     return relevant
 
