@@ -4796,6 +4796,10 @@ if pagina_principal == "FX Live Drivers":
     # FX LIVE DRIVERS — DATOS REALES
     # ===================================================
 
+live_container = st.container()
+
+with live_container:
+
     resultado_news = cargar_live_drivers_newsapi(
         divisa_live
     )
