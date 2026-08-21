@@ -3667,75 +3667,127 @@ def cargar_live_drivers_newsapi(divisa):
 
 def filtrar_articulos_fx(articles, divisa):
     """
-    Filtra artículos para FX Live Drivers.
+    Filtro estricto para FX Live Drivers.
 
-    Objetivo:
-    1. El artículo debe estar claramente relacionado con la divisa/país.
-    2. Debe contener un catalizador macro, monetario, fiscal o geopolítico.
-    3. Evitar que menciones secundarias en el cuerpo asignen una noticia
-       a una divisa incorrecta.
+    Requisitos:
+    1. La divisa/país debe ser realmente el sujeto del titular.
+    2. Debe existir un catalizador macro/monetario/fiscal/geopolítico.
+    3. Excluye análisis técnico, ruido comercial y falsos positivos.
     """
+
+    import re
 
     divisa = str(divisa).strip().upper()
 
-    currency_terms = {
+    # ===================================================
+    # 1. REFERENCIAS FUERTES POR DIVISA
+    # ===================================================
+
+    strong_terms = {
 
         "USD": [
-            "federal reserve", "fed", "fomc",
-            "u.s. treasury", "us treasury",
-            "dollar", "usd",
-            "kevin warsh", "scott bessent",
+            "federal reserve",
+            "fomc",
+            "fed chair",
+            "fed governor",
+            "fed president",
+            "u.s. treasury",
+            "us treasury",
+            "u.s. dollar",
+            "us dollar",
+            "dollar",
+            "usd",
+            "kevin warsh",
+            "scott bessent",
         ],
 
         "EUR": [
-            "european central bank", "ecb",
-            "euro", "eur", "eurozone",
+            "european central bank",
+            "ecb",
+            "eurozone",
+            "euro area",
+            "eur/usd",
+            "eurusd",
+            "eur/gbp",
+            "eurgbp",
             "christine lagarde",
         ],
 
         "GBP": [
-            "bank of england", "boe",
-            "pound", "sterling", "gbp",
-            "andrew bailey", "uk treasury",
+            "bank of england",
+            "boe",
+            "monetary policy committee",
+            "pound sterling",
+            "british pound",
+            "gbp/usd",
+            "gbpusd",
+            "eur/gbp",
+            "eurgbp",
+            "andrew bailey",
+            "uk treasury",
         ],
 
         "JPY": [
-            "bank of japan", "boj",
-            "japanese yen", "yen", "jpy",
+            "bank of japan",
+            "boj",
+            "japanese yen",
+            "yen",
+            "jpy",
             "kazuo ueda",
             "japan ministry of finance",
             "japanese ministry of finance",
-            "jgb", "japanese government bond",
+            "jgb",
+            "japanese government bond",
         ],
 
         "CHF": [
-            "swiss national bank", "snb",
-            "martin schlegel", "petra tschudin",
-            "swiss franc", "chf",
+            "swiss national bank",
+            "snb",
+            "swiss franc",
+            "chf",
+            "martin schlegel",
+            "petra tschudin",
         ],
 
         "AUD": [
-            "reserve bank of australia", "rba",
-            "australian dollar", "aussie dollar",
-            "aud", "michele bullock",
+            "reserve bank of australia",
+            "rba",
+            "australian dollar",
+            "aussie dollar",
+            "aud/usd",
+            "audusd",
+            "aud/jpy",
+            "audjpy",
+            "michele bullock",
         ],
 
         "NZD": [
-            "reserve bank of new zealand", "rbnz",
-            "new zealand dollar", "kiwi dollar",
+            "reserve bank of new zealand",
+            "rbnz",
+            "new zealand dollar",
+            "kiwi dollar",
+            "nzd/usd",
+            "nzdusd",
             "nzd",
         ],
 
         "CAD": [
-            "bank of canada", "boc",
-            "canadian dollar", "cad",
+            "bank of canada",
+            "canadian dollar",
+            "usd/cad",
+            "usdcad",
+            "cad",
             "tiff macklem",
         ],
     }
 
+    # ===================================================
+    # 2. CATALIZADORES QUE SÍ NOS INTERESAN
+    # ===================================================
+
     catalyst_terms = [
 
-        # Bancos centrales / política monetaria
+        # Política monetaria
         "central bank",
         "interest rate",
         "interest rates",
@@ -3743,20 +3795,30 @@ def filtrar_articulos_fx(articles, divisa):
         "rate cuts",
         "rate hike",
         "rate hikes",
+        "rate decision",
         "monetary policy",
         "policy rate",
+        "hawkish",
+        "dovish",
 
-        # Inflación / actividad
+        # Inflación / macro
         "inflation",
         "cpi",
         "pce",
+        "ppi",
         "gdp",
         "employment",
         "unemployment",
         "payroll",
+        "payrolls",
+        "wage",
         "wages",
+        "pmi",
+        "retail sales",
+        "consumer confidence",
+        "business confidence",
 
-        # Bonos / yields
+        # Bonos
         "treasury",
         "treasuries",
         "bond",
@@ -3764,13 +3826,12 @@ def filtrar_articulos_fx(articles, divisa):
         "yield",
         "yields",
 
-        # Política fiscal
+        # Fiscal
         "fiscal",
         "deficit",
-        "debt",
+        "government debt",
+        "public debt",
         "budget",
-        "tax",
-        "taxes",
         "government spending",
 
         # Comercio
@@ -3790,11 +3851,75 @@ def filtrar_articulos_fx(articles, divisa):
         "war",
         "ceasefire",
         "conflict",
+        "geopolitical",
     ]
 
-    relevant = []
+    # ===================================================
+    # 3. CONTENIDO QUE NO QUEREMOS
+    # ===================================================
 
-    currency_list = currency_terms.get(divisa, [])
+    technical_terms = [
+        "rsi",
+        "overbought",
+        "oversold",
+        "moving average",
+        "support level",
+        "resistance level",
+        "technical analysis",
+        "price forecast",
+        "price prediction",
+        "daily outlook",
+        "daily report",
+        "technical outlook",
+        "bulls eye",
+        "bulls target",
+        "bears target",
+        "chart pattern",
+        "fibonacci",
+    ]
+
+    irrelevant_terms = [
+        "leasing",
+        "medical centre",
+        "medical center",
+        "football",
+        "soccer",
+        "real madrid",
+        "murder",
+        "killing",
+        "criminal",
+        "dividend",
+        "earnings report",
+        "aircraft supply",
+    ]
+
+    # ===================================================
+    # 4. FUNCIONES AUXILIARES
+    # ===================================================
+
+    def contiene(texto, terminos):
+        return any(
+            termino in texto
+            for termino in terminos
+        )
+
+    def contiene_palabra(texto, palabra):
+        """
+        Busca tokens cortos como CAD, AUD, CHF, etc.
+        como palabras completas.
+        """
+        return bool(
+            re.search(
+                rf"(?<![a-z]){re.escape(palabra.lower())}(?![a-z])",
+                texto,
+            )
+        )
+
+    # ===================================================
+    # 5. FILTRADO
+    # ===================================================
+
+    relevant = []
 
     for article in articles:
 
@@ -3809,32 +3934,104 @@ def filtrar_articulos_fx(articles, divisa):
             or ""
         ).lower()
 
-        # ---------------------------------------------------
-        # 1. La referencia a la divisa debe aparecer
-        #    obligatoriamente en el TITULAR.
-        # ---------------------------------------------------
+        # -----------------------------------------------
+        # EXCLUSIONES DIRECTAS
+        # -----------------------------------------------
 
-        currency_in_title = any(
-            term in title
-            for term in currency_list
-        )
+        if contiene(title, technical_terms):
+            continue
+
+        if contiene(title, irrelevant_terms):
+            continue
+
+        # -----------------------------------------------
+        # REFERENCIA REAL A LA DIVISA
+        # -----------------------------------------------
+
+        currency_in_title = False
+
+        for term in strong_terms.get(divisa, []):
+
+            # Los códigos ISO deben coincidir como token,
+            # no dentro de otras palabras.
+            if term in {
+                "usd",
+                "eur",
+                "gbp",
+                "jpy",
+                "chf",
+                "aud",
+                "nzd",
+                "cad",
+            }:
+                if contiene_palabra(title, term):
+                    currency_in_title = True
+                    break
+
+            elif term in title:
+                currency_in_title = True
+                break
 
         if not currency_in_title:
             continue
 
-        # ---------------------------------------------------
-        # 2. Debe existir además un catalizador macro.
-        #    Puede aparecer en titular o cuerpo.
-        # ---------------------------------------------------
+        # -----------------------------------------------
+        # CASOS ESPECIALES DE FALSOS POSITIVOS
+        # -----------------------------------------------
 
-        catalyst_in_title = any(
-            term in title
-            for term in catalyst_terms
+        if divisa == "EUR":
+
+            # "61 million euro", "825 million euro", etc.
+            # no significa que la noticia trate sobre EUR.
+            cantidad_euros = re.search(
+                r"\b\d[\d.,]*\s*(million|millions|billion|billions|m|bn)?\s*"
+                r"(euro|euros)\b",
+                title,
+            )
+
+            contexto_eur_real = contiene(
+                title,
+                [
+                    "european central bank",
+                    "ecb",
+                    "eurozone",
+                    "euro area",
+                    "eur/usd",
+                    "eurusd",
+                    "eur/gbp",
+                    "eurgbp",
+                    "euro rises",
+                    "euro falls",
+                    "euro gains",
+                    "euro weakens",
+                    "euro strengthens",
+                ],
+            )
+
+            if cantidad_euros and not contexto_eur_real:
+                continue
+
+        if divisa == "CAD":
+
+            # Evita BOC Aviation, BOC Kenya, etc.
+            if (
+                "boc aviation" in title
+                or "boc kenya" in title
+            ):
+                continue
+
+        # -----------------------------------------------
+        # CATALIZADOR
+        # -----------------------------------------------
+
+        catalyst_in_title = contiene(
+            title,
+            catalyst_terms,
         )
 
-        catalyst_in_body = any(
-            term in body
-            for term in catalyst_terms
+        catalyst_in_body = contiene(
+            body,
+            catalyst_terms,
         )
 
         if not (
