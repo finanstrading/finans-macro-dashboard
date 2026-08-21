@@ -3551,6 +3551,7 @@ def cargar_live_drivers_newsapi(divisa):
             "NZD/USD",
             "USD/CAD",
             "USD/CHF",
+            "dollar",
         ],
 
         "EUR": [
