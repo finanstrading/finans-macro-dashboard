@@ -1727,7 +1727,7 @@ def construir_df_currency_por_release(
                 ],
                 "comparison": "yoy",
             },
-            
+
             "Retail Sales MoM": {
                 "names": ["Retail Sales"],
                 "comparison": "mom",
@@ -2738,7 +2738,7 @@ def calcular_historico_currency_score(
     data_version,
     frecuencia="W",
     periodos=26,
-    revision="release_v15",
+    revision="release_v16",
 ):
 
 
@@ -5281,7 +5281,7 @@ try:
             data_version,
             frecuencia="W",
             periodos=26,
-            revision="release_v15",
+            revision="release_v16",
         )
 
         print(
