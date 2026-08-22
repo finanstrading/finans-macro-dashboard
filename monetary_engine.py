@@ -435,19 +435,36 @@ def score_nivel_relativo(resultado, inverso=False):
 # ============================================================
 
 def motor_inflacion(serie, resultado, indicador, objetivo):
+
     ultimo = resultado["ultimo_valor"]
     anterior = resultado.get("valor_anterior")
     frecuencia = detectar_frecuencia(indicador)
 
+    # ==========================================================
+    # 1. NIVEL FRENTE AL OBJETIVO DEL BANCO CENTRAL
+    # ==========================================================
+
     if frecuencia == "mensual":
-        # Aproximación anualizada compuesta para evitar comparar directamente
-        # un dato mensual con un objetivo anual.
-        ritmo_equivalente = ((1.0 + ultimo / 100.0) ** 12 - 1.0) * 100.0
+
+        # Convertimos el dato mensual a un ritmo anualizado aproximado.
+        ritmo_equivalente = (
+            (1.0 + ultimo / 100.0) ** 12 - 1.0
+        ) * 100.0
+
         desviacion = ritmo_equivalente - objetivo
-        score_mandato = 50.0 + 32.0 * np.tanh(desviacion / 1.5)
+
+        score_mandato = (
+            50.0
+            + 32.0 * np.tanh(
+                desviacion / 1.5
+            )
+        )
 
         referencia_persistencia = (
-            (1.0 + objetivo / 100.0) ** (1.0 / 12.0) - 1.0
+            (
+                1.0 + objetivo / 100.0
+            ) ** (1.0 / 12.0)
+            - 1.0
         ) * 100.0
 
         etiqueta_nivel = (
@@ -456,8 +473,16 @@ def motor_inflacion(serie, resultado, indicador, objetivo):
         )
 
     else:
+
         desviacion = ultimo - objetivo
-        score_mandato = 50.0 + 32.0 * np.tanh(desviacion / 1.5)
+
+        score_mandato = (
+            50.0
+            + 32.0 * np.tanh(
+                desviacion / 1.5
+            )
+        )
+
         referencia_persistencia = objetivo
 
         etiqueta_nivel = (
@@ -466,49 +491,93 @@ def motor_inflacion(serie, resultado, indicador, objetivo):
         )
 
     # ==========================================================
-    # MOMENTUM DE INFLACIÓN CON COHERENCIA DIRECCIONAL
+    # 2. CAMBIO RECIENTE DE INFLACIÓN
     #
-    # El momentum conserva información sobre aceleración /
-    # desaceleración, pero no puede invertir la dirección
-    # económica del último dato.
-    #
-    # Inflación baja  -> momentum <= neutral (50)
-    # Inflación sube  -> momentum >= neutral (50)
-    # Sin cambio      -> se conserva el cálculo original
+    # Queremos que una aceleración/desaceleración importante
+    # tenga una reacción visible sin permitir movimientos
+    # extremos en el score.
     # ==========================================================
 
-    score_impulso = score_momentum(resultado)
+    if anterior is None:
 
-    if anterior is not None:
+        score_cambio_reciente = 50.0
 
-        if ultimo < anterior:
-            # Desinflación: puede ser más o menos intensa,
-            # pero no puede convertirse en señal hawkish.
-            score_impulso = min(score_impulso, 50.0)
+    else:
 
-        elif ultimo > anterior:
-            # Aceleración de inflación: puede ser más o menos
-            # intensa, pero no puede convertirse en señal dovish.
-            score_impulso = max(score_impulso, 50.0)
+        cambio = ultimo - anterior
+
+        # Sensibilidad distinta según frecuencia.
+        #
+        # YoY:
+        #  +0.25/+0.30 pp ya es un movimiento macro relevante.
+        #
+        # MoM:
+        #  movimientos de ~0.10/+0.15 pp son relevantes.
+        if frecuencia == "mensual":
+            escala_cambio = 0.15
+
+        elif frecuencia == "interanual":
+            escala_cambio = 0.25
+
+        else:
+            escala_cambio = 0.25
+
+        score_cambio_reciente = (
+            50.0
+            + 30.0 * np.tanh(
+                cambio / escala_cambio
+            )
+        )
+
+        score_cambio_reciente = _limitar(
+            score_cambio_reciente
+        )
+
+    # ==========================================================
+    # 3. COMPONENTES DEL SCORE
+    # ==========================================================
 
     componentes = {
-        "Mandato de estabilidad de precios": _limitar(score_mandato),
-        "Tendencia": score_tendencia(resultado),
-        "Impulso reciente": _limitar(score_impulso),
-        "Persistencia": score_persistencia(
-            serie,
-            referencia_persistencia,
-            inverso=False,
-            ventana=6,
-        ),
-        "Posición histórica": score_historico(resultado),
+
+        "Mandato de estabilidad de precios":
+            _limitar(score_mandato),
+
+        "Tendencia":
+            score_tendencia(resultado),
+
+        "Cambio reciente":
+            score_cambio_reciente,
+
+        "Persistencia":
+            score_persistencia(
+                serie,
+                referencia_persistencia,
+                inverso=False,
+                ventana=6,
+            ),
+
+        "Posición histórica":
+            score_historico(resultado),
     }
 
+    # ==========================================================
+    # 4. PESOS
+    #
+    # El mandato sigue siendo la pieza principal.
+    # Reducimos algo la tendencia y damos más relevancia al
+    # dato que acaba de publicarse.
+    # ==========================================================
+
     pesos = {
+
         "Mandato de estabilidad de precios": 0.45,
-        "Tendencia": 0.20,
-        "Impulso reciente": 0.15,
+
+        "Tendencia": 0.15,
+
+        "Cambio reciente": 0.20,
+
         "Persistencia": 0.15,
+
         "Posición histórica": 0.05,
     }
 
