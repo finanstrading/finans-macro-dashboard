@@ -1711,15 +1711,23 @@ def construir_df_currency_por_release(
             },
 
             "CPI YoY": {
-                "names": ["CPI"],
+                "names": [
+                    "CPI",
+                    "Inflation Rate",
+                    "Inflation Rate YoY",
+                ],
                 "comparison": "yoy",
             },
 
             "Core CPI YoY": {
-                "names": ["Core CPI"],
+                "names": [
+                    "Core CPI",
+                    "Core Inflation Rate",
+                    "Core Inflation Rate YoY",
+                ],
                 "comparison": "yoy",
             },
-
+            
             "Retail Sales MoM": {
                 "names": ["Retail Sales"],
                 "comparison": "mom",
@@ -6121,18 +6129,22 @@ try:
 
     ultima_fecha = ultimo_registro["Fecha"]
 
+    # ===================================================
+    # DATO ANTERIOR
+    #
+    # Siempre procede de la propia serie histórica
+    # del Dashboard.
+    #
+    # EODHD se utiliza como reloj de publicación,
+    # no como fuente del dato anterior.
+    # ===================================================
+
     if len(datos_completos) >= 2:
-        valor_anterior_historico = float(
+        valor_anterior = float(
             datos_completos.iloc[-2]["Valor"]
         )
     else:
-        valor_anterior_historico = None
-
-    valor_anterior = (
-        float(previous_release)
-        if pd.notna(previous_release)
-        else valor_anterior_historico
-    )
+        valor_anterior = None
 
     variacion = (
         ultimo_valor - valor_anterior
