@@ -237,8 +237,8 @@ CURRENCY_WEIGHTS = {
             "inflacion": 0.38,
             "empleo": 0.27,
             "actividad": 0.17,
-            "demanda": 0.11,
-            "sentimiento": 0.07,
+            "demanda": 0.08,
+            "sentimiento": 0.10,
         },
 
         "indicators": {
