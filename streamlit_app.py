@@ -3687,12 +3687,10 @@ def cargar_live_drivers_finnhub(divisa):
     try:
         api_key = st.secrets["finnhub"]["api_key"]
 
-    except Exception as e:
-        st.error(f"ERROR LEYENDO FINNHUB SECRET: {repr(e)}")
-
+    except Exception:
         return {
             "ok": False,
-            "error": f"Error Finnhub secret: {repr(e)}",
+            "error": "Falta configurar Finnhub en Streamlit Secrets.",
             "articles": [],
         }
 
