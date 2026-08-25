@@ -150,10 +150,10 @@ CURRENCY_WEIGHTS = {
     "JPY": {
         "families": {
             "inflacion": 0.40,
-            "empleo": 0.25,
-            "actividad": 0.15,
-            "demanda": 0.15,
-            "sentimiento": 0.05,
+            "empleo": 0.15,
+            "actividad": 0.10,
+            "demanda": 0.25,
+            "sentimiento": 0.10,
         },
 
         "indicators": {
