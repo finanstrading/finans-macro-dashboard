@@ -58,11 +58,11 @@ CURRENCY_WEIGHTS = {
     # ========================================================
     "EUR": {
         "families": {
-            "inflacion": 0.50,
-            "empleo": 0.12,
+            "inflacion": 0.45,
+            "empleo": 0.15,
             "actividad": 0.20,
-            "demanda": 0.10,
-            "sentimiento": 0.08,
+            "demanda": 0.05,
+            "sentimiento": 0.15,
         },
 
         "indicators": {
@@ -105,10 +105,10 @@ CURRENCY_WEIGHTS = {
     "GBP": {
         "families": {
             "inflacion": 0.45,
-            "empleo": 0.25,
+            "empleo": 0.20,
             "actividad": 0.15,
-            "demanda": 0.08,
-            "sentimiento": 0.07,
+            "demanda": 0.10,
+            "sentimiento": 0.10,
         },
 
         "indicators": {
@@ -234,11 +234,11 @@ CURRENCY_WEIGHTS = {
     # ========================================================
     "AUD": {
         "families": {
-            "inflacion": 0.32,
-            "empleo": 0.30,
-            "actividad": 0.18,
-            "demanda": 0.12,
-            "sentimiento": 0.08,
+            "inflacion": 0.38,
+            "empleo": 0.27,
+            "actividad": 0.17,
+            "demanda": 0.11,
+            "sentimiento": 0.07,
         },
 
         "indicators": {
