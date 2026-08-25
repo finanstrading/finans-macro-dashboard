@@ -5138,12 +5138,40 @@ if pagina_principal == "FX Live Drivers":
         else:
 
             # ===================================================
+            # COMPROBACIÓN TEMPORAL DE LAS DOS APIs
+            # ===================================================
+
+            st.write(
+                "NewsAPI RAW:",
+                len(resultado_newsapi["articles"])
+                if resultado_newsapi["ok"]
+                else 0,
+            )
+
+            st.write(
+                "Finnhub RAW:",
+                len(resultado_finnhub["articles"])
+                if resultado_finnhub["ok"]
+                else 0,
+            )
+
+            st.write(
+                "Total combinado:",
+                len(articles_raw),
+            )
+
+            # ===================================================
             # FILTRO FX COMÚN PARA LAS DOS FUENTES
             # ===================================================
 
             articles = filtrar_articulos_fx(
                 articles_raw,
                 divisa_live,
+            )
+
+            st.write(
+                "Después del filtro:",
+                len(articles),
             )
 
             # ===================================================
