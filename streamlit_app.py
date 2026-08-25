@@ -3673,26 +3673,50 @@ def cargar_live_drivers_newsapi(divisa):
 
 def filtrar_articulos_fx(articles, divisa):
     """
-    Filtro de relevancia para FX Live Drivers.
+    Filtro estricto de relevancia para FX Live Drivers.
 
-    Objetivo:
-    - La noticia debe tratar realmente sobre la divisa/economía.
-    - El titular debe contener contexto macro, monetario, fiscal,
-      comercial, de bonos o FX.
-    - Evitar falsos positivos por dollar/euro/CAD/etc.
-    - El body sirve como confirmación, no como excusa para aceptar
-      un titular irrelevante.
+    Principios:
+    1. La noticia debe tratar realmente sobre la divisa/economía.
+    2. Debe existir un catalizador macro/monetario/fiscal/geopolítico
+       relevante para FX.
+    3. Las siglas ambiguas (RBA, CAD, etc.) no son suficientes solas.
+    4. El titular tiene prioridad.
+    5. El body sirve solamente como confirmación secundaria.
     """
 
     import re
 
-    divisa = str(divisa).strip().upper()
+    divisa = str(divisa or "").strip().upper()
 
-    # ===================================================
-    # 1. REFERENCIAS REALES POR DIVISA
-    # ===================================================
+    # ============================================================
+    # FUNCIONES AUXILIARES
+    # ============================================================
 
-    strong_terms = {
+    def contiene(texto, terminos):
+        return any(
+            termino in texto
+            for termino in terminos
+        )
+
+    def contiene_palabra(texto, palabra):
+        return bool(
+            re.search(
+                rf"(?<![a-z]){re.escape(palabra.lower())}(?![a-z])",
+                texto,
+            )
+        )
+
+    def contiene_alguna_palabra(texto, palabras):
+        return any(
+            contiene_palabra(texto, palabra)
+            for palabra in palabras
+        )
+
+    # ============================================================
+    # 1. REFERENCIAS FX / MACRO POR DIVISA
+    # ============================================================
+
+    referencias_fuertes = {
 
         "USD": [
             "federal reserve",
@@ -3704,7 +3728,10 @@ def filtrar_articulos_fx(articles, divisa):
             "us treasury",
             "u.s. dollar",
             "us dollar",
-            "usd",
+            "dollar index",
+            "dxy",
+            "usd/",
+            "/usd",
             "scott bessent",
         ],
 
@@ -3713,11 +3740,11 @@ def filtrar_articulos_fx(articles, divisa):
             "ecb",
             "eurozone",
             "euro area",
+            "euro-area",
             "eur/usd",
             "eurusd",
             "eur/gbp",
             "eurgbp",
-            "euro",
             "christine lagarde",
         ],
 
@@ -3727,6 +3754,7 @@ def filtrar_articulos_fx(articles, divisa):
             "monetary policy committee",
             "pound sterling",
             "british pound",
+            "sterling",
             "gbp/usd",
             "gbpusd",
             "eur/gbp",
@@ -3740,7 +3768,8 @@ def filtrar_articulos_fx(articles, divisa):
             "boj",
             "japanese yen",
             "yen",
-            "jpy",
+            "jpy/",
+            "/jpy",
             "kazuo ueda",
             "japan ministry of finance",
             "japanese ministry of finance",
@@ -3752,14 +3781,14 @@ def filtrar_articulos_fx(articles, divisa):
             "swiss national bank",
             "snb",
             "swiss franc",
-            "chf",
+            "chf/",
+            "/chf",
             "martin schlegel",
             "petra tschudin",
         ],
 
         "AUD": [
             "reserve bank of australia",
-            "rba",
             "australian dollar",
             "aussie dollar",
             "aud/usd",
@@ -3776,7 +3805,8 @@ def filtrar_articulos_fx(articles, divisa):
             "kiwi dollar",
             "nzd/usd",
             "nzdusd",
-            "nzd",
+            "nzd/",
+            "/nzd",
         ],
 
         "CAD": [
@@ -3784,129 +3814,217 @@ def filtrar_articulos_fx(articles, divisa):
             "canadian dollar",
             "usd/cad",
             "usdcad",
-            "cad",
+            "cad/",
+            "/cad",
             "tiff macklem",
         ],
     }
 
-    # ===================================================
-    # 2. CATALIZADORES FX
-    # ===================================================
+    # ============================================================
+    # 2. SIGLAS AMBIGUAS
+    # ============================================================
 
-    catalyst_terms = [
+    # Estas NO son suficientes por sí solas.
+    # Necesitan contexto macro adicional.
 
-        # Política monetaria
+    siglas_ambiguas = {
+        "AUD": ["rba", "aud"],
+        "CAD": ["cad", "boc"],
+        "EUR": ["eur"],
+        "GBP": ["gbp"],
+        "JPY": ["jpy"],
+        "CHF": ["chf"],
+        "NZD": ["nzd"],
+        "USD": ["usd"],
+    }
+
+    # ============================================================
+    # 3. TÉRMINOS MACRO / MONETARIOS RELEVANTES
+    # ============================================================
+
+    monetary_terms = [
         "central bank",
         "interest rate",
         "interest rates",
-        "rate cut",
-        "rate cuts",
         "rate hike",
         "rate hikes",
+        "rate cut",
+        "rate cuts",
+        "rate rise",
+        "rate increase",
         "rate decision",
-        "monetary policy",
         "policy rate",
+        "monetary policy",
         "hawkish",
         "dovish",
         "tightening",
         "easing",
+        "quantitative tightening",
+        "quantitative easing",
+        "yield curve",
+        "terminal rate",
+        "neutral rate",
+        "rate path",
+        "rate outlook",
+    ]
 
-        # Inflación / macro
+    inflation_terms = [
         "inflation",
         "cpi",
-        "pce",
-        "ppi",
+        "core cpi",
+        "consumer prices",
+        "price pressures",
+        "inflation expectations",
+        "wage inflation",
+        "price growth",
+        "disinflation",
+    ]
+
+    activity_terms = [
         "gdp",
+        "economic growth",
+        "growth outlook",
+        "recession",
+        "economic slowdown",
+        "economic contraction",
+        "economic expansion",
+        "pmi",
+        "manufacturing",
+        "services activity",
+        "industrial production",
+        "retail sales",
+        "consumer spending",
+        "household spending",
         "employment",
         "unemployment",
-        "payroll",
-        "payrolls",
-        "wage",
         "wages",
-        "pmi",
-        "retail sales",
-        "consumer confidence",
-        "business confidence",
+        "labor market",
+        "labour market",
+    ]
 
-        # Bonos / yields
-        "treasury yield",
-        "treasury yields",
-        "bond yield",
-        "bond yields",
-        "treasuries",
-        "government bonds",
-        "bond market",
-        "bond buyback",
-        "bond buybacks",
-        "borrowing costs",
-        "gilts",
-        "bunds",
-
-        # Fiscal
+    fiscal_terms = [
         "fiscal policy",
-        "budget deficit",
-        "government deficit",
-        "debt ceiling",
         "government spending",
+        "budget",
+        "budget deficit",
+        "fiscal deficit",
+        "tax cuts",
+        "tax increase",
+        "tax rises",
+        "public spending",
+        "debt issuance",
         "government debt",
-        "national debt",
+        "treasury issuance",
+    ]
 
-        # Comercio
+    trade_terms = [
         "tariff",
         "tariffs",
-        "trade deal",
         "trade war",
         "trade talks",
+        "trade dispute",
+        "trade deal",
         "trade agreement",
-        "sanctions",
+        "trade restrictions",
+        "import duties",
+        "export restrictions",
+        "retaliatory tariffs",
+    ]
 
-        # FX
+    bond_terms = [
+        "bond yield",
+        "bond yields",
+        "treasury yield",
+        "treasury yields",
+        "government bond",
+        "government bonds",
+        "jgb",
+        "gilts",
+        "bund yield",
+        "bund yields",
+        "yield surge",
+        "yields rise",
+        "yields fall",
+        "bond selloff",
+        "bond rally",
+    ]
+
+    fx_terms = [
         "currency intervention",
         "fx intervention",
         "foreign exchange intervention",
-
-        # Geopolítica
-        "war",
-        "ceasefire",
-        "conflict",
-        "geopolitical",
-        "escalation",
+        "currency market",
+        "foreign exchange market",
+        "exchange rate",
+        "currency weakness",
+        "currency strength",
+        "currency depreciation",
+        "currency appreciation",
     ]
 
-    # ===================================================
-    # 3. VERBOS QUE INDICAN MOVIMIENTO REAL DE DIVISA
-    # ===================================================
+    geopolitical_terms = [
+        "sanctions",
+        "war",
+        "military",
+        "missile",
+        "attack",
+        "strike",
+        "ceasefire",
+        "invasion",
+        "conflict",
+        "escalation",
+        "nuclear",
+        "blockade",
+        "iran",
+        "israel",
+        "russia",
+        "ukraine",
+        "china",
+        "taiwan",
+    ]
+
+    catalyst_terms = (
+        monetary_terms
+        + inflation_terms
+        + activity_terms
+        + fiscal_terms
+        + trade_terms
+        + bond_terms
+        + fx_terms
+        + geopolitical_terms
+    )
+
+    # ============================================================
+    # 4. MOVIMIENTOS DE DIVISA
+    # ============================================================
 
     currency_movement_terms = [
         "rises",
         "rise",
-        "rallies",
-        "rally",
         "gains",
         "gain",
+        "advances",
         "strengthens",
-        "strengthen",
         "firms",
-        "firm",
-        "rebounds",
-        "rebound",
+        "higher",
+        "jumps",
+        "surges",
+        "rallies",
         "falls",
         "fall",
         "drops",
-        "drop",
-        "weakens",
-        "weaken",
-        "slips",
-        "slip",
         "declines",
-        "decline",
-        "extends gains",
-        "extends losses",
+        "retreats",
+        "weakens",
+        "slides",
+        "slips",
+        "lower",
+        "plunges",
     ]
 
-    # ===================================================
-    # 4. RUIDO
-    # ===================================================
+    # ============================================================
+    # 5. RUIDO DURO
+    # ============================================================
 
     technical_terms = [
         "rsi",
@@ -3916,59 +4034,78 @@ def filtrar_articulos_fx(articles, divisa):
         "support level",
         "resistance level",
         "technical analysis",
-        "price forecast",
-        "price prediction",
-        "daily outlook",
-        "daily report",
         "technical outlook",
-        "bulls eye",
-        "bulls target",
-        "bears target",
         "chart pattern",
         "fibonacci",
+        "price prediction",
+        "price forecast",
+        "bulls target",
+        "bears target",
     ]
 
     irrelevant_terms = [
-        "leasing",
-        "medical centre",
-        "medical center",
         "football",
         "soccer",
         "real madrid",
-        "murder",
-        "killing",
-        "criminal",
-        "fraud",
-        "dividend",
-        "earnings report",
-        "aircraft supply",
-        "xbox",
-        "playstation",
         "lottery",
         "jackpot",
+        "casino",
+        "gaming",
+        "playstation",
+        "xbox",
+        "murder",
+        "robbery",
+        "stolen",
+        "theft",
+        "criminal",
+        "fraud",
+        "recipe",
+        "restaurant",
+        "supermarket",
+        "parmigiano",
+        "cheese",
+        "medical centre",
+        "medical center",
+        "real estate listing",
+        "property listing",
+        "jogging track",
+        "jogging",
     ]
 
-    # ===================================================
-    # 5. FUNCIONES AUXILIARES
-    # ===================================================
+    # ============================================================
+    # 6. CONTEXTO NECESARIO PARA SIGLAS AMBIGUAS
+    # ============================================================
 
-    def contiene(texto, terminos):
-        return any(
-            termino in texto
-            for termino in terminos
-        )
+    contexto_macro_ambiguo = (
+        monetary_terms
+        + inflation_terms
+        + activity_terms
+        + fiscal_terms
+        + trade_terms
+        + bond_terms
+        + fx_terms
+        + [
+            "australia",
+            "australian",
+            "canada",
+            "canadian",
+            "eurozone",
+            "euro area",
+            "japan",
+            "japanese",
+            "switzerland",
+            "swiss",
+            "new zealand",
+            "britain",
+            "british",
+            "united kingdom",
+            "united states",
+        ]
+    )
 
-    def contiene_palabra(texto, palabra):
-        return bool(
-            re.search(
-                rf"(?<![a-z]){re.escape(palabra.lower())}(?![a-z])",
-                texto,
-            )
-        )
-
-    # ===================================================
-    # 6. FILTRADO
-    # ===================================================
+    # ============================================================
+    # 7. FILTRADO
+    # ============================================================
 
     relevant = []
 
@@ -3977,20 +4114,22 @@ def filtrar_articulos_fx(articles, divisa):
         title = str(
             article.get("title")
             or ""
-        ).lower()
+        ).strip().lower()
 
         body = str(
             article.get("body")
             or article.get("summary")
             or ""
-        ).lower()
+        ).strip().lower()
 
         if not title:
             continue
 
-        # -----------------------------------------------
-        # A. RUIDO DIRECTO
-        # -----------------------------------------------
+        texto_completo = f"{title} {body}"
+
+        # --------------------------------------------------------
+        # A. RUIDO CLARO
+        # --------------------------------------------------------
 
         if contiene(title, technical_terms):
             continue
@@ -3998,79 +4137,137 @@ def filtrar_articulos_fx(articles, divisa):
         if contiene(title, irrelevant_terms):
             continue
 
-        # -----------------------------------------------
-        # B. REFERENCIA A LA DIVISA
-        # -----------------------------------------------
+        # --------------------------------------------------------
+        # B. REFERENCIA FUERTE A LA DIVISA
+        # --------------------------------------------------------
 
-        currency_in_title = False
+        referencia_fuerte = contiene(
+            title,
+            referencias_fuertes.get(divisa, []),
+        )
 
-        for term in strong_terms.get(divisa, []):
+        # --------------------------------------------------------
+        # C. SIGLA AMBIGUA
+        # --------------------------------------------------------
 
-            if term in {
-                "usd",
-                "eur",
-                "gbp",
-                "jpy",
-                "chf",
-                "aud",
-                "nzd",
-                "cad",
-            }:
+        referencia_ambigua = contiene_alguna_palabra(
+            title,
+            siglas_ambiguas.get(divisa, []),
+        )
 
-                if contiene_palabra(title, term):
-                    currency_in_title = True
-                    break
+        if referencia_ambigua and not referencia_fuerte:
 
-            elif term in title:
-                currency_in_title = True
-                break
-
-        if not currency_in_title:
-            continue
-
-        # -----------------------------------------------
-        # C. FALSOS POSITIVOS EUR
-        # -----------------------------------------------
-
-        if divisa == "EUR":
-
-            cantidad_euros = re.search(
-                r"\b\d[\d.,]*\s*"
-                r"(million|millions|billion|billions|m|bn)?\s*"
-                r"(euro|euros)\b",
+            contexto_valido = contiene(
                 title,
+                contexto_macro_ambiguo,
             )
 
-            contexto_eur_real = contiene(
+            if not contexto_valido:
+                continue
+
+        # --------------------------------------------------------
+        # D. CASO ESPECIAL AUD / RBA
+        # --------------------------------------------------------
+
+        if divisa == "AUD" and contiene_palabra(title, "rba"):
+
+            contexto_rba_real = contiene(
                 title,
                 [
-                    "european central bank",
-                    "ecb",
-                    "eurozone",
-                    "euro area",
-                    "eur/usd",
-                    "eurusd",
-                    "eur/gbp",
-                    "eurgbp",
+                    "reserve bank",
+                    "australia",
+                    "australian",
+                    "interest rate",
+                    "rate hike",
+                    "rate cut",
+                    "monetary policy",
+                    "inflation",
+                    "cpi",
+                    "bullock",
+                    "minutes",
+                    "board members",
+                    "cash rate",
                 ],
             )
 
-            if cantidad_euros and not contexto_eur_real:
+            if not contexto_rba_real:
                 continue
 
-        # -----------------------------------------------
-        # D. FALSOS POSITIVOS USD
-        # -----------------------------------------------
+        # --------------------------------------------------------
+        # E. CASO ESPECIAL EUR
+        # --------------------------------------------------------
+
+        if divisa == "EUR":
+
+            # "euro" como simple moneda/precio NO cuenta.
+            euro_generico = (
+                "euro" in title
+                and not contiene(
+                    title,
+                    [
+                        "eurozone",
+                        "euro area",
+                        "european central bank",
+                        "ecb",
+                        "eur/",
+                        "/eur",
+                        "euro rises",
+                        "euro falls",
+                        "euro gains",
+                        "euro weakens",
+                        "euro strengthens",
+                        "euro slides",
+                    ],
+                )
+            )
+
+            contexto_macro_eur = contiene(
+                title,
+                catalyst_terms,
+            )
+
+            if euro_generico and not contexto_macro_eur:
+                continue
+
+        # --------------------------------------------------------
+        # F. CASO ESPECIAL CAD
+        # --------------------------------------------------------
+
+        if divisa == "CAD":
+
+            if (
+                "boc aviation" in title
+                or "boc kenya" in title
+            ):
+                continue
+
+            cantidad_cad = bool(
+                re.search(
+                    r"\bcad\s?\$?\s*\d",
+                    title,
+                )
+            )
+
+            if cantidad_cad and not contiene(
+                title,
+                [
+                    "bank of canada",
+                    "canadian dollar",
+                    "usd/cad",
+                    "usdcad",
+                ],
+            ):
+                continue
+
+        # --------------------------------------------------------
+        # G. CASO ESPECIAL USD
+        # --------------------------------------------------------
 
         if divisa == "USD":
 
-            # Precios o cantidades expresadas simplemente
-            # en dólares no convierten la noticia en FX.
             cantidad_dolares = bool(
                 re.search(
-                    r"\b(?:\$|usd\s*)?\d[\d.,]*\s*"
-                    r"(million|millions|billion|billions|m|bn)?\s*"
-                    r"(?:u\.?s\.?\s*)?dollars?\b",
+                    r"(?:\$|usd\s*)\d[\d.,]*",
                     title,
                 )
             )
@@ -4086,79 +4283,67 @@ def filtrar_articulos_fx(articles, divisa):
                     "u.s. dollar",
                     "usd/",
                     "/usd",
+                    "dollar rises",
+                    "dollar falls",
+                    "dollar gains",
+                    "dollar weakens",
+                    "dollar strengthens",
                 ],
             )
 
             if cantidad_dolares and not contexto_usd_real:
                 continue
 
-        # -----------------------------------------------
-        # E. FALSOS POSITIVOS CAD
-        # -----------------------------------------------
+        # --------------------------------------------------------
+        # H. DEBE EXISTIR REFERENCIA REAL
+        # --------------------------------------------------------
 
-        if divisa == "CAD":
+        if not (
+            referencia_fuerte
+            or referencia_ambigua
+        ):
+            continue
 
-            if (
-                "boc aviation" in title
-                or "boc kenya" in title
-            ):
-                continue
-
-            # CAD usado únicamente como símbolo monetario
-            # de una cantidad.
-            cantidad_cad = bool(
-                re.search(
-                    r"\bcad\s?\$?\s*\d",
-                    title,
-                )
-            )
-
-            contexto_cad_real = contiene(
-                title,
-                [
-                    "bank of canada",
-                    "canadian dollar",
-                    "usd/cad",
-                    "usdcad",
-                ],
-            )
-
-            if cantidad_cad and not contexto_cad_real:
-                continue
-
-        # -----------------------------------------------
-        # F. CATALIZADOR EN EL TITULAR
-        # -----------------------------------------------
+        # --------------------------------------------------------
+        # I. CATALIZADOR MACRO
+        # --------------------------------------------------------
 
         catalyst_in_title = contiene(
             title,
             catalyst_terms,
         )
 
-        # -----------------------------------------------
-        # G. MOVIMIENTO DE LA DIVISA
-        # -----------------------------------------------
-
         currency_move_in_title = contiene(
             title,
             currency_movement_terms,
         )
 
+        catalyst_in_body = contiene(
+            body,
+            catalyst_terms,
+        )
 
-        # -----------------------------------------------
-        # H. DECISIÓN FINAL
-        # -----------------------------------------------
+        # --------------------------------------------------------
+        # J. DECISIÓN
+        # --------------------------------------------------------
 
-        if not (
-            catalyst_in_title
-            or (
-                currency_move_in_title
-                and contiene(body, catalyst_terms)
-            )
-        ):
+        # Mejor caso:
+        # divisa + catalizador explícito en titular.
+        if catalyst_in_title:
+            relevant.append(article)
             continue
 
-        relevant.append(article)
+        # Segundo caso:
+        # movimiento explícito de la divisa +
+        # cuerpo que confirma un catalizador macro.
+        if (
+            currency_move_in_title
+            and catalyst_in_body
+        ):
+            relevant.append(article)
+            continue
+
+        # Todo lo demás se descarta.
 
     return relevant
 
