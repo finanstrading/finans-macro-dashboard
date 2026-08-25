@@ -4199,26 +4199,32 @@ def filtrar_articulos_fx(articles, divisa):
 
         if divisa == "EUR":
 
-            # "euro" como simple moneda/precio NO cuenta.
-            euro_generico = (
-                "euro" in title
-                and not contiene(
-                    title,
-                    [
-                        "eurozone",
-                        "euro area",
-                        "european central bank",
-                        "ecb",
-                        "eur/",
-                        "/eur",
-                        "euro rises",
-                        "euro falls",
-                        "euro gains",
-                        "euro weakens",
-                        "euro strengthens",
-                        "euro slides",
-                    ],
-                )
+            contexto_eur_fuerte = contiene(
+                title,
+                [
+                    "european central bank",
+                    "ecb",
+                    "eurozone",
+                    "euro area",
+                    "euro-area",
+                    "eur/usd",
+                    "eurusd",
+                    "eur/gbp",
+                    "eurgbp",
+                    "euro rises",
+                    "euro falls",
+                    "euro gains",
+                    "euro weakens",
+                    "euro strengthens",
+                    "euro slides",
+                    "euro rallies",
+                    "euro retreats",
+                    "euro edges",
+                    "euro holds",
+                    "euro climbs",
+                    "euro drops",
+                    "euro under pressure",
+                ],
             )
 
             contexto_macro_eur = contiene(
@@ -4226,7 +4232,13 @@ def filtrar_articulos_fx(articles, divisa):
                 catalyst_terms,
             )
 
-            if euro_generico and not contexto_macro_eur:
+            # Si aparece "euro" pero no hay ni contexto FX fuerte
+            # ni catalizador macro, se descarta.
+            if (
+                "euro" in title
+                and not contexto_eur_fuerte
+                and not contexto_macro_eur
+            ):
                 continue
 
         # --------------------------------------------------------
