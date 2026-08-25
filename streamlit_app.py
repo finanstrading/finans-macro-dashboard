@@ -3522,7 +3522,7 @@ def determinar_sufijo(nombre_indicador):
 # ===================================================
 
 @st.cache_data(ttl=30, show_spinner=False)
-def cargar_live_drivers_newsapi(divisa):
+def cargar_live_drivers_newsapi(divisa, modo="Todos"):
     """
     MVP inicial:
     obtiene titulares recientes desde NewsAPI.ai
@@ -3540,6 +3540,7 @@ def cargar_live_drivers_newsapi(divisa):
         }
 
     divisa = str(divisa).strip().upper()
+    modo = str(modo or "Todos").strip()
 
     queries = {
 
@@ -3602,6 +3603,66 @@ def cargar_live_drivers_newsapi(divisa):
         ],
     }
 
+    queries_bancos_centrales = {
+
+        "USD": [
+            "Federal Reserve",
+            "FOMC",
+            "Fed Chair",
+            "Fed Governor",
+            "Fed President",
+            "Kevin Warsh",
+        ],
+
+        "EUR": [
+            "European Central Bank",
+            "ECB",
+            "ECB President",
+            "ECB Governing Council",
+        ],
+
+        "GBP": [
+            "Bank of England",
+            "BoE",
+            "Monetary Policy Committee",
+            "MPC",
+        ],
+
+        "JPY": [
+            "Bank of Japan",
+            "BoJ",
+            "Kazuo Ueda",
+        ],
+
+        "CHF": [
+            "Swiss National Bank",
+            "SNB",
+            "Martin Schlegel",
+            "Petra Tschudin",
+        ],
+
+        "AUD": [
+            "Reserve Bank of Australia",
+            "RBA",
+            "Michele Bullock",
+        ],
+
+        "NZD": [
+            "Reserve Bank of New Zealand",
+            "RBNZ",
+        ],
+
+        "CAD": [
+            "Bank of Canada",
+            "Tiff Macklem",
+        ],
+    }   
+
+    if modo == "Bancos centrales":
+        query_activa = queries_bancos_centrales.get(divisa, [])
+    else:
+        query_activa = queries.get(divisa, [])
+
     if divisa not in queries:
         return {
             "ok": True,
@@ -3614,7 +3675,7 @@ def cargar_live_drivers_newsapi(divisa):
 
         # NewsAPI.ai acepta varios keywords como lista.
         # "or" significa que basta con que coincida uno.
-        "keyword": queries[divisa],
+        "keyword": query_activa,
         "keywordOper": "or",
 
         # Buscar tanto en título como en cuerpo
@@ -4472,7 +4533,6 @@ def filtrar_bancos_centrales(articles, divisa):
         ],
         "CAD": [
             "bank of canada",
-            "boc",
         ],
     }
 
