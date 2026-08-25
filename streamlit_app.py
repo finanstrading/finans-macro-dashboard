@@ -5040,19 +5040,6 @@ if pagina_principal == "FX Live Drivers":
     )
 
     divisa_live = st.segmented_control(
-
-        modo_live = st.segmented_control(
-            "Tipo de información",
-            options=[
-                "Todos",
-                "Bancos centrales",
-            ],
-            default="Todos",
-            selection_mode="single",
-            label_visibility="collapsed",
-            key="live_driver_mode",
-        )
-
         "Divisa",
         options=[
             "USD",
@@ -5081,6 +5068,7 @@ if pagina_principal == "FX Live Drivers":
         label_visibility="collapsed",
         key="live_driver_mode",
     )
+
     # ===================================================
     # FX LIVE DRIVERS — DATOS REALES
     # ===================================================
