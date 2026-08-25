@@ -3680,6 +3680,73 @@ def cargar_live_drivers_newsapi(divisa):
             "error": str(error),
             "articles": [],
         }
+    
+@st.cache_data(ttl=60, show_spinner=False)
+def cargar_live_drivers_finnhub(divisa):
+
+    try:
+        api_key = st.secrets["finnhub"]["api_key"]
+
+    except Exception:
+        return {
+            "ok": False,
+            "error": "Falta configurar Finnhub en Streamlit Secrets.",
+            "articles": [],
+        }
+
+    divisa = str(divisa or "").strip().upper()
+
+    try:
+        response = requests.get(
+            "https://finnhub.io/api/v1/news",
+            params={
+                "category": "general",
+                "token": api_key,
+            },
+            timeout=20,
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        if not isinstance(data, list):
+            data = []
+
+        articles = []
+
+        for item in data:
+
+            titulo = str(
+                item.get("headline")
+                or ""
+            ).strip()
+
+            if not titulo:
+                continue
+
+            articles.append({
+                "title": titulo,
+                "body": item.get("summary") or "",
+                "summary": item.get("summary") or "",
+                "url": item.get("url") or "",
+                "source": item.get("source") or "Finnhub",
+                "publishedAt": item.get("datetime"),
+                "_provider": "Finnhub",
+            })
+
+        return {
+            "ok": True,
+            "error": None,
+            "articles": articles,
+        }
+
+    except Exception as error:
+        return {
+            "ok": False,
+            "error": str(error),
+            "articles": [],
+        }
 
 def filtrar_articulos_fx(articles, divisa):
     """
@@ -5015,20 +5082,64 @@ if pagina_principal == "FX Live Drivers":
 
     with live_container:
 
-        resultado_news = cargar_live_drivers_newsapi(
+        resultado_newsapi = cargar_live_drivers_newsapi(
             divisa_live
         )
 
-        if not resultado_news["ok"]:
+        resultado_finnhub = cargar_live_drivers_finnhub(
+            divisa_live
+        )
+
+        articles_raw = []
+
+        # ===================================================
+        # NEWSAPI.AI
+        # ===================================================
+
+        if resultado_newsapi["ok"]:
+            for article in resultado_newsapi["articles"]:
+                article = article.copy()
+                article["_provider"] = "NewsAPI.ai"
+                articles_raw.append(article)
+
+        # ===================================================
+        # FINNHUB
+        # ===================================================
+
+        if resultado_finnhub["ok"]:
+            articles_raw.extend(
+                resultado_finnhub["articles"]
+            )
+
+        # ===================================================
+        # SI FALLAN LAS DOS
+        # ===================================================
+
+        if (
+            not resultado_newsapi["ok"]
+            and not resultado_finnhub["ok"]
+        ):
 
             st.error(
-                "No se pudieron cargar los titulares de NewsAPI.ai: "
-                + resultado_news["error"]
+                "No se pudieron cargar noticias desde "
+                "NewsAPI.ai ni Finnhub."
             )
+
+            st.caption(
+                f"NewsAPI.ai: {resultado_newsapi['error']}"
+            )
+
+            st.caption(
+                f"Finnhub: {resultado_finnhub['error']}"
+            )
+
+            articles = []
 
         else:
 
-            articles_raw = resultado_news["articles"]
+            # ===================================================
+            # FILTRO FX COMÚN PARA LAS DOS FUENTES
+            # ===================================================
 
             articles = filtrar_articulos_fx(
                 articles_raw,
