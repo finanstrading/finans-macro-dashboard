@@ -5364,7 +5364,8 @@ if pagina_principal == "FX Live Drivers":
     with live_container:
 
         resultado_newsapi = cargar_live_drivers_newsapi(
-            divisa_live
+            divisa_live,
+            modo_live,
         )
 
         resultado_finnhub = cargar_live_drivers_finnhub(
