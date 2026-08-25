@@ -4419,6 +4419,232 @@ def filtrar_articulos_fx(articles, divisa):
 
     return relevant
 
+
+def filtrar_bancos_centrales(articles, divisa):
+    """
+    Modo estricto de FX Live Drivers.
+
+    Solo acepta:
+    - decisiones/comunicados/minutas de bancos centrales
+    - discursos, entrevistas y declaraciones de miembros
+    - señales explícitas de política monetaria del banco central
+
+    Excluye:
+    - simples expectativas de mercado
+    - análisis de bancos comerciales
+    - exmiembros / antiguos miembros
+    - artículos donde el banco central solo es contexto secundario
+    """
+
+    divisa = str(divisa or "").strip().upper()
+
+    bancos = {
+        "USD": [
+            "federal reserve",
+            "fed",
+            "fomc",
+        ],
+        "EUR": [
+            "european central bank",
+            "ecb",
+            "bce",
+        ],
+        "GBP": [
+            "bank of england",
+            "boe",
+            "mpc",
+        ],
+        "JPY": [
+            "bank of japan",
+            "boj",
+        ],
+        "CHF": [
+            "swiss national bank",
+            "snb",
+        ],
+        "AUD": [
+            "reserve bank of australia",
+            "rba",
+        ],
+        "NZD": [
+            "reserve bank of new zealand",
+            "rbnz",
+        ],
+        "CAD": [
+            "bank of canada",
+            "boc",
+        ],
+    }
+
+    # Palabras que indican que estamos ante una comunicación
+    # o acción REAL del banco central / miembro.
+    comunicacion_directa = [
+        "says",
+        "said",
+        "warns",
+        "warned",
+        "signals",
+        "signaled",
+        "indicates",
+        "indicated",
+        "expects",
+        "remarks",
+        "comments",
+        "speech",
+        "speaks",
+        "speaking",
+        "interview",
+        "testimony",
+        "testifies",
+
+        "minutes",
+        "meeting minutes",
+        "statement",
+        "policy statement",
+        "press conference",
+        "decision",
+        "rate decision",
+        "monetary policy decision",
+
+        "governor",
+        "deputy governor",
+        "chair",
+        "president",
+        "vice president",
+        "board member",
+        "committee member",
+        "policymaker",
+        "policy maker",
+        "official",
+
+        "board",
+        "committee",
+        "members",
+        "member",
+
+        "holds rates",
+        "keeps rates",
+        "raises rates",
+        "cuts rates",
+        "raises interest rates",
+        "cuts interest rates",
+        "leaves rates",
+        "votes",
+        "voted",
+    ]
+
+    # Queremos miembros ACTUALES, no opiniones de antiguos miembros.
+    excluir_antiguos = [
+        "former ",
+        "former-",
+        "ex-official",
+        "ex official",
+        "ex-governor",
+        "ex governor",
+        "ex-board",
+        "ex board",
+        "former governor",
+        "former policymaker",
+        "former policy maker",
+        "former board member",
+    ]
+
+    # Noticias sobre expectativas del mercado, no sobre comunicación
+    # del propio banco central.
+    expectativas_indirectas = [
+        "rate hike expectations",
+        "rate cut expectations",
+        "odds of",
+        "markets price",
+        "market prices",
+        "traders price",
+        "traders bet",
+        "investors expect",
+        "analysts expect",
+        "strategists expect",
+        "according to analysts",
+    ]
+
+    resultado = []
+
+    for article in articles:
+
+        title = str(
+            article.get("title")
+            or ""
+        ).strip().lower()
+
+        body = str(
+            article.get("body")
+            or article.get("summary")
+            or ""
+        ).strip().lower()
+
+        if not title:
+            continue
+
+        # --------------------------------------------------
+        # 1. El banco central tiene que aparecer claramente
+        # --------------------------------------------------
+
+        banco_en_titulo = any(
+            termino in title
+            for termino in bancos.get(divisa, [])
+        )
+
+        if not banco_en_titulo:
+            continue
+
+        # --------------------------------------------------
+        # 2. Excluir exmiembros / antiguos responsables
+        # --------------------------------------------------
+
+        if any(
+            termino in title
+            for termino in excluir_antiguos
+        ):
+            continue
+
+        # --------------------------------------------------
+        # 3. Debe existir acción o comunicación directa
+        # --------------------------------------------------
+
+        comunicacion_en_titulo = any(
+            termino in title
+            for termino in comunicacion_directa
+        )
+
+        comunicacion_en_body = any(
+            termino in body
+            for termino in comunicacion_directa
+        )
+
+        if not (
+            comunicacion_en_titulo
+            or comunicacion_en_body
+        ):
+            continue
+
+        # --------------------------------------------------
+        # 4. Evitar artículos puramente sobre expectativas
+        # --------------------------------------------------
+
+        solo_expectativas = any(
+            termino in title
+            for termino in expectativas_indirectas
+        )
+
+        if (
+            solo_expectativas
+            and not comunicacion_en_titulo
+        ):
+            continue
+
+        resultado.append(article)
+
+    return resultado
+
+
 # ===================================================
 # NAVEGACIÓN PRINCIPAL
 # ===================================================
@@ -5218,10 +5444,19 @@ if pagina_principal == "FX Live Drivers":
             # FILTRO FX COMÚN PARA LAS DOS FUENTES
             # ===================================================
 
-            articles = filtrar_articulos_fx(
-                articles_raw,
-                divisa_live,
-            )
+            if modo_live == "Bancos centrales":
+
+                articles = filtrar_bancos_centrales(
+                    articles_raw,
+                    divisa_live,
+                )
+
+            else:
+
+                articles = filtrar_articulos_fx(
+                    articles_raw,
+                    divisa_live,
+                )
 
             st.write(
                 "Después del filtro:",
@@ -5354,11 +5589,6 @@ if pagina_principal == "FX Live Drivers":
                     # FILTRO EXCLUSIVO DE BANCOS CENTRALES
                     # ===================================================
 
-                    if (
-                        modo_live == "Bancos centrales"
-                        and categoria != "BANCO CENTRAL"
-                    ):
-                        continue
 
                     articles_finales.append(
                         (article, categoria, relevancia)
