@@ -3548,23 +3548,6 @@ def cargar_live_drivers_newsapi(divisa):
         ],
 
         "EUR": [
-            "European Central Bank",
-            "ECB",
-            "Christine Lagarde",
-            "eurozone",
-            "euro area",
-            "EUR/USD",
-            "EUR/GBP",
-            "euro inflation",
-            "eurozone inflation",
-            "ECB rates",
-            "ECB interest rates",
-            "ECB rate cut",
-            "ECB rate hike",
-            "eurozone growth",
-            "eurozone GDP",
-            "eurozone economy",
-            "euro dollar",
             "euro",
         ],
 
