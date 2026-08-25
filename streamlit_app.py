@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import hashlib
 import requests
-import plotly.graph_objects as go
+import plotly.graph_objects as go 
 from urllib.parse import quote  
 
 from auth import require_authenticated_user, render_logout
