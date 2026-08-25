@@ -279,7 +279,7 @@ CURRENCY_WEIGHTS = {
             "empleo": 0.15,
             "actividad": 0.25,
             "demanda": 0.10,
-            "sentimiento": 0.15,
+            "sentimiento": 0.10,
         },
 
         "indicators": {
