@@ -3706,9 +3706,6 @@ def cargar_live_drivers_finnhub(divisa):
             timeout=20,
         )
 
-        st.write("FINNHUB STATUS:", response.status_code)
-        st.write("FINNHUB RESPONSE:", response.text[:1000])
-
         response.raise_for_status()
 
         data = response.json()
