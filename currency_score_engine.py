@@ -275,11 +275,11 @@ CURRENCY_WEIGHTS = {
     # ========================================================
     "NZD": {
         "families": {
-            "inflacion": 0.35,
-            "empleo": 0.28,
-            "actividad": 0.17,
-            "demanda": 0.12,
-            "sentimiento": 0.08,
+            "inflacion": 0.40,
+            "empleo": 0.15,
+            "actividad": 0.25,
+            "demanda": 0.10,
+            "sentimiento": 0.15,
         },
 
         "indicators": {
