@@ -5040,6 +5040,19 @@ if pagina_principal == "FX Live Drivers":
     )
 
     divisa_live = st.segmented_control(
+
+        modo_live = st.segmented_control(
+            "Tipo de información",
+            options=[
+                "Todos",
+                "Bancos centrales",
+            ],
+            default="Todos",
+            selection_mode="single",
+            label_visibility="collapsed",
+            key="live_driver_mode",
+        )
+
         "Divisa",
         options=[
             "USD",
@@ -5057,6 +5070,17 @@ if pagina_principal == "FX Live Drivers":
         key="live_currency",
     )
 
+    modo_live = st.segmented_control(
+        "Tipo de información",
+        options=[
+            "Todos",
+            "Bancos centrales",
+        ],
+        default="Todos",
+        selection_mode="single",
+        label_visibility="collapsed",
+        key="live_driver_mode",
+    )
     # ===================================================
     # FX LIVE DRIVERS — DATOS REALES
     # ===================================================
@@ -5093,6 +5117,65 @@ if pagina_principal == "FX Live Drivers":
             articles_raw.extend(
                 resultado_finnhub["articles"]
             )
+
+        from datetime import datetime, timezone, timedelta
+
+        # ===================================================
+        # MÁXIMO 7 DÍAS
+        # ===================================================
+
+        fecha_limite = datetime.now(timezone.utc) - timedelta(days=7)
+
+        articles_7d = []
+
+        for article in articles_raw:
+
+            fecha_raw = (
+                article.get("publishedAt")
+                or article.get("dateTimePub")
+                or article.get("date")
+            )
+
+            if fecha_raw is None:
+                continue
+
+            try:
+
+                # Finnhub entrega timestamp Unix
+                if isinstance(fecha_raw, (int, float)):
+                    fecha_articulo = datetime.fromtimestamp(
+                        fecha_raw,
+                        tz=timezone.utc,
+                    )
+
+                else:
+                    fecha_articulo = pd.to_datetime(
+                        fecha_raw,
+                        utc=True,
+                        errors="coerce",
+                    )
+
+                    if pd.isna(fecha_articulo):
+                        continue
+
+                    fecha_articulo = fecha_articulo.to_pydatetime()
+
+                if fecha_articulo >= fecha_limite:
+                    article["_fecha_live"] = fecha_articulo
+                    articles_7d.append(article)
+
+            except Exception:
+                continue
+
+        articles_raw = articles_7d
+
+        articles_raw.sort(
+            key=lambda article: article.get(
+                "_fecha_live",
+                datetime.min.replace(tzinfo=timezone.utc),
+            ),
+            reverse=True,
+        )
 
         # ===================================================
         # SI FALLAN LAS DOS
@@ -5265,7 +5348,7 @@ if pagina_principal == "FX Live Drivers":
 
                 articles_finales = []
 
-                for article in articles[:10]:
+                for article in articles[:20]:
 
                     clasificacion = clasificar_catalizador_fx(
                         article,
@@ -5275,13 +5358,27 @@ if pagina_principal == "FX Live Drivers":
                     categoria = clasificacion["categoria"]
                     relevancia = clasificacion["relevancia"]
 
-                    # No mostrar ruido de baja relevancia
+                    # Eliminar ruido
                     if relevancia == "BAJA" or categoria == "OTROS":
+                        continue
+
+                    # ===================================================
+                    # FILTRO EXCLUSIVO DE BANCOS CENTRALES
+                    # ===================================================
+
+                    if (
+                        modo_live == "Bancos centrales"
+                        and categoria != "BANCO CENTRAL"
+                    ):
                         continue
 
                     articles_finales.append(
                         (article, categoria, relevancia)
                     )
+
+                    # Máximo 7 tarjetas visibles
+                    if len(articles_finales) >= 7:
+                        break
 
 
                 # ===================================================
