@@ -731,6 +731,7 @@ MAPA_INDICADORES_IA = {
     "USD": {
         "CPI": "CPI YoY",
         "Core CPI": "Core CPI YoY",
+        "Core PCE YoY": "Core PCE YoY",
         "PPI MoM": "PPI MoM",
         "Core PPI MoM": "Core PPI MoM",
         "Retail Sales": "Retail Sales MoM",
@@ -767,7 +768,10 @@ MAPA_INDICADORES_IA = {
     "AUD": {
         "Household Spending MoM": "Household Spending MoM",
     },
-    "NZD": {},
+
+    "NZD": {
+        "Inflation Expectations": "Inflation Expectations",
+    },
     "CHF": {},
 }
 
@@ -949,6 +953,7 @@ def obtener_interpretacion_ia(divisa, indicador):
         "USD": {
             "CPI": "CPI YoY",
             "Core CPI": "Core CPI YoY",
+            "Core PCE YoY": "Core PCE YoY",
             "PPI MoM": "PPI MoM",
             "Core PPI MoM": "Core PPI MoM",
             "Retail Sales": "Retail Sales MoM",
@@ -965,6 +970,10 @@ def obtener_interpretacion_ia(divisa, indicador):
 
         "AUD": {
             "Household Spending MoM": "Household Spending MoM",
+        },
+
+        "NZD": {
+            "Inflation Expectations": "Inflation Expectations",
         },
     }
 
