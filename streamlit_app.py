@@ -4991,6 +4991,23 @@ def filtrar_bancos_centrales(articles, divisa):
             continue
 
         # ---------------------------------------------------
+        # RUIDO TEMÁTICO ESPECÍFICO
+        # ---------------------------------------------------
+
+        ruido_bancos_centrales = [
+            "week ahead",
+            "forecast news",
+            "capital rules",
+            "capital requirements",
+        ]
+
+        if any(
+            termino in title
+            for termino in ruido_bancos_centrales
+        ):
+            continue
+
+        # ---------------------------------------------------
         # B. IDENTIDAD DEL BANCO CENTRAL
         # ---------------------------------------------------
 
