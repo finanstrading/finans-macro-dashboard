@@ -4782,6 +4782,23 @@ def filtrar_bancos_centrales(articles, divisa):
         "should hike",
         "should cut",
         "price forecast",
+
+        "experts say",
+        "analysts say",
+        "economists say",
+        "strategists say",
+        "preview:",
+        "price forecast",
+        "outlook",
+        "brace for",
+        "bets",
+        "betting",
+        "tipped",
+        "expected to",
+        "likely to",
+        "should hold",
+        "should hike",
+        "should cut",
     ]
 
     # ===================================================
