@@ -5123,7 +5123,7 @@ def filtrar_bancos_centrales(articles, divisa):
             resultado.append(article)
             continue
 
-        resultado.append(article)
+        # Todo lo demás se descarta.
 
     return resultado
 
