@@ -4629,6 +4629,16 @@ def filtrar_bancos_centrales(articles, divisa):
         "interview",
         "testimony",
         "testifies",
+        "sees",
+        "see",
+        "hints",
+        "hinted",
+        "backs",
+        "backed",
+        "reiterates",
+        "reiterated",
+        "maintains",
+        "maintained",
 
         # Publicaciones oficiales
         "minutes",
@@ -4754,6 +4764,24 @@ def filtrar_bancos_centrales(articles, divisa):
         "probability of a cut",
         "chance of a hike",
         "chance of a cut",
+
+        "hike bets",
+        "cut bets",
+        "hike prospects",
+        "cut prospects",
+        "hike expectations",
+        "cut expectations",
+        "hike case",
+        "cut case",
+        "expected to hike",
+        "expected to cut",
+        "expected hike",
+        "expected cut",
+        "likely to hike",
+        "likely to cut",
+        "should hike",
+        "should cut",
+        "price forecast",
     ]
 
     # ===================================================
@@ -4861,6 +4889,42 @@ def filtrar_bancos_centrales(articles, divisa):
 
         texto = f"{title} {body}"
 
+
+        # ===================================================
+        # FALSAS COINCIDENCIAS / ENTIDADES NO CENTRALES
+        # ===================================================
+
+        falsas_identidades = {
+
+            "EUR": [
+                "england cricket board",
+                "cricket",
+            ],
+
+            "GBP": [
+                "marathon petroleum",
+                "mpc capital",
+                "mpc oceanic",
+            ],
+
+            "CAD": [
+                "royal bank of canada",
+                "national bank of canada",
+                "rbc ",
+                "tsx:",
+                "earnings call",
+                "earnings transcript",
+                "quarter results",
+                "quarterly results",
+            ],
+        }
+
+        if any(
+            termino in title
+            for termino in falsas_identidades.get(divisa, [])
+        ):
+            continue
+
         # ---------------------------------------------------
         # A. EXCLUSIONES FUERTES
         # ---------------------------------------------------
@@ -4916,30 +4980,19 @@ def filtrar_bancos_centrales(articles, divisa):
         # D. ¿HAY COMUNICACIÓN REAL?
         # ---------------------------------------------------
 
+        # La evidencia de comunicación directa debe estar
+        # en el TITULAR, no simplemente en el body/summary.
         comunicacion_titulo = any(
             termino in title
             for termino in comunicacion_directa
         )
 
-        comunicacion_body = any(
-            termino in body
-            for termino in comunicacion_directa
-        )
-
-        comunicacion_real = (
-            comunicacion_titulo
-            or comunicacion_body
-        )
+        if not comunicacion_titulo:
+            continue
 
         # Si solo habla de probabilidades/precios del mercado,
         # no entra aunque mencione al banco central.
-        if (
-            expectativa_mercado
-            and not comunicacion_titulo
-        ):
-            continue
-
-        if not comunicacion_real:
+        if expectativa_mercado:
             continue
 
         # ---------------------------------------------------
