@@ -3782,9 +3782,13 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
         "forceMaxDataTimeWindow": 7,
 
         "apiKey": api_key,
-    }
 
     try:
+
+        # ===================================================
+        # CONSULTA 1 — BÚSQUEDA GENERAL
+        # ===================================================
+
         response = requests.post(
             "https://eventregistry.org/api/v1/article/getArticles",
             json=payload,
@@ -3801,10 +3805,76 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
             .get("results", [])
         )
 
+
+        # ===================================================
+        # CONSULTA 2 — MIEMBROS DE BANCOS CENTRALES
+        # Solo para el modo "Bancos centrales"
+        # ===================================================
+
+        if modo == "Bancos centrales":
+
+            query_miembros = (
+                queries_miembros_bancos_centrales
+                .get(divisa, [])
+            )
+
+            if query_miembros:
+
+                payload_miembros = payload.copy()
+
+                payload_miembros["keyword"] = query_miembros
+
+                response_miembros = requests.post(
+                    "https://eventregistry.org/api/v1/article/getArticles",
+                    json=payload_miembros,
+                    timeout=20,
+                )
+
+                response_miembros.raise_for_status()
+
+                data_miembros = response_miembros.json()
+
+                articles_miembros = (
+                    data_miembros
+                    .get("articles", {})
+                    .get("results", [])
+                )
+
+                articles.extend(articles_miembros)
+
+
+        # ===================================================
+        # ELIMINAR DUPLICADOS ENTRE AMBAS CONSULTAS
+        # ===================================================
+
+        articles_unicos = []
+        vistos = set()
+
+        for article in articles:
+
+            clave = (
+                str(article.get("uri", "")).strip()
+                or str(article.get("url", "")).strip()
+                or str(article.get("title", "")).strip().lower()
+            )
+
+            if not clave:
+                continue
+
+            if clave in vistos:
+                continue
+
+            vistos.add(clave)
+
+            articles_unicos.append(
+                article
+            )
+
+
         return {
             "ok": True,
             "error": None,
-            "articles": articles,
+            "articles": articles_unicos,
         }
 
     except Exception as error:
@@ -4674,6 +4744,12 @@ def filtrar_bancos_centrales(articles, divisa):
             "neel kashkari",
             "lorie logan",
             "anna paulson",
+
+            # Aliases / otros responsables Fed
+            "austan goolsbee",
+            "goolsbee",
+            "susan collins",
+            "jeffrey schmid",
         ],
 
         # ===================================================
@@ -4708,6 +4784,8 @@ def filtrar_bancos_centrales(articles, divisa):
             "jose luis escriva",
             "josé luis escrivá",
             "olaf sleijpen",
+            "martin kocher",
+            "kocher",
         ],
 
         # ===================================================
