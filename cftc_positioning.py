@@ -6,6 +6,9 @@ import plotly.graph_objects as go
 # ============================================================
 # CONFIGURACIÓN CFTC
 # ============================================================
+CFTC_TFF_URL = (
+    "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
+)
 
 CFTC_MARKETS = {
     "EUR": {
