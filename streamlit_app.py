@@ -3622,7 +3622,27 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
             "Fed Chair",
             "Fed Governor",
             "Fed President",
+
             "Kevin Warsh",
+            "John Williams",
+            "Michael Barr",
+            "Michelle Bowman",
+            "Lisa Cook",
+            "Philip Jefferson",
+            "Christopher Waller",
+            "Jerome Powell",
+
+            # Presidentes regionales especialmente relevantes
+            "Beth Hammack",
+            "Neel Kashkari",
+            "Lorie Logan",
+            "Anna Paulson",
+            "Susan Collins",
+            "Alberto Musalem",
+            "Jeffrey Schmid",
+            "Thomas Barkin",
+            "Mary Daly",
+            "Austan Goolsbee",
         ],
 
         "EUR": [
