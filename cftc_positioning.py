@@ -386,6 +386,23 @@ def generar_analisis_cftc(currency, lectura):
         "resumen": resumen,
     }
 
+# ============================================================
+# TARJETAS DE ANÁLISIS CFTC
+# ============================================================
+
+def crear_tarjeta_cftc(titulo, contenido):
+
+    return f"""
+        <div class="macro-analysis-card">
+            <div class="macro-analysis-title">
+                {titulo}
+            </div>
+
+            <div class="macro-analysis-text">
+                {contenido}
+            </div>
+        </div>
+    """
 
 def render_cftc_positioning():
 
