@@ -253,7 +253,54 @@ def render_cftc_positioning():
 
         return
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # ============================================================
+    # MÉTRICAS PRINCIPALES
+    # ============================================================
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Net Position",
+            f"{lectura['net']:,.0f}",
+        )
+
+    with col2:
+        st.metric(
+            "Net / Open Interest",
+            f"{lectura['net_oi_pct']:.1f}%",
+        )
+
+    with col3:
+        st.metric(
+            "Weekly Change",
+            f"{lectura['weekly_change_net']:,.0f}",
+        )
+
+    with col4:
+        st.metric(
+            "Open Interest",
+            f"{lectura['open_interest']:,.0f}",
+        )
+
+
+    # ============================================================
+    # LECTURA DE POSICIONAMIENTO
+    # ============================================================
+
+    col5, col6 = st.columns(2)
+
+    with col5:
+        st.metric(
+            "Historical Percentile",
+            f"{lectura['percentile']:.1f}%",
+        )
+
+    with col6:
+        st.metric(
+            "Positioning Score",
+            f"{lectura['positioning_score']:+.0f}",
+        )
 
     with col1:
         st.metric(
