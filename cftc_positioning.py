@@ -143,6 +143,24 @@ def preparar_cftc_currency(currency: str) -> pd.DataFrame:
         df["Net_OI_Pct"].diff()
     )
 
+        # ========================================================
+    # HISTÓRICO PARA POSITIONING SCORE
+    # ========================================================
+
+    df = df[
+        df["Fecha"] >= pd.Timestamp("2010-01-01")
+    ].copy()
+
+    df["Percentile"] = (
+        df["Net_OI_Pct"]
+        .rank(pct=True)
+        * 100
+    )
+
+    df["Positioning_Score"] = (
+        (df["Percentile"] * 2) - 100
+    )
+
     return df
 
 
@@ -178,6 +196,13 @@ def obtener_ultima_lectura(currency: str) -> dict:
         ),
         "weekly_change_net_oi": float(
             ultima["Weekly_Change_Net_OI"]
+        ),
+
+        "percentile": float(
+            ultima["Percentile"]
+        ),
+        "positioning_score": float(
+            ultima["Positioning_Score"]
         ),
     }
 
