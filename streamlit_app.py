@@ -4991,64 +4991,59 @@ def filtrar_bancos_centrales(articles, divisa):
             continue
 
         # ---------------------------------------------------
-        # B. ¿APARECE EL BANCO CENTRAL?
+        # B. IDENTIDAD DEL BANCO CENTRAL
         # ---------------------------------------------------
 
-        banco_presente = any(
+        banco_titulo = any(
             termino in title
             for termino in bancos.get(divisa, [])
         )
 
-        miembro_presente = any(
+        miembro_titulo = any(
             termino in title
             for termino in miembros.get(divisa, [])
         )
 
-        if not (
-            banco_presente
-            or miembro_presente
-        ):
-            continue
-
-        # ---------------------------------------------------
-        # C. EXPECTATIVAS DE MERCADO
-        # ---------------------------------------------------
-
-        expectativa_mercado = any(
-            termino in title
-            for termino in expectativas_mercado
+        banco_body = any(
+            termino in body
+            for termino in bancos.get(divisa, [])
         )
 
+        miembro_body = any(
+            termino in body
+            for termino in miembros.get(divisa, [])
+        )
+
+        identidad_titulo = (
+            banco_titulo
+            or miembro_titulo
+        )
+
+        identidad_body = (
+            banco_body
+            or miembro_body
+        )
+
+
         # ---------------------------------------------------
-        # D. ¿HAY COMUNICACIÓN REAL?
+        # C. COMUNICACIÓN / CONTENIDO MONETARIO
         # ---------------------------------------------------
 
-        # La evidencia de comunicación directa debe estar
-        # en el TITULAR, no simplemente en el body/summary.
         comunicacion_titulo = any(
             termino in title
             for termino in comunicacion_directa
         )
 
-        if not comunicacion_titulo:
-            continue
-
-        # Si solo habla de probabilidades/precios del mercado,
-        # no entra aunque mencione al banco central.
-        if expectativa_mercado:
-            continue
-
-        # ---------------------------------------------------
-        # E. ¿EXISTE CONTENIDO MONETARIO?
-        # ---------------------------------------------------
-
-        contenido_monetario = any(
-            termino in texto
+        contenido_monetario_titulo = any(
+            termino in title
             for termino in politica_monetaria
         )
 
-        # Decisiones/minutas/statements oficiales pueden ser
-        # relevantes incluso si el titular es muy corto.
+        contenido_monetario_body = any(
+            termino in body
+            for termino in politica_monetaria
+        )
+
         evento_oficial = any(
             termino in title
             for termino in [
@@ -5062,10 +5057,70 @@ def filtrar_bancos_centrales(articles, divisa):
             ]
         )
 
-        if not (
-            contenido_monetario
-            or evento_oficial
+
+        # ---------------------------------------------------
+        # D. EXPECTATIVAS DE MERCADO
+        # ---------------------------------------------------
+
+        expectativa_mercado = any(
+            termino in title
+            for termino in expectativas_mercado
+        )
+
+
+        # ===================================================
+        # NIVEL 1 — EVIDENCIA FUERTE EN EL TITULAR
+        # ===================================================
+
+        # Banco/miembro identificado +
+        # comunicación real +
+        # contenido monetario.
+        if (
+            identidad_titulo
+            and comunicacion_titulo
+            and (
+                contenido_monetario_titulo
+                or contenido_monetario_body
+            )
+            and not expectativa_mercado
         ):
+            resultado.append(article)
+            continue
+
+
+        # ===================================================
+        # NIVEL 2 — TITULAR MONETARIO + IDENTIDAD EN BODY
+        # ===================================================
+
+        # Permite titulares donde el nombre del banco/miembro
+        # no aparece explícitamente, pero el cuerpo confirma
+        # inequívocamente que procede del banco central.
+        if (
+            comunicacion_titulo
+            and contenido_monetario_titulo
+            and identidad_body
+            and not expectativa_mercado
+        ):
+            resultado.append(article)
+            continue
+
+
+        # ===================================================
+        # NIVEL 3 — EVENTOS OFICIALES
+        # ===================================================
+
+        # Minutes, decisiones, statements y ruedas de prensa
+        # tienen suficiente evidencia por sí mismos cuando
+        # están asociados al banco central.
+        if (
+            evento_oficial
+            and (
+                identidad_titulo
+                or identidad_body
+            )
+            and not expectativa_mercado
+        ):
+            resultado.append(article)
             continue
 
         resultado.append(article)
