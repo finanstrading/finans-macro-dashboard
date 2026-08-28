@@ -257,6 +257,135 @@ def obtener_ultima_lectura(currency: str) -> dict:
 # ============================================================
 # RENDER STREAMLIT
 # ============================================================
+def generar_analisis_cftc(currency, lectura):
+
+    net = lectura["net"]
+    net_oi = lectura["net_oi_pct"]
+    weekly_change = lectura["weekly_change_net"]
+    weekly_change_oi = lectura["weekly_change_net_oi"]
+
+    percentile = lectura["percentile"]
+    positioning = lectura["positioning_score"]
+    momentum = lectura["momentum_score"]
+
+    # ========================================================
+    # NIVEL DE POSICIONAMIENTO
+    # ========================================================
+
+    if positioning >= 70:
+        nivel = "extremadamente long"
+    elif positioning >= 30:
+        nivel = "claramente long"
+    elif positioning > -30:
+        nivel = "neutral"
+    elif positioning > -70:
+        nivel = "claramente short"
+    else:
+        nivel = "extremadamente short"
+
+    # ========================================================
+    # MOMENTUM
+    # ========================================================
+
+    if momentum >= 70:
+        tendencia = "una fuerte acumulación de posiciones long"
+    elif momentum >= 30:
+        tendencia = "una acumulación moderada de posiciones long"
+    elif momentum > -30:
+        tendencia = "un cambio semanal relativamente estable"
+    elif momentum > -70:
+        tendencia = "una acumulación moderada de posiciones short"
+    else:
+        tendencia = "una fuerte acumulación de posiciones short"
+
+    # ========================================================
+    # DIRECCIÓN DEL CAMBIO
+    # ========================================================
+
+    if weekly_change > 0:
+        cambio_texto = (
+            f"La posición neta mejoró en "
+            f"{abs(weekly_change):,.0f} contratos durante la última semana."
+        )
+    elif weekly_change < 0:
+        cambio_texto = (
+            f"La posición neta empeoró en "
+            f"{abs(weekly_change):,.0f} contratos durante la última semana."
+        )
+    else:
+        cambio_texto = (
+            "La posición neta prácticamente no cambió durante la última semana."
+        )
+
+    # ========================================================
+    # IMPACTO FX
+    # ========================================================
+
+    if positioning <= -30 and momentum <= -30:
+        impacto = (
+            f"El posicionamiento es desfavorable para {currency} y los fondos "
+            f"continúan aumentando la presión short. Si el movimiento se "
+            f"extiende, también aumenta progresivamente el riesgo de crowding "
+            f"y de un eventual short squeeze."
+        )
+
+    elif positioning <= -30 and momentum > -30:
+        impacto = (
+            f"El posicionamiento continúa siendo desfavorable para {currency}, "
+            f"pero no existe actualmente una aceleración significativa de "
+            f"las posiciones short. Esto reduce la presión bajista marginal."
+        )
+
+    elif positioning >= 30 and momentum >= 30:
+        impacto = (
+            f"El posicionamiento es favorable para {currency} y los fondos "
+            f"continúan reforzando posiciones long. El flujo especulativo "
+            f"mantiene por tanto un sesgo favorable para la divisa."
+        )
+
+    elif positioning >= 30 and momentum < 30:
+        impacto = (
+            f"Los fondos siguen posicionados favorablemente en {currency}, "
+            f"aunque el momentum reciente muestra menor acumulación de longs. "
+            f"Conviene vigilar posibles señales de reducción de posiciones."
+        )
+
+    else:
+        impacto = (
+            f"El nivel agregado de posicionamiento en {currency} se encuentra "
+            f"cerca de una zona neutral. El cambio semanal y el momentum son "
+            f"más relevantes que el nivel absoluto para valorar el flujo actual."
+        )
+
+    # ========================================================
+    # TEXTOS FINALES
+    # ========================================================
+
+    situacion_actual = (
+        f"Los Leveraged Funds mantienen una posición neta de "
+        f"{net:,.0f} contratos en {currency}, equivalente al "
+        f"{net_oi:.1f}% del Open Interest. El Positioning Score de "
+        f"{positioning:+.0f} sitúa el posicionamiento como {nivel}, "
+        f"en el percentil {percentile:.1f} de los últimos tres años."
+    )
+
+    tendencia_texto = (
+        f"{cambio_texto} El Momentum Score de {momentum:+.0f} indica "
+        f"{tendencia}."
+    )
+
+    resumen = (
+        f"{currency}: posicionamiento {nivel}, con "
+        f"Momentum Score {momentum:+.0f}."
+    )
+
+    return {
+        "situacion": situacion_actual,
+        "tendencia": tendencia_texto,
+        "impacto": impacto,
+        "resumen": resumen,
+    }
+
 
 def render_cftc_positioning():
 
@@ -401,8 +530,40 @@ def render_cftc_positioning():
     # ============================================================
     # GRÁFICO HISTÓRICO
     # ============================================================
+    periodo_grafico = st.segmented_control(
+        "Periodo histórico",
+        options=[
+            "1A",
+            "3A",
+            "5A",
+            "Todo",
+        ],
+        default="3A",
+        selection_mode="single",
+        key=f"cftc_period_{currency}",
+    )
 
-    df_historico = preparar_cftc_currency(currency)
+
+    df_historico = preparar_cftc_currency(currency).copy()
+
+    fecha_maxima = df_historico["Fecha"].max()
+
+    if periodo_grafico == "1A":
+        fecha_inicio = fecha_maxima - pd.DateOffset(years=1)
+
+    elif periodo_grafico == "3A":
+        fecha_inicio = fecha_maxima - pd.DateOffset(years=3)
+
+    elif periodo_grafico == "5A":
+        fecha_inicio = fecha_maxima - pd.DateOffset(years=5)
+
+    else:
+        fecha_inicio = df_historico["Fecha"].min()
+
+
+    df_grafico = df_historico[
+        df_historico["Fecha"] >= fecha_inicio
+    ].copy()
 
     st.markdown("### Evolución histórica del posicionamiento")
 
@@ -410,8 +571,8 @@ def render_cftc_positioning():
 
     fig.add_trace(
         go.Scatter(
-            x=df_historico["Fecha"],
-            y=df_historico["Net_OI_Pct"],
+            x=df_grafico["Fecha"],
+            y=df_grafico["Net_OI_Pct"],
             mode="lines",
             name="Net / Open Interest",
             line=dict(
@@ -457,6 +618,55 @@ def render_cftc_positioning():
         fig,
         use_container_width=True,
     )
+
+    analisis = generar_analisis_cftc(
+        currency,
+        lectura,
+    )
+
+    st.markdown("### Positioning Analysis")
+
+    fila_1_col_1, fila_1_col_2 = st.columns(2)
+
+    with fila_1_col_1:
+        st.markdown(
+            crear_tarjeta_cftc(
+                "Situación actual",
+                analisis["situacion"],
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with fila_1_col_2:
+        st.markdown(
+            crear_tarjeta_cftc(
+                "Tendencia",
+                analisis["tendencia"],
+            ),
+            unsafe_allow_html=True,
+        )
+
+
+    fila_2_col_1, fila_2_col_2 = st.columns(2)
+
+    with fila_2_col_1:
+        st.markdown(
+            crear_tarjeta_cftc(
+                "Impacto sobre la divisa",
+                analisis["impacto"],
+            ),
+            unsafe_allow_html=True,
+        )
+
+    with fila_2_col_2:
+        st.markdown(
+            crear_tarjeta_cftc(
+                "Resumen",
+                analisis["resumen"],
+            ),
+            unsafe_allow_html=True,
+        )
+
     st.markdown("### Detalle Leveraged Funds")
 
     detalle = pd.DataFrame(
