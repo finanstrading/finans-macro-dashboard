@@ -253,7 +253,7 @@ def render_cftc_positioning():
 
         return
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     with col1:
         st.metric(
@@ -278,6 +278,36 @@ def render_cftc_positioning():
             "Open Interest",
             f"{lectura['open_interest']:,.0f}",
         )
+
+    with col5:
+        st.metric(
+            "Historical Percentile",
+            f"{lectura['percentile']:.1f}%",
+        )
+
+    with col6:
+        st.metric(
+            "Positioning Score",
+            f"{lectura['positioning_score']:+.0f}",
+        )
+
+
+    score = lectura["positioning_score"]
+
+    if score >= 70:
+        clasificacion = "Extreme Long"
+    elif score >= 30:
+        clasificacion = "Long"
+    elif score > -30:
+        clasificacion = "Neutral"
+    elif score > -70:
+        clasificacion = "Short"
+    else:
+        clasificacion = "Extreme Short"
+
+    st.markdown(
+        f"### Lectura actual: **{clasificacion}**"
+    )
 
     st.caption(
         "Última lectura CFTC: "
