@@ -16,7 +16,7 @@ from currency_score_engine import (
 
 from cftc_positioning import render_cftc_positioning
 
-# ===================================================
+# =================================================== 
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
