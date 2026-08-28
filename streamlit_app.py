@@ -3618,6 +3618,7 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
 
         "USD": [
             "Federal Reserve",
+            "Fed",
             "FOMC",
             "Fed Chair",
             "Fed Governor",
