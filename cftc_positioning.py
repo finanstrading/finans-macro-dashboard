@@ -7,17 +7,36 @@ import plotly.graph_objects as go
 # CONFIGURACIÓN CFTC
 # ============================================================
 
-CFTC_TFF_URL = (
-    "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
-)
-
 CFTC_MARKETS = {
+    "EUR": {
+        "code": "099741",
+        "name": "Euro FX",
+    },
+    "GBP": {
+        "code": "096742",
+        "name": "British Pound",
+    },
     "JPY": {
         "code": "097741",
         "name": "Japanese Yen",
     },
+    "CHF": {
+        "code": "092741",
+        "name": "Swiss Franc",
+    },
+    "CAD": {
+        "code": "090741",
+        "name": "Canadian Dollar",
+    },
+    "AUD": {
+        "code": "232741",
+        "name": "Australian Dollar",
+    },
+    "NZD": {
+        "code": "112741",
+        "name": "New Zealand Dollar",
+    },
 }
-
 
 # ============================================================
 # DESCARGA DE DATOS
