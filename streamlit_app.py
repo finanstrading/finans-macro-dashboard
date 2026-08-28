@@ -3616,58 +3616,166 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
 
     queries_bancos_centrales = {
 
+        # ===================================================
+        # USD — FED / FOMC
+        # ===================================================
         "USD": [
             "Federal Reserve",
             "FOMC",
             "Fed Chair",
             "Fed Governor",
             "Fed President",
+
             "Kevin Warsh",
+            "John Williams",
+            "Michael Barr",
+            "Michelle Bowman",
+            "Lisa Cook",
+            "Philip Jefferson",
+            "Christopher Waller",
+            "Jerome Powell",
+
+            # Presidentes regionales especialmente relevantes
+            "Beth Hammack",
+            "Neel Kashkari",
+            "Lorie Logan",
+            "Anna Paulson",
+            "Susan Collins",
+            "Alberto Musalem",
+            "Jeffrey Schmid",
+            "Thomas Barkin",
+            "Mary Daly",
+            "Austan Goolsbee",
         ],
 
+        # ===================================================
+        # EUR — ECB
+        # ===================================================
         "EUR": [
             "European Central Bank",
             "ECB",
             "ECB President",
             "ECB Governing Council",
+
+            "Christine Lagarde",
+            "Boris Vujcic",
+            "Philip Lane",
+            "Isabel Schnabel",
+            "Piero Cipollone",
+            "Frank Elderson",
+
+            "Joachim Nagel",
+            "Martins Kazaks",
+            "Peter Kazimir",
+            "Martin Kocher",
+            "Gabriel Makhlouf",
+            "Fabio Panetta",
+            "Olli Rehn",
+            "Gediminas Simkus",
+            "Yannis Stournaras",
+            "Pierre Wunsch",
+            "Dimitar Radev",
+            "Primoz Dolenc",
+            "Jose Luis Escriva",
+            "Olaf Sleijpen",
         ],
 
+        # ===================================================
+        # GBP — BANK OF ENGLAND
+        # ===================================================
         "GBP": [
             "Bank of England",
             "BoE",
             "Monetary Policy Committee",
-            "MPC",
+
+            "Andrew Bailey",
+            "Sarah Breeden",
+            "Swati Dhingra",
+            "Megan Greene",
+            "Clare Lombardelli",
+            "Catherine Mann",
+            "Huw Pill",
+            "Dave Ramsden",
+            "Alan Taylor",
         ],
 
+        # ===================================================
+        # JPY — BANK OF JAPAN
+        # ===================================================
         "JPY": [
             "Bank of Japan",
             "BoJ",
+
             "Kazuo Ueda",
+            "Shinichi Uchida",
+            "Ryozo Himino",
+            "Hajime Takata",
+            "Naoki Tamura",
+            "Junko Koeda",
+            "Kazuyuki Masu",
+            "Toichiro Asada",
+            "Ayano Sato",
         ],
 
+        # ===================================================
+        # CHF — SNB
+        # ===================================================
         "CHF": [
             "Swiss National Bank",
             "SNB",
+
             "Martin Schlegel",
+            "Antoine Martin",
             "Petra Tschudin",
         ],
 
+        # ===================================================
+        # AUD — RBA
+        # ===================================================
         "AUD": [
             "Reserve Bank of Australia",
             "RBA",
+
             "Michele Bullock",
+            "Andrew Hauser",
+            "Marnie Baker",
+            "Renee Fry-McKibbin",
+            "Ian Harper",
+            "Carolyn Hewson",
+            "Bruce Preston",
+            "Iain Ross",
+            "Jenny Wilkinson",
         ],
 
+        # ===================================================
+        # NZD — RBNZ
+        # ===================================================
         "NZD": [
             "Reserve Bank of New Zealand",
             "RBNZ",
+
+            "Anna Breman",
+            "Karen Silk",
+            "Paul Conway",
+            "Carl Hansen",
+            "Prasanna Gai",
+            "Hayley Gourley",
         ],
 
+        # ===================================================
+        # CAD — BANK OF CANADA
+        # ===================================================
         "CAD": [
             "Bank of Canada",
+
             "Tiff Macklem",
+            "Carolyn Rogers",
+            "Toni Gravelle",
+            "Marc-Andre Gosselin",
+            "Nicolas Vincent",
+            "Michelle Alexopoulos",
         ],
-    }   
+    }
 
     if modo == "Bancos centrales":
         query_activa = queries_bancos_centrales.get(divisa, [])
