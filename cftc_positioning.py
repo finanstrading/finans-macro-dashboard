@@ -325,6 +325,65 @@ def render_cftc_positioning():
         + lectura["date"].strftime("%d/%m/%Y")
     )
 
+    # ============================================================
+    # GRÁFICO HISTÓRICO
+    # ============================================================
+
+    df_historico = preparar_cftc_currency(currency)
+
+    st.markdown("### Evolución histórica del posicionamiento")
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_historico["Fecha"],
+            y=df_historico["Net_OI_Pct"],
+            mode="lines",
+            name="Net / Open Interest",
+            line=dict(
+                color="#D4A017",
+                width=2,
+            ),
+            hovertemplate=(
+                "%{x|%d/%m/%Y}<br>"
+                "Net / OI: %{y:.2f}%"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig.add_hline(
+        y=0,
+        line_width=1,
+        line_dash="dash",
+        line_color="#888888",
+    )
+
+    fig.update_layout(
+        height=430,
+        margin=dict(l=10, r=10, t=20, b=10),
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        showlegend=False,
+        xaxis_title=None,
+        yaxis_title="Net / Open Interest (%)",
+        hovermode="x unified",
+    )
+
+    fig.update_xaxes(
+        showgrid=False,
+    )
+
+    fig.update_yaxes(
+        gridcolor="#EAEAEA",
+        zeroline=False,
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+    )
     st.markdown("### Detalle Leveraged Funds")
 
     detalle = pd.DataFrame(
