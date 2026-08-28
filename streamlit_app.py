@@ -4833,6 +4833,30 @@ def filtrar_bancos_centrales(articles, divisa):
         "strategists say",
         "economist says",
         "economists say",
+
+        "experts say",
+        "analysts say",
+        "economists say",
+        "strategists say",
+        "preview:",
+        "price forecast",
+        "brace for",
+        "rate hike bets",
+        "rate cut bets",
+        "hike bets",
+        "cut bets",
+        "tipped",
+        "expected to hike",
+        "expected to cut",
+        "likely to hike",
+        "likely to cut",
+
+        # Alemán
+        "zinserhöhungswetten",
+        "zinssenkungswetten",
+        "wetten auf eine zinserhöhung",
+        "wetten auf eine zinssenkung",
+]
     ]
 
     # ===================================================
