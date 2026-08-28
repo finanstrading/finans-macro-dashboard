@@ -332,7 +332,7 @@ def generar_analisis_cftc(currency, lectura):
 
     if direccion == "short" and momentum <= -30:
         impacto = (
-            f"Los Leveraged Funds mantienen un posicionamiento claramente "
+            f"Los Fondos Apalancados mantienen un posicionamiento claramente "
             f"short en {currency} y, además, están aumentando la presión "
             f"vendedora. El momentum actual refuerza el sesgo bajista. "
             f"Sin embargo, el crowding histórico es {crowding}, por lo que "
@@ -341,7 +341,7 @@ def generar_analisis_cftc(currency, lectura):
 
     elif direccion == "short" and momentum > -30:
         impacto = (
-            f"Los Leveraged Funds mantienen un posicionamiento short en "
+            f"Los Fondos Apalancados mantienen un posicionamiento short en "
             f"{currency}, aunque no existe actualmente una acumulación "
             f"agresiva de nuevas posiciones bajistas. El sesgo de "
             f"posicionamiento continúa siendo negativo, pero la presión "
@@ -350,7 +350,7 @@ def generar_analisis_cftc(currency, lectura):
 
     elif direccion == "long" and momentum >= 30:
         impacto = (
-            f"Los Leveraged Funds mantienen un posicionamiento claramente "
+            f"Los Fondos Apalancados mantienen un posicionamiento claramente "
             f"long en {currency} y continúan aumentando posiciones "
             f"compradoras. El flujo especulativo refuerza el sesgo "
             f"favorable para la divisa."
@@ -358,7 +358,7 @@ def generar_analisis_cftc(currency, lectura):
 
     elif direccion == "long" and momentum < 30:
         impacto = (
-            f"Los Leveraged Funds continúan posicionados long en {currency}, "
+            f"Los Fondos Apalancados continúan posicionados long en {currency}, "
             f"pero el momentum reciente no muestra una acumulación fuerte "
             f"de nuevas posiciones compradoras."
         )
@@ -375,7 +375,7 @@ def generar_analisis_cftc(currency, lectura):
     # ========================================================
 
     situacion_actual = (
-        f"Los Leveraged Funds mantienen una posición neta de "
+        f"Los Fondos Apalancados mantienen una posición neta de "
         f"{net:,.0f} contratos en {currency}, equivalente al "
         f"{net_oi:.1f}% del Open Interest. Esto refleja un "
         f"posicionamiento claramente {direccion}. "
@@ -422,12 +422,12 @@ def render_cftc_positioning():
             <div class="dashboard-eyebrow">
                 MACRO FX · POSITIONING
             </div>
-            <div class="dashboard-title">
-                CFTC Positioning
-            </div>
-            <div class="dashboard-subtitle">
-                Posicionamiento especulativo de Leveraged Funds
-            </div>
+        <div class="dashboard-title">
+            Posicionamiento Apalancado
+        </div>
+        <div class="dashboard-subtitle">
+            Posicionamiento de operadores apalancados · Datos CFTC
+        </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -581,11 +581,11 @@ def render_cftc_positioning():
         st.markdown(
             """
     **Net Position**  
-    Diferencia entre las posiciones **Long y Short** de los Leveraged Funds.  
+    Diferencia entre las posiciones **Long y Short** de los Fondos Apalancados.  
     Un valor positivo indica posicionamiento neto comprador; un valor negativo, posicionamiento neto vendedor.
 
     **Net / Open Interest**  
-    Posición neta de los Leveraged Funds en relación con el tamaño total del mercado de futuros.  
+    Posición neta de los Fondos Apalancados en relación con el tamaño total del mercado de futuros.  
     Permite medir mejor la **dirección y magnitud relativa** del posicionamiento que el número de contratos por sí solo.
 
     **Weekly Change**  
@@ -609,7 +609,7 @@ def render_cftc_positioning():
     Valores próximos a **−100** indican fuerte construcción de posiciones Short; valores próximos a **+100**, fuerte construcción de posiciones Long.
             """
         )
-        
+
     # ============================================================
     # GRÁFICO HISTÓRICO
     # ============================================================
@@ -750,7 +750,7 @@ def render_cftc_positioning():
             unsafe_allow_html=True,
         )
 
-    st.markdown("### Detalle Leveraged Funds")
+    st.markdown("### Detalle del Posicionamiento Apalancado")
 
     detalle = pd.DataFrame(
         {
