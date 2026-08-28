@@ -241,6 +241,13 @@ def obtener_ultima_lectura(currency: str) -> dict:
         "positioning_score": float(
             ultima["Positioning_Score"]
         ),
+
+        "momentum_percentile": float(
+            ultima["Momentum_Percentile"]
+        ),
+        "momentum_score": float(
+            ultima["Momentum_Score"]
+        ),
     }
 
 
@@ -361,8 +368,26 @@ def render_cftc_positioning():
     else:
         clasificacion = "Extreme Short"
 
+    momentum = lectura["momentum_score"]
+
+    if momentum >= 70:
+        momentum_label = "Strong Long Build"
+    elif momentum >= 30:
+        momentum_label = "Long Build"
+    elif momentum > -30:
+        momentum_label = "Stable"
+    elif momentum > -70:
+        momentum_label = "Short Build"
+    else:
+        momentum_label = "Strong Short Build"
+
     st.markdown(
         f"### Lectura actual: **{clasificacion}**"
+    )
+
+    st.markdown(
+        f"**Momentum semanal:** {momentum_label} "
+        f"({momentum:+.0f})"
     )
 
     st.caption(
