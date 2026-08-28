@@ -254,7 +254,15 @@ def render_cftc_positioning():
 
     currency = st.segmented_control(
         "Divisa",
-        options=["JPY"],
+        options=[
+            "EUR",
+            "GBP",
+            "JPY",
+            "CHF",
+            "CAD",
+            "AUD",
+            "NZD",
+        ],
         default="JPY",
         selection_mode="single",
         label_visibility="collapsed",
