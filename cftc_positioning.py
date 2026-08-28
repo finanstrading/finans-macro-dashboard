@@ -152,8 +152,10 @@ def preparar_cftc_currency(currency: str) -> pd.DataFrame:
         df["Fecha"] >= pd.Timestamp("2010-01-01")
     ].copy()
 
+    # Percentil móvil de 3 años (156 semanas)
     df["Percentile"] = (
         df["Net_OI_Pct"]
+        .rolling(window=156, min_periods=52)
         .rank(pct=True)
         * 100
     )
