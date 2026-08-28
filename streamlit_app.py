@@ -3,11 +3,11 @@ import pandas as pd
 import time
 import hashlib
 import requests
-import plotly.graph_objects as go 
-from urllib.parse import quote
+import plotly.graph_objects as go
+from urllib.parse import quote  
 
 from auth import require_authenticated_user, render_logout
-from monetary_engine import analizar_indicador, ENGINE_VERSION 
+from monetary_engine import analizar_indicador, ENGINE_VERSION
 
 from currency_score_engine import (
     calcular_currency_score,
@@ -16,7 +16,7 @@ from currency_score_engine import (
 
 from cftc_positioning import render_cftc_positioning
 
-# =================================================== 
+# ===================================================
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
@@ -4494,62 +4494,124 @@ def filtrar_articulos_fx(articles, divisa):
 
 def filtrar_bancos_centrales(articles, divisa):
     """
-    Modo estricto de FX Live Drivers.
+    Filtro estricto para el modo "Bancos centrales".
 
-    Solo acepta:
-    - decisiones/comunicados/minutas de bancos centrales
-    - discursos, entrevistas y declaraciones de miembros
-    - señales explícitas de política monetaria del banco central
+    Incluye únicamente noticias donde exista una comunicación,
+    decisión o señal REAL procedente del banco central o de uno
+    de sus responsables.
 
     Excluye:
-    - simples expectativas de mercado
+    - expectativas del mercado
+    - probabilidades de subidas/bajadas
     - análisis de bancos comerciales
-    - exmiembros / antiguos miembros
-    - artículos donde el banco central solo es contexto secundario
+    - forecasts de analistas
+    - exmiembros
+    - regulación bancaria
+    - coincidencias falsas con siglas
     """
 
     divisa = str(divisa or "").strip().upper()
 
+    # ===================================================
+    # 1. IDENTIDAD DEL BANCO CENTRAL
+    # ===================================================
+
     bancos = {
+
         "USD": [
             "federal reserve",
-            "fed",
+            "the fed",
             "fomc",
         ],
+
         "EUR": [
             "european central bank",
             "ecb",
             "bce",
         ],
+
         "GBP": [
             "bank of england",
             "boe",
+            "monetary policy committee",
             "mpc",
         ],
+
         "JPY": [
             "bank of japan",
             "boj",
         ],
+
         "CHF": [
             "swiss national bank",
             "snb",
         ],
+
         "AUD": [
             "reserve bank of australia",
             "rba",
         ],
+
         "NZD": [
             "reserve bank of new zealand",
             "rbnz",
         ],
+
         "CAD": [
             "bank of canada",
         ],
     }
 
-    # Palabras que indican que estamos ante una comunicación
-    # o acción REAL del banco central / miembro.
+    # ===================================================
+    # 2. MIEMBROS / RESPONSABLES CONOCIDOS
+    # ===================================================
+    #
+    # No es necesario que esta lista sea exhaustiva.
+    # Sirve para capturar titulares donde aparece el nombre
+    # del responsable pero no el nombre completo del banco.
+    #
+
+    miembros = {
+
+        "USD": [
+            "kevin warsh",
+        ],
+
+        "EUR": [
+            "christine lagarde",
+        ],
+
+        "GBP": [
+            "andrew bailey",
+        ],
+
+        "JPY": [
+            "kazuo ueda",
+        ],
+
+        "CHF": [
+            "martin schlegel",
+            "petra tschudin",
+        ],
+
+        "AUD": [
+            "michele bullock",
+        ],
+
+        "NZD": [],
+
+        "CAD": [
+            "tiff macklem",
+        ],
+    }
+
+    # ===================================================
+    # 3. COMUNICACIÓN / ACCIÓN REAL
+    # ===================================================
+
     comunicacion_directa = [
+
+        # Declaraciones
         "says",
         "said",
         "warns",
@@ -4558,9 +4620,9 @@ def filtrar_bancos_centrales(articles, divisa):
         "signaled",
         "indicates",
         "indicated",
-        "expects",
         "remarks",
         "comments",
+        "commented",
         "speech",
         "speaks",
         "speaking",
@@ -4568,6 +4630,7 @@ def filtrar_bancos_centrales(articles, divisa):
         "testimony",
         "testifies",
 
+        # Publicaciones oficiales
         "minutes",
         "meeting minutes",
         "statement",
@@ -4576,65 +4639,207 @@ def filtrar_bancos_centrales(articles, divisa):
         "decision",
         "rate decision",
         "monetary policy decision",
+        "monetary policy statement",
 
-        "governor",
-        "deputy governor",
-        "chair",
-        "president",
-        "vice president",
-        "board member",
-        "committee member",
-        "policymaker",
-        "policy maker",
-        "official",
-
-        "board",
-        "committee",
-        "members",
-        "member",
-
+        # Acciones
         "holds rates",
         "keeps rates",
         "raises rates",
+        "raised rates",
         "cuts rates",
-        "raises interest rates",
-        "cuts interest rates",
+        "cut rates",
         "leaves rates",
+        "left rates",
         "votes",
         "voted",
+
+        # Orientación
+        "guidance",
+        "outlook",
+        "projects",
+        "projection",
+        "forecasts",
     ]
 
-    # Queremos miembros ACTUALES, no opiniones de antiguos miembros.
+    # ===================================================
+    # 4. CONTENIDO DE POLÍTICA MONETARIA
+    # ===================================================
+
+    politica_monetaria = [
+
+        "interest rate",
+        "interest rates",
+        "policy rate",
+        "cash rate",
+        "bank rate",
+        "fed funds",
+        "federal funds",
+
+        "rate hike",
+        "rate hikes",
+        "rate cut",
+        "rate cuts",
+        "tightening",
+        "easing",
+
+        "inflation",
+        "price pressures",
+        "price stability",
+
+        "monetary policy",
+        "policy stance",
+        "restrictive",
+        "accommodative",
+
+        "balance sheet",
+        "quantitative tightening",
+        "quantitative easing",
+        "bond purchases",
+
+        "economic outlook",
+        "growth outlook",
+        "labor market",
+        "labour market",
+
+        "currency intervention",
+        "foreign exchange intervention",
+        "yen intervention",
+
+        "hawkish",
+        "dovish",
+    ]
+
+    # ===================================================
+    # 5. EXPECTATIVAS DEL MERCADO — EXCLUIR
+    # ===================================================
+
+    expectativas_mercado = [
+
+        "rate hike odds",
+        "rate cut odds",
+        "hike odds",
+        "cut odds",
+
+        "odds of a hike",
+        "odds of a cut",
+
+        "markets price",
+        "market prices",
+        "market pricing",
+        "markets pricing",
+        "priced in",
+        "pricing in",
+
+        "traders expect",
+        "traders bet",
+        "traders see",
+
+        "investors expect",
+        "investors see",
+
+        "analysts expect",
+        "analysts forecast",
+        "economists expect",
+        "economists forecast",
+        "strategists expect",
+
+        "according to analysts",
+        "according to economists",
+
+        "swap markets",
+        "futures markets",
+        "money markets",
+
+        "probability of a hike",
+        "probability of a cut",
+        "chance of a hike",
+        "chance of a cut",
+    ]
+
+    # ===================================================
+    # 6. ANÁLISIS DE TERCEROS — EXCLUIR
+    # ===================================================
+
+    analisis_terceros = [
+
+        "td securities",
+        "td economics",
+        "commerzbank",
+        "goldman sachs",
+        "jpmorgan",
+        "jp morgan",
+        "morgan stanley",
+        "citigroup",
+        "citi ",
+        "barclays",
+        "ubs ",
+        "deutsche bank",
+        "bank of america",
+        "bofa",
+        "societe generale",
+        "ing ",
+        "nomura",
+        "rabobank",
+        "wells fargo",
+
+        "analyst says",
+        "analysts say",
+        "strategist says",
+        "strategists say",
+        "economist says",
+        "economists say",
+    ]
+
+    # ===================================================
+    # 7. EXMIEMBROS — EXCLUIR
+    # ===================================================
+
     excluir_antiguos = [
+
         "former ",
         "former-",
         "ex-official",
         "ex official",
         "ex-governor",
         "ex governor",
-        "ex-board",
-        "ex board",
         "former governor",
         "former policymaker",
         "former policy maker",
         "former board member",
+        "former fed",
+        "former ecb",
+        "former boe",
+        "former boj",
+        "former rba",
+        "former rbnz",
+        "former boc",
+        "former snb",
     ]
 
-    # Noticias sobre expectativas del mercado, no sobre comunicación
-    # del propio banco central.
-    expectativas_indirectas = [
-        "rate hike expectations",
-        "rate cut expectations",
-        "odds of",
-        "markets price",
-        "market prices",
-        "traders price",
-        "traders bet",
-        "investors expect",
-        "analysts expect",
-        "strategists expect",
-        "according to analysts",
+    # ===================================================
+    # 8. RUIDO NO MONETARIO
+    # ===================================================
+
+    ruido = [
+
+        "bank regulation",
+        "bank regulations",
+        "banking regulation",
+        "capital requirements",
+        "stress test",
+        "stress tests",
+
+        "bank merger",
+        "bank acquisition",
+
+        "consumer protection",
+        "financial regulation",
+        "regulatory framework",
     ]
+
+    # ===================================================
+    # 9. FILTRADO
+    # ===================================================
 
     resultado = []
 
@@ -4654,21 +4859,11 @@ def filtrar_bancos_centrales(articles, divisa):
         if not title:
             continue
 
-        # --------------------------------------------------
-        # 1. El banco central tiene que aparecer claramente
-        # --------------------------------------------------
+        texto = f"{title} {body}"
 
-        banco_en_titulo = any(
-            termino in title
-            for termino in bancos.get(divisa, [])
-        )
-
-        if not banco_en_titulo:
-            continue
-
-        # --------------------------------------------------
-        # 2. Excluir exmiembros / antiguos responsables
-        # --------------------------------------------------
+        # ---------------------------------------------------
+        # A. EXCLUSIONES FUERTES
+        # ---------------------------------------------------
 
         if any(
             termino in title
@@ -4676,38 +4871,104 @@ def filtrar_bancos_centrales(articles, divisa):
         ):
             continue
 
-        # --------------------------------------------------
-        # 3. Debe existir acción o comunicación directa
-        # --------------------------------------------------
+        if any(
+            termino in title
+            for termino in analisis_terceros
+        ):
+            continue
 
-        comunicacion_en_titulo = any(
+        if any(
+            termino in title
+            for termino in ruido
+        ):
+            continue
+
+        # ---------------------------------------------------
+        # B. ¿APARECE EL BANCO CENTRAL?
+        # ---------------------------------------------------
+
+        banco_presente = any(
+            termino in title
+            for termino in bancos.get(divisa, [])
+        )
+
+        miembro_presente = any(
+            termino in title
+            for termino in miembros.get(divisa, [])
+        )
+
+        if not (
+            banco_presente
+            or miembro_presente
+        ):
+            continue
+
+        # ---------------------------------------------------
+        # C. EXPECTATIVAS DE MERCADO
+        # ---------------------------------------------------
+
+        expectativa_mercado = any(
+            termino in title
+            for termino in expectativas_mercado
+        )
+
+        # ---------------------------------------------------
+        # D. ¿HAY COMUNICACIÓN REAL?
+        # ---------------------------------------------------
+
+        comunicacion_titulo = any(
             termino in title
             for termino in comunicacion_directa
         )
 
-        comunicacion_en_body = any(
+        comunicacion_body = any(
             termino in body
             for termino in comunicacion_directa
         )
 
-        if not (
-            comunicacion_en_titulo
-            or comunicacion_en_body
+        comunicacion_real = (
+            comunicacion_titulo
+            or comunicacion_body
+        )
+
+        # Si solo habla de probabilidades/precios del mercado,
+        # no entra aunque mencione al banco central.
+        if (
+            expectativa_mercado
+            and not comunicacion_titulo
         ):
             continue
 
-        # --------------------------------------------------
-        # 4. Evitar artículos puramente sobre expectativas
-        # --------------------------------------------------
+        if not comunicacion_real:
+            continue
 
-        solo_expectativas = any(
-            termino in title
-            for termino in expectativas_indirectas
+        # ---------------------------------------------------
+        # E. ¿EXISTE CONTENIDO MONETARIO?
+        # ---------------------------------------------------
+
+        contenido_monetario = any(
+            termino in texto
+            for termino in politica_monetaria
         )
 
-        if (
-            solo_expectativas
-            and not comunicacion_en_titulo
+        # Decisiones/minutas/statements oficiales pueden ser
+        # relevantes incluso si el titular es muy corto.
+        evento_oficial = any(
+            termino in title
+            for termino in [
+                "minutes",
+                "meeting minutes",
+                "rate decision",
+                "monetary policy decision",
+                "monetary policy statement",
+                "policy statement",
+                "press conference",
+            ]
+        )
+
+        if not (
+            contenido_monetario
+            or evento_oficial
         ):
             continue
 
