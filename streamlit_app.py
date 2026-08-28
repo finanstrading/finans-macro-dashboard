@@ -4573,35 +4573,144 @@ def filtrar_bancos_centrales(articles, divisa):
 
     miembros = {
 
+        # ===================================================
+        # USD — FED / FOMC 2026
+        # ===================================================
         "USD": [
             "kevin warsh",
+            "john williams",
+            "john c. williams",
+            "michael barr",
+            "michael s. barr",
+            "michelle bowman",
+            "michelle w. bowman",
+            "lisa cook",
+            "lisa d. cook",
+            "philip jefferson",
+            "philip n. jefferson",
+            "christopher waller",
+            "christopher j. waller",
+            "jerome powell",
+            "jerome h. powell",
+            "beth hammack",
+            "neel kashkari",
+            "lorie logan",
+            "anna paulson",
         ],
 
+        # ===================================================
+        # EUR — ECB
+        # Miembros con comunicación monetaria frecuente
+        # ===================================================
         "EUR": [
             "christine lagarde",
+            "boris vujcic",
+            "boris vujčić",
+            "philip lane",
+            "philip r. lane",
+            "isabel schnabel",
+            "piero cipollone",
+            "frank elderson",
+            "joachim nagel",
+            "martins kazaks",
+            "mārtiņš kazāks",
+            "peter kazimir",
+            "peter kažimír",
+            "martin kocher",
+            "gabriel makhlouf",
+            "fabio panetta",
+            "olli rehn",
+            "gediminas simkus",
+            "gediminas šimkus",
+            "yannis stournaras",
+            "pierre wunsch",
+            "dimitar radev",
+            "primoz dolenc",
+            "primož dolenc",
+            "jose luis escriva",
+            "josé luis escrivá",
+            "olaf sleijpen",
         ],
 
+        # ===================================================
+        # GBP — BANK OF ENGLAND MPC
+        # ===================================================
         "GBP": [
             "andrew bailey",
+            "sarah breeden",
+            "swati dhingra",
+            "megan greene",
+            "clare lombardelli",
+            "catherine mann",
+            "catherine l mann",
+            "huw pill",
+            "dave ramsden",
+            "alan taylor",
         ],
 
+        # ===================================================
+        # JPY — BOJ POLICY BOARD
+        # ===================================================
         "JPY": [
             "kazuo ueda",
+            "shinichi uchida",
+            "ryozo himino",
+            "hajime takata",
+            "naoki tamura",
+            "junko koeda",
+            "kazuyuki masu",
+            "toichiro asada",
+            "ayano sato",
         ],
 
+        # ===================================================
+        # CHF — SNB GOVERNING BOARD
+        # ===================================================
         "CHF": [
             "martin schlegel",
+            "antoine martin",
             "petra tschudin",
         ],
 
+        # ===================================================
+        # AUD — RBA MONETARY POLICY BOARD
+        # ===================================================
         "AUD": [
             "michele bullock",
+            "andrew hauser",
+            "marnie baker",
+            "renee fry-mckibbin",
+            "renée fry-mckibbin",
+            "ian harper",
+            "carolyn hewson",
+            "bruce preston",
+            "iain ross",
+            "jenny wilkinson",
         ],
 
-        "NZD": [],
+        # ===================================================
+        # NZD — RBNZ MONETARY POLICY COMMITTEE
+        # ===================================================
+        "NZD": [
+            "anna breman",
+            "karen silk",
+            "paul conway",
+            "carl hansen",
+            "prasanna gai",
+            "hayley gourley",
+        ],
 
+        # ===================================================
+        # CAD — BANK OF CANADA GOVERNING COUNCIL
+        # ===================================================
         "CAD": [
             "tiff macklem",
+            "carolyn rogers",
+            "toni gravelle",
+            "marc-andre gosselin",
+            "marc-andré gosselin",
+            "nicolas vincent",
+            "michelle alexopoulos",
         ],
     }
 
