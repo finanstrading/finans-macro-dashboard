@@ -3532,7 +3532,7 @@ def determinar_sufijo(nombre_indicador):
 # FX LIVE DRIVERS — NEWSAPI
 # ===================================================
 
-@st.cache_data(ttl=30, show_spinner=False)
+@st.cache_data(ttl=1, show_spinner=False)
 def cargar_live_drivers_newsapi(divisa, modo="Todos"):
     """
     MVP inicial:
