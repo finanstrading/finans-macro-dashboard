@@ -3670,6 +3670,83 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
         ],
     }   
 
+    queries_miembros_bancos_centrales = {
+
+        "USD": [
+            "Austan Goolsbee",
+            "Christopher Waller",
+            "Susan Collins",
+            "Beth Hammack",
+            "Jeffrey Schmid",
+            "Neel Kashkari",
+            "John Williams",
+            "Lorie Logan",
+            "Michelle Bowman",
+            "Lisa Cook",
+            "Philip Jefferson",
+        ],
+
+        "EUR": [
+            "Christine Lagarde",
+            "Philip Lane",
+            "Isabel Schnabel",
+            "Joachim Nagel",
+            "Martins Kazaks",
+            "Olli Rehn",
+            "Pierre Wunsch",
+            "Dimitar Radev",
+            "Primoz Dolenc",
+        ],
+
+        "GBP": [
+            "Andrew Bailey",
+            "Sarah Breeden",
+            "Swati Dhingra",
+            "Megan Greene",
+            "Clare Lombardelli",
+            "Catherine Mann",
+            "Huw Pill",
+            "Dave Ramsden",
+            "Alan Taylor",
+        ],
+
+        "JPY": [
+            "Kazuo Ueda",
+            "Shinichi Uchida",
+            "Ryozo Himino",
+            "Hajime Takata",
+            "Naoki Tamura",
+        ],
+
+        "CHF": [
+            "Martin Schlegel",
+            "Antoine Martin",
+            "Petra Tschudin",
+        ],
+
+        "AUD": [
+            "Michele Bullock",
+            "Andrew Hauser",
+            "Renee Fry-McKibbin",
+        ],
+
+        "NZD": [
+            "Anna Breman",
+            "Karen Silk",
+            "Paul Conway",
+            "Carl Hansen",
+        ],
+
+        "CAD": [
+            "Tiff Macklem",
+            "Carolyn Rogers",
+            "Toni Gravelle",
+            "Marc-Andre Gosselin",
+            "Nicolas Vincent",
+            "Michelle Alexopoulos",
+        ],
+    }
+
     if modo == "Bancos centrales":
         query_activa = queries_bancos_centrales.get(divisa, [])
     else:
