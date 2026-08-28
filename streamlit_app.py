@@ -4856,7 +4856,9 @@ def filtrar_bancos_centrales(articles, divisa):
         "zinssenkungswetten",
         "wetten auf eine zinserhöhung",
         "wetten auf eine zinssenkung",
-]
+
+
+
     ]
 
     # ===================================================
