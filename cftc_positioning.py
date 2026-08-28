@@ -268,20 +268,29 @@ def generar_analisis_cftc(currency, lectura):
     positioning = lectura["positioning_score"]
     momentum = lectura["momentum_score"]
 
+
     # ========================================================
-    # NIVEL DE POSICIONAMIENTO
+    # DIRECCIÓN REAL DEL POSICIONAMIENTO
     # ========================================================
 
-    if positioning >= 70:
-        nivel = "extremadamente long"
-    elif positioning >= 30:
-        nivel = "claramente long"
-    elif positioning > -30:
-        nivel = "neutral"
-    elif positioning > -70:
-        nivel = "claramente short"
+    if net_oi >= 5:
+        direccion = "long"
+    elif net_oi <= -5:
+        direccion = "short"
     else:
-        nivel = "extremadamente short"
+        direccion = "neutral"
+
+
+    # ========================================================
+    # CROWDING / EXTREMIDAD HISTÓRICA
+    # ========================================================
+
+    if abs(positioning) >= 70:
+        crowding = "extremo"
+    elif abs(positioning) >= 40:
+        crowding = "elevado"
+    else:
+        crowding = "moderado"
 
     # ========================================================
     # MOMENTUM
@@ -321,42 +330,46 @@ def generar_analisis_cftc(currency, lectura):
     # IMPACTO FX
     # ========================================================
 
-    if positioning <= -30 and momentum <= -30:
+    if direccion == "short" and momentum <= -30:
         impacto = (
-            f"El posicionamiento es desfavorable para {currency} y los fondos "
-            f"continúan aumentando la presión short. Si el movimiento se "
-            f"extiende, también aumenta progresivamente el riesgo de crowding "
-            f"y de un eventual short squeeze."
+            f"Los Leveraged Funds mantienen un posicionamiento claramente "
+            f"short en {currency} y, además, están aumentando la presión "
+            f"vendedora. El momentum actual refuerza el sesgo bajista. "
+            f"Sin embargo, el crowding histórico es {crowding}, por lo que "
+            f"el riesgo de short squeeze debe valorarse por separado."
         )
 
-    elif positioning <= -30 and momentum > -30:
+    elif direccion == "short" and momentum > -30:
         impacto = (
-            f"El posicionamiento continúa siendo desfavorable para {currency}, "
-            f"pero no existe actualmente una aceleración significativa de "
-            f"las posiciones short. Esto reduce la presión bajista marginal."
+            f"Los Leveraged Funds mantienen un posicionamiento short en "
+            f"{currency}, aunque no existe actualmente una acumulación "
+            f"agresiva de nuevas posiciones bajistas. El sesgo de "
+            f"posicionamiento continúa siendo negativo, pero la presión "
+            f"marginal es más limitada."
         )
 
-    elif positioning >= 30 and momentum >= 30:
+    elif direccion == "long" and momentum >= 30:
         impacto = (
-            f"El posicionamiento es favorable para {currency} y los fondos "
-            f"continúan reforzando posiciones long. El flujo especulativo "
-            f"mantiene por tanto un sesgo favorable para la divisa."
+            f"Los Leveraged Funds mantienen un posicionamiento claramente "
+            f"long en {currency} y continúan aumentando posiciones "
+            f"compradoras. El flujo especulativo refuerza el sesgo "
+            f"favorable para la divisa."
         )
 
-    elif positioning >= 30 and momentum < 30:
+    elif direccion == "long" and momentum < 30:
         impacto = (
-            f"Los fondos siguen posicionados favorablemente en {currency}, "
-            f"aunque el momentum reciente muestra menor acumulación de longs. "
-            f"Conviene vigilar posibles señales de reducción de posiciones."
+            f"Los Leveraged Funds continúan posicionados long en {currency}, "
+            f"pero el momentum reciente no muestra una acumulación fuerte "
+            f"de nuevas posiciones compradoras."
         )
 
     else:
         impacto = (
-            f"El nivel agregado de posicionamiento en {currency} se encuentra "
-            f"cerca de una zona neutral. El cambio semanal y el momentum son "
-            f"más relevantes que el nivel absoluto para valorar el flujo actual."
+            f"El posicionamiento agregado en {currency} se encuentra cerca "
+            f"de neutral. En este escenario, el momentum semanal adquiere "
+            f"más relevancia para interpretar el flujo reciente."
         )
-
+        
     # ========================================================
     # TEXTOS FINALES
     # ========================================================
@@ -364,9 +377,11 @@ def generar_analisis_cftc(currency, lectura):
     situacion_actual = (
         f"Los Leveraged Funds mantienen una posición neta de "
         f"{net:,.0f} contratos en {currency}, equivalente al "
-        f"{net_oi:.1f}% del Open Interest. El Positioning Score de "
-        f"{positioning:+.0f} sitúa el posicionamiento como {nivel}, "
-        f"en el percentil {percentile:.1f} de los últimos tres años."
+        f"{net_oi:.1f}% del Open Interest. Esto refleja un "
+        f"posicionamiento claramente {direccion}. "
+        f"El Crowding Score de {positioning:+.0f} indica un grado "
+        f"de saturación histórica {crowding}, situado en el percentil "
+        f"{percentile:.1f} de los últimos tres años."
     )
 
     tendencia_texto = (
@@ -375,7 +390,8 @@ def generar_analisis_cftc(currency, lectura):
     )
 
     resumen = (
-        f"{currency}: posicionamiento {nivel}, con "
+        f"{currency}: posicionamiento {direccion}, "
+        f"crowding histórico {crowding} y "
         f"Momentum Score {momentum:+.0f}."
     )
 
@@ -487,29 +503,43 @@ def render_cftc_positioning():
 
     with col5:
         st.metric(
-            "Historical Percentile",
+            "3Y Crowding Percentile",
             f"{lectura['percentile']:.1f}%",
         )
 
     with col6:
         st.metric(
-            "Positioning Score",
+            "Crowding Score",
             f"{lectura['positioning_score']:+.0f}",
         )
 
 
+    net_oi = lectura["net_oi_pct"]
     score = lectura["positioning_score"]
 
-    if score >= 70:
-        clasificacion = "Extreme Long"
-    elif score >= 30:
-        clasificacion = "Long"
-    elif score > -30:
-        clasificacion = "Neutral"
-    elif score > -70:
-        clasificacion = "Short"
+    # ============================================================
+    # DIRECCIÓN ACTUAL
+    # ============================================================
+
+    if net_oi >= 5:
+        direccion = "Long"
+    elif net_oi <= -5:
+        direccion = "Short"
     else:
-        clasificacion = "Extreme Short"
+        direccion = "Neutral"
+
+
+    # ============================================================
+    # CROWDING / EXTREMIDAD HISTÓRICA
+    # ============================================================
+
+    if abs(score) >= 70:
+        crowding = "Extreme"
+    elif abs(score) >= 40:
+        crowding = "Elevated"
+    else:
+        crowding = "Moderate"
+
 
     momentum = lectura["momentum_score"]
 
@@ -525,9 +555,13 @@ def render_cftc_positioning():
         momentum_label = "Strong Short Build"
 
     st.markdown(
-        f"### Lectura actual: **{clasificacion}**"
+        f"### Posicionamiento actual: **{direccion}**"
     )
 
+    st.markdown(
+        f"**Crowding histórico:** {crowding} "
+        f"({score:+.0f})"
+    )
     st.markdown(
         f"**Momentum semanal:** {momentum_label} "
         f"({momentum:+.0f})"
