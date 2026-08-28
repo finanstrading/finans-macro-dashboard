@@ -3841,6 +3841,12 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
                     .get("results", [])
                 )
 
+                print(
+                    f"[NEWSAPI {divisa}] "
+                    f"general={len(articles)} | "
+                    f"miembros={len(articles_miembros)}"
+                )
+
                 articles.extend(articles_miembros)
 
 
