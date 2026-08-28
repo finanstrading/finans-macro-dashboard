@@ -573,6 +573,44 @@ def render_cftc_positioning():
     )
 
     # ============================================================
+    # GUÍA DE INTERPRETACIÓN
+    # ============================================================
+
+    with st.expander("¿Cómo interpretar estos datos?"):
+
+        st.markdown(
+            """
+    **Net Position**  
+    Diferencia entre las posiciones **Long y Short** de los Leveraged Funds.  
+    Un valor positivo indica posicionamiento neto comprador; un valor negativo, posicionamiento neto vendedor.
+
+    **Net / Open Interest**  
+    Posición neta de los Leveraged Funds en relación con el tamaño total del mercado de futuros.  
+    Permite medir mejor la **dirección y magnitud relativa** del posicionamiento que el número de contratos por sí solo.
+
+    **Weekly Change**  
+    Cambio de la posición neta respecto a la semana anterior.  
+    Un valor positivo indica movimiento hacia posiciones más **Long**; uno negativo, hacia posiciones más **Short**.
+
+    **Open Interest**  
+    Número total de contratos de futuros abiertos en ese mercado.  
+    Sirve como referencia del tamaño y participación existente en el mercado.
+
+    **3Y Crowding Percentile**  
+    Compara el posicionamiento actual con las lecturas de los últimos **3 años**.  
+    Ayuda a saber si el posicionamiento se encuentra cerca de niveles históricamente elevados o extremos.
+
+    **Crowding Score · −100 a +100**  
+    Mide dónde se encuentra el posicionamiento dentro de su distribución histórica.  
+    Valores próximos a **−100** representan extremos hacia el lado Short y valores próximos a **+100**, extremos hacia el lado Long.
+
+    **Momentum semanal · −100 a +100**  
+    Mide la intensidad del cambio reciente del posicionamiento.  
+    Valores próximos a **−100** indican fuerte construcción de posiciones Short; valores próximos a **+100**, fuerte construcción de posiciones Long.
+            """
+        )
+        
+    # ============================================================
     # GRÁFICO HISTÓRICO
     # ============================================================
     periodo_grafico = st.segmented_control(
