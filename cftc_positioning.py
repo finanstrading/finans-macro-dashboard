@@ -391,18 +391,12 @@ def generar_analisis_cftc(currency, lectura):
 # ============================================================
 
 def crear_tarjeta_cftc(titulo, contenido):
-
-    return f"""
-        <div class="macro-analysis-card">
-            <div class="macro-analysis-title">
-                {titulo}
-            </div>
-
-            <div class="macro-analysis-text">
-                {contenido}
-            </div>
-        </div>
-    """
+    return (
+        '<div class="macro-analysis-card">'
+        f'<div class="macro-analysis-title">{titulo}</div>'
+        f'<div class="macro-analysis-text">{contenido}</div>'
+        '</div>'
+    )
 
 def render_cftc_positioning():
 
