@@ -5275,6 +5275,19 @@ def clasificar_catalizador_fx(article, divisa):
 # FX LIVE DRIVERS
 # ===================================================
 
+# ===================================================
+# CFTC POSITIONING
+# ===================================================
+
+if pagina_principal == "CFTC Positioning":
+
+    with st.sidebar:
+        render_logout(AUTH_PROFILE)
+
+    render_cftc_positioning()
+
+    st.stop()
+
 if pagina_principal == "FX Live Drivers":
 
     with st.sidebar:
