@@ -3782,6 +3782,7 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
         "forceMaxDataTimeWindow": 7,
 
         "apiKey": api_key,
+    }
 
     try:
 
