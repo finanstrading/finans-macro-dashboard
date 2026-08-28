@@ -4745,6 +4745,7 @@ with st.sidebar:
         options=[
             "Dashboard",
             "FX Live Drivers",
+            "CFTC Positioning",
         ],
         index=0,
         label_visibility="collapsed",
