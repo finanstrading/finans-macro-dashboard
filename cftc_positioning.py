@@ -183,6 +183,21 @@ def preparar_cftc_currency(currency: str) -> pd.DataFrame:
         (df["Percentile"] * 2) - 100
     )
 
+    # ========================================================
+    # POSITIONING MOMENTUM
+    # ========================================================
+
+    df["Momentum_Percentile"] = (
+        df["Weekly_Change_Net_OI"]
+        .rolling(window=156, min_periods=52)
+        .rank(pct=True)
+        * 100
+    )
+
+    df["Momentum_Score"] = (
+        (df["Momentum_Percentile"] * 2) - 100
+    )
+
     return df
 
 
