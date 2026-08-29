@@ -40,23 +40,47 @@ def myfxbook_login(http_session):
 
 def cargar_retail_outlook():
 
-    # Mantiene la misma conexión HTTP para login + consulta.
-    # Es importante porque Myfxbook vincula la sesión a la IP.
     with requests.Session() as http_session:
 
         session_id = myfxbook_login(http_session)
 
+        st.write("Session recibida:", session_id[:6] + "...")
+
+        # Prueba 1: comprobar si la sesión funciona
+        test_response = http_session.get(
+            f"{MYFXBOOK_BASE_URL}/get-my-accounts.json",
+            params={"session": session_id},
+            timeout=20,
+        )
+
+        test_data = test_response.json()
+
+        st.write(
+            "Test sesión:",
+            {
+                "error": test_data.get("error"),
+                "message": test_data.get("message"),
+            },
+        )
+
+        # Prueba 2: Community Outlook
         response = http_session.get(
             f"{MYFXBOOK_BASE_URL}/get-community-outlook.json",
-            params={
-                "session": session_id,
-            },
+            params={"session": session_id},
             timeout=20,
         )
 
         response.raise_for_status()
 
         data = response.json()
+
+        st.write(
+            "Test Community Outlook:",
+            {
+                "error": data.get("error"),
+                "message": data.get("message"),
+            },
+        )
 
         if data.get("error"):
             raise ValueError(
