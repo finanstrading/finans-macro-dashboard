@@ -570,29 +570,62 @@ def buscar_bancos_centrales_ia_test(divisa):
 
         "USD": {
             "banco": "Federal Reserve",
-            "miembros": """
-Kevin Warsh, John Williams, Michael Barr, Michelle Bowman,
-Lisa Cook, Beth Hammack, Philip Jefferson, Neel Kashkari,
-Lorie Logan, Anna Paulson, Jerome Powell, Christopher Waller,
-Austan Goolsbee, Susan Collins, Mary Daly, Thomas Barkin,
-Alberto Musalem, Jeffrey Schmid
-""",
+            "grupos": [
+                [
+                    "Kevin Warsh",
+                    "John Williams",
+                    "Christopher Waller",
+                    "Austan Goolsbee",
+                    "Susan Collins",
+                ],
+                [
+                    "Michelle Bowman",
+                    "Philip Jefferson",
+                    "Beth Hammack",
+                    "Neel Kashkari",
+                    "Lorie Logan",
+                ],
+                [
+                    "Mary Daly",
+                    "Thomas Barkin",
+                    "Alberto Musalem",
+                    "Jeffrey Schmid",
+                    "Lisa Cook",
+                ],
+            ],
         },
 
         "EUR": {
             "banco": "European Central Bank / Eurosystem",
-            "miembros": """
-Christine Lagarde, Boris Vujcic, Philip Lane, Isabel Schnabel,
-Piero Cipollone, Luis de Guindos, Joachim Nagel, Olli Rehn,
-Martin Kocher, Bostjan Vasle, Primoz Dolenc, Martins Kazaks,
-Klaas Knot, Mario Centeno, Francois Villeroy de Galhau,
-Fabio Panetta, Gabriel Makhlouf, Pierre Wunsch
-""",
+            "grupos": [
+                [
+                    "Martin Kocher",
+                    "Primoz Dolenc",
+                    "Martins Kazaks",
+                    "Isabel Schnabel",
+                    "Philip Lane",
+                ],
+                [
+                    "Christine Lagarde",
+                    "Boris Vujcic",
+                    "Joachim Nagel",
+                    "Olli Rehn",
+                    "Piero Cipollone",
+                ],
+                [
+                    "Francois Villeroy de Galhau",
+                    "Fabio Panetta",
+                    "Gabriel Makhlouf",
+                    "Pierre Wunsch",
+                    "Luis de Guindos",
+                ],
+            ],
         },
     }
 
     if divisa not in configuracion:
         return ""
+
 
     datos = configuracion[divisa]
 
