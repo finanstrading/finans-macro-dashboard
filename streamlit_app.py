@@ -999,6 +999,49 @@ def actualizar_central_bank_currency(currency):
         "save_result": resultado_guardado,
     }
 
+
+def actualizar_todos_central_bank_drivers():
+
+    divisas = [
+        "USD",
+        "EUR",
+        "GBP",
+        "JPY",
+        "CHF",
+        "AUD",
+        "NZD",
+        "CAD",
+    ]
+
+    resultados = []
+
+    for currency in divisas:
+
+        try:
+            resultado = actualizar_central_bank_currency(
+                currency
+            )
+
+            resultados.append({
+                "currency": currency,
+                "ok": True,
+                "events_found": resultado["events_found"],
+                "save_result": resultado["save_result"],
+                "error": None,
+            })
+
+        except Exception as error:
+
+            resultados.append({
+                "currency": currency,
+                "ok": False,
+                "events_found": 0,
+                "save_result": None,
+                "error": str(error),
+            })
+
+    return resultados
+
 def probar_central_bank_webapp():
 
     url = st.secrets[
