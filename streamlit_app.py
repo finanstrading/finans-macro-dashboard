@@ -1327,6 +1327,10 @@ def cargar_central_bank_drivers(divisa):
                     else None
                 ),
 
+                "EventDate": str(
+                    row.get("EventDate") or ""
+                ).strip(),
+
                 "Currency": str(
                     row.get("Currency") or ""
                 ).strip(),
@@ -1451,6 +1455,13 @@ def render_central_bank_drivers(divisa):
             driver.get("DateTime") or ""
         ).strip()
 
+        event_date = str(
+            driver.get("EventDate") or ""
+        ).strip()
+
+        fecha_texto = "Fecha no disponible"
+
+        # 1. Tenemos fecha + hora exacta
         if (
             datetime_evento
             and datetime_evento.lower()
@@ -1466,11 +1477,23 @@ def render_central_bank_drivers(divisa):
                 fecha_texto = fecha.strftime(
                     "%d %b %Y · %H:%M UTC"
                 )
-            else:
-                fecha_texto = "Fecha exacta no disponible"
 
-        else:
-            fecha_texto = "Fecha exacta no disponible"
+        # 2. No tenemos hora, pero sí fecha real del comentario
+        elif (
+            event_date
+            and event_date.lower()
+            not in ["none", "nan", "nat"]
+        ):
+            fecha = pd.to_datetime(
+                event_date,
+                errors="coerce",
+            )
+
+            if pd.notna(fecha):
+                fecha_texto = (
+                    fecha.strftime("%d %b %Y")
+                    + " · hora no disponible"
+                )
 
         etiqueta = (
             f"{divisa} · {bias.upper()} · "
