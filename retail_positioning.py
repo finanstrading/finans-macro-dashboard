@@ -5,12 +5,12 @@ import streamlit as st
 MYFXBOOK_BASE_URL = "https://www.myfxbook.com/api"
 
 
-def myfxbook_login():
+def myfxbook_login(http_session):
 
     email = st.secrets["MYFXBOOK_EMAIL"]
     password = st.secrets["MYFXBOOK_PASSWORD"]
 
-    response = requests.get(
+    response = http_session.get(
         f"{MYFXBOOK_BASE_URL}/login.json",
         params={
             "email": email,
@@ -25,41 +25,45 @@ def myfxbook_login():
 
     if data.get("error"):
         raise ValueError(
-            f"Error de Myfxbook: {data.get('message')}"
+            f"Error de login Myfxbook: {data.get('message')}"
         )
 
-    session = data.get("session")
+    session_id = data.get("session")
 
-    if not session:
+    if not session_id:
         raise ValueError(
-            "Myfxbook no devolvió un Session ID."
+            f"Myfxbook no devolvió Session ID. Respuesta: {data}"
         )
 
-    return session
+    return session_id
 
 
 def cargar_retail_outlook():
 
-    session = myfxbook_login()
+    # Mantiene la misma conexión HTTP para login + consulta.
+    # Es importante porque Myfxbook vincula la sesión a la IP.
+    with requests.Session() as http_session:
 
-    response = requests.get(
-        f"{MYFXBOOK_BASE_URL}/get-community-outlook.json",
-        params={
-            "session": session,
-        },
-        timeout=20,
-    )
+        session_id = myfxbook_login(http_session)
 
-    response.raise_for_status()
-
-    data = response.json()
-
-    if data.get("error"):
-        raise ValueError(
-            f"Error de Myfxbook: {data.get('message')}"
+        response = http_session.get(
+            f"{MYFXBOOK_BASE_URL}/get-community-outlook.json",
+            params={
+                "session": session_id,
+            },
+            timeout=20,
         )
 
-    return data.get("symbols", [])
+        response.raise_for_status()
+
+        data = response.json()
+
+        if data.get("error"):
+            raise ValueError(
+                f"Error de Myfxbook: {data.get('message')}"
+            )
+
+        return data.get("symbols", [])
 
 
 def render_retail_test():
