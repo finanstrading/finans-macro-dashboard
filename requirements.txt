@@ -4,3 +4,4 @@ plotly
 supabase
 streamlit-js-eval
 requests
+feedparser
