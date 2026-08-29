@@ -560,7 +560,8 @@ st.markdown(
 def buscar_bancos_centrales_ia_test(divisa):
 
     client = OpenAI(
-        api_key=st.secrets["OPENAI_API_KEY"]
+        api_key=st.secrets["OPENAI_API_KEY"],
+        timeout=90.0,
     )
 
     configuracion = {
