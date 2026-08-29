@@ -20,6 +20,7 @@ import feedparser
 from datetime import datetime, timezone, timedelta
 
 from openai import OpenAI
+import json
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -757,6 +758,93 @@ NO RELEVANT STATEMENTS FOUND.
 
     return response.output_text
 
+def preparar_central_bank_drivers(resultado_ia):
+    """
+    Convierte la respuesta JSON de OpenAI Web Search
+    en filas preparadas para CentralBank_Drivers.
+
+    Todavía NO escribe en Google Sheets.
+    """
+
+    if not resultado_ia:
+        return []
+
+    try:
+        data = json.loads(resultado_ia)
+    except Exception as error:
+        raise ValueError(
+            f"No se pudo interpretar la respuesta de OpenAI como JSON: {error}"
+        )
+
+    eventos = data.get("events", [])
+
+    if not isinstance(eventos, list):
+        return []
+
+    detected_at = datetime.now(timezone.utc).isoformat()
+
+    filas = []
+
+    for evento in eventos:
+
+        currency = str(
+            evento.get("currency") or ""
+        ).strip().upper()
+
+        member = str(
+            evento.get("member") or ""
+        ).strip()
+
+        statement = str(
+            evento.get("statement") or ""
+        ).strip()
+
+        if not currency or not member or not statement:
+            continue
+
+        # ID estable para evitar guardar el mismo comentario
+        # más de una vez en búsquedas posteriores.
+        texto_id = (
+            f"{currency}|"
+            f"{member.lower()}|"
+            f"{statement.lower()}"
+        )
+
+        event_id = hashlib.sha256(
+            texto_id.encode("utf-8")
+        ).hexdigest()[:24]
+
+        fila = {
+            "EventID": event_id,
+            "DateTime": evento.get("datetime"),
+            "Currency": currency,
+            "Member": member,
+            "CentralBank": str(
+                evento.get("central_bank") or ""
+            ).strip(),
+            "Statement": statement,
+            "Context": str(
+                evento.get("context") or ""
+            ).strip(),
+            "Bias": str(
+                evento.get("bias") or ""
+            ).strip(),
+            "Importance": str(
+                evento.get("importance") or ""
+            ).strip(),
+            "Source": str(
+                evento.get("source") or ""
+            ).strip(),
+            "SourceURL": str(
+                evento.get("source_url") or ""
+            ).strip(),
+            "DetectedAt": detected_at,
+        }
+
+        filas.append(fila)
+
+    return filas
+
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_oficiales(divisa):
     """
@@ -947,7 +1035,21 @@ def test_ia_web_bancos_centrales():
 
         try:
             resultado = buscar_bancos_centrales_ia_test("USD")
-            st.write(resultado)
+
+            filas = preparar_central_bank_drivers(
+                resultado
+            )
+
+            st.write(
+                "Eventos preparados:",
+                len(filas)
+            )
+
+            st.dataframe(
+                pd.DataFrame(filas),
+                use_container_width=True,
+                hide_index=True,
+            )
 
         except Exception as e:
             st.error(
