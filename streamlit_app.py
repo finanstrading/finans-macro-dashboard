@@ -981,8 +981,16 @@ def guardar_central_bank_drivers(filas):
 def actualizar_central_bank_currency(currency):
     currency = str(currency).strip().upper()
 
-    resultado_actualizacion = actualizar_central_bank_currency(
-        divisa_live
+    resultado_ia = buscar_bancos_centrales_ia_test(
+        currency
+    )
+
+    eventos = preparar_central_bank_drivers(
+        resultado_ia
+    )
+
+    resultado_guardado = guardar_central_bank_drivers(
+        eventos
     )
 
     return {
