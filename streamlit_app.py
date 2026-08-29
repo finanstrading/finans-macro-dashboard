@@ -7258,15 +7258,15 @@ if pagina_principal == "FX Live Drivers":
         key="live_currency",
     )
 
-        # ===================================================
-        # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
-        # ===================================================
+    # ===================================================
+    # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
+    # ===================================================
 
-        render_central_bank_drivers(
-            divisa_live
-        )
+    render_central_bank_drivers(
+        divisa_live
+    )
 
-        st.stop()
+    st.stop()
 
     # ===================================================
     # FX LIVE DRIVERS — DATOS REALES
