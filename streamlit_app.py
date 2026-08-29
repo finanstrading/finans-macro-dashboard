@@ -562,7 +562,8 @@ def buscar_bancos_centrales_ia_test(divisa):
 
     client = OpenAI(
         api_key=st.secrets["OPENAI_API_KEY"],
-        timeout=90.0,
+        timeout=45.0,
+        max_retries=0,
     )
 
     configuracion = {
