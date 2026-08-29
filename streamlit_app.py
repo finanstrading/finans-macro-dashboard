@@ -1195,6 +1195,166 @@ def construir_url(nombre_hoja):
         f"tqx=out:csv&sheet={nombre_codificado}"
     )
 
+@st.cache_data(ttl=60, show_spinner=False)
+def cargar_central_bank_drivers(divisa):
+    try:
+        df = pd.read_csv(
+            construir_url("CentralBank_Drivers")
+        )
+
+        df.columns = [
+            str(col).strip()
+            for col in df.columns
+        ]
+
+        if df.empty:
+            return {
+                "ok": True,
+                "drivers": [],
+                "error": None,
+            }
+
+        # ---------------------------------------
+        # Divisa
+        # ---------------------------------------
+
+        df["Currency"] = (
+            df["Currency"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+        df = df[
+            df["Currency"] == str(divisa).upper()
+        ].copy()
+
+        if df.empty:
+            return {
+                "ok": True,
+                "drivers": [],
+                "error": None,
+            }
+
+        # ---------------------------------------
+        # Fecha
+        #
+        # Prioridad:
+        # 1. DateTime del evento
+        # 2. DetectedAt si OpenAI no pudo
+        #    determinar una hora exacta
+        # ---------------------------------------
+
+        df["_event_time"] = pd.to_datetime(
+            df["DateTime"],
+            utc=True,
+            errors="coerce",
+        )
+
+        detected = pd.to_datetime(
+            df["DetectedAt"],
+            utc=True,
+            errors="coerce",
+        )
+
+        df["_sort_time"] = (
+            df["_event_time"]
+            .fillna(detected)
+        )
+
+        # ---------------------------------------
+        # Máximo 7 días
+        # ---------------------------------------
+
+        fecha_limite = (
+            pd.Timestamp.now(tz="UTC")
+            - pd.Timedelta(days=7)
+        )
+
+        df = df[
+            df["_sort_time"].notna()
+            & (df["_sort_time"] >= fecha_limite)
+        ].copy()
+
+        df = df.sort_values(
+            "_sort_time",
+            ascending=False,
+        )
+
+        # ---------------------------------------
+        # Convertir a diccionarios
+        # ---------------------------------------
+
+        drivers = []
+
+        for _, row in df.iterrows():
+
+            drivers.append({
+                "EventID": str(
+                    row.get("EventID") or ""
+                ).strip(),
+
+                "DateTime": (
+                    row["_event_time"].isoformat()
+                    if pd.notna(row["_event_time"])
+                    else None
+                ),
+
+                "Currency": str(
+                    row.get("Currency") or ""
+                ).strip(),
+
+                "Member": str(
+                    row.get("Member") or ""
+                ).strip(),
+
+                "CentralBank": str(
+                    row.get("CentralBank") or ""
+                ).strip(),
+
+                "Statement": str(
+                    row.get("Statement") or ""
+                ).strip(),
+
+                "Context": str(
+                    row.get("Context") or ""
+                ).strip(),
+
+                "Bias": str(
+                    row.get("Bias") or ""
+                ).strip(),
+
+                "Importance": str(
+                    row.get("Importance") or ""
+                ).strip(),
+
+                "Source": str(
+                    row.get("Source") or ""
+                ).strip(),
+
+                "SourceURL": str(
+                    row.get("SourceURL") or ""
+                ).strip(),
+
+                "DetectedAt": str(
+                    row.get("DetectedAt") or ""
+                ).strip(),
+            })
+
+        return {
+            "ok": True,
+            "drivers": drivers,
+            "error": None,
+        }
+
+    except Exception as error:
+
+        return {
+            "ok": False,
+            "drivers": [],
+            "error": str(error),
+        }
 
 @st.cache_data(ttl=60, show_spinner=False)
 def cargar_datos_mercado(nombres_posibles):
@@ -6725,6 +6885,44 @@ if pagina_principal == "FX Live Drivers":
         key="live_driver_mode",
     )
 
+
+    if modo_live == "Bancos centrales":
+
+        test_bc = cargar_central_bank_drivers(
+            divisa_live
+        )
+
+        st.markdown(
+            "### TEST — CentralBank_Drivers desde Google Sheets"
+        )
+
+        st.write(
+            "OK:",
+            test_bc["ok"]
+        )
+
+        st.write(
+            "Drivers:",
+            len(test_bc["drivers"])
+        )
+
+        if not test_bc["ok"]:
+            st.error(
+                test_bc["error"]
+            )
+
+        else:
+            for driver in test_bc["drivers"]:
+
+                st.write(
+                    driver["Member"],
+                    "|",
+                    driver["Bias"],
+                    "|",
+                    driver["Importance"],
+                    "|",
+                    driver["Statement"],
+                )
     # ===================================================
     # FX LIVE DRIVERS — DATOS REALES
     # ===================================================
