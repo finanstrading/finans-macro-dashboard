@@ -739,6 +739,8 @@ NO RELEVANT STATEMENTS FOUND.
         ],
 
         input=prompt,
+
+        max_output_tokens=1500,
     )
 
     return {
