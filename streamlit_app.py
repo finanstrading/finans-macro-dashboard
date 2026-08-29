@@ -657,6 +657,22 @@ IMPORTANT OUTPUT RULES:
 - If the exact time cannot be reliably established, return null for datetime.
   Do not invent a time.
 
+- EVENT DATE must contain the confirmed calendar date of the statement
+  in YYYY-MM-DD format.
+  Example: 2026-08-27
+
+- If the calendar date cannot be reliably established, return null.
+
+- DATE/TIME must contain the exact ISO 8601 UTC datetime only when
+  the exact time can be reliably established.
+  Example: 2026-08-28T14:00:00Z
+
+- If the exact time is unknown but the date is known:
+  EVENT DATE must still contain the date,
+  while DATE/TIME must be null.
+
+- Do not invent a time.
+
 If several articles report the same comments, consolidate them
 into one event.
 
@@ -689,6 +705,12 @@ NO RELEVANT STATEMENTS FOUND.
                             "items": {
                                 "type": "object",
                                 "properties": {
+                                    "event_date": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
                                     "datetime": {
                                         "type": [
                                             "string",
@@ -734,6 +756,7 @@ NO RELEVANT STATEMENTS FOUND.
                                     }
                                 },
                                 "required": [
+                                    "event_date",
                                     "datetime",
                                     "currency",
                                     "member",
@@ -841,6 +864,7 @@ def preparar_central_bank_drivers(resultado_ia):
                 evento.get("source_url") or ""
             ).strip(),
             "DetectedAt": detected_at,
+            "EventDate": evento.get("event_date"),
         }
 
         filas.append(fila)
