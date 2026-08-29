@@ -629,7 +629,10 @@ def buscar_bancos_centrales_ia_test(divisa):
 
     datos = configuracion[divisa]
 
+    miembros = datos["grupos"][0]
+    miembros_texto = ", ".join(miembros)
     prompt = f"""
+    
 Search the web comprehensively for RECENT statements, interviews,
 speeches, media appearances, conference remarks or direct comments
 made during approximately the last 48 hours by members of the
