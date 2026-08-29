@@ -697,6 +697,32 @@ def cargar_live_drivers_oficiales(divisa):
         }
 
 
+def test_fuentes_oficiales():
+
+    st.subheader("TEST — Fuentes oficiales")
+
+    for divisa in ["USD", "EUR"]:
+
+        resultado = cargar_live_drivers_oficiales(divisa)
+
+        st.write(
+            divisa,
+            "OK:",
+            resultado["ok"],
+            "TOTAL:",
+            len(resultado["articles"]),
+        )
+
+        if resultado["error"]:
+            st.error(resultado["error"])
+
+        for article in resultado["articles"][:10]:
+            st.write(
+                article["publishedAt"],
+                article["source"],
+                article["title"],
+            )
+
 def construir_url(nombre_hoja):
     nombre_codificado = quote(nombre_hoja, safe="")
     return (
