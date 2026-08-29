@@ -20,7 +20,6 @@ import feedparser
 from datetime import datetime, timezone, timedelta
 
 from openai import OpenAI
-import json
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -561,130 +560,105 @@ st.markdown(
 def buscar_bancos_centrales_ia_test(divisa):
 
     client = OpenAI(
-        api_key=st.secrets["OPENAI_API_KEY"],
-        timeout=120.0,
-        max_retries=0,
+        api_key=st.secrets["OPENAI_API_KEY"]
     )
 
     configuracion = {
 
         "USD": {
             "banco": "Federal Reserve",
-            "grupos": [
-                [
-                    "Kevin Warsh",
-                    "John Williams",
-                    "Christopher Waller",
-                    "Austan Goolsbee",
-                    "Susan Collins",
-                ],
-                [
-                    "Michelle Bowman",
-                    "Philip Jefferson",
-                    "Beth Hammack",
-                    "Neel Kashkari",
-                    "Lorie Logan",
-                ],
-                [
-                    "Mary Daly",
-                    "Thomas Barkin",
-                    "Alberto Musalem",
-                    "Jeffrey Schmid",
-                    "Lisa Cook",
-                ],
-            ],
+            "miembros": """
+Kevin Warsh, John Williams, Michael Barr, Michelle Bowman,
+Lisa Cook, Beth Hammack, Philip Jefferson, Neel Kashkari,
+Lorie Logan, Anna Paulson, Jerome Powell, Christopher Waller,
+Austan Goolsbee, Susan Collins, Mary Daly, Thomas Barkin,
+Alberto Musalem, Jeffrey Schmid
+""",
         },
 
         "EUR": {
             "banco": "European Central Bank / Eurosystem",
-            "grupos": [
-                [
-                    "Martin Kocher",
-                    "Primoz Dolenc",
-                    "Martins Kazaks",
-                    "Isabel Schnabel",
-                    "Philip Lane",
-                ],
-                [
-                    "Christine Lagarde",
-                    "Boris Vujcic",
-                    "Joachim Nagel",
-                    "Olli Rehn",
-                    "Piero Cipollone",
-                ],
-                [
-                    "Francois Villeroy de Galhau",
-                    "Fabio Panetta",
-                    "Gabriel Makhlouf",
-                    "Pierre Wunsch",
-                    "Luis de Guindos",
-                ],
-            ],
+            "miembros": """
+Christine Lagarde, Boris Vujcic, Philip Lane, Isabel Schnabel,
+Piero Cipollone, Luis de Guindos, Joachim Nagel, Olli Rehn,
+Martin Kocher, Bostjan Vasle, Primoz Dolenc, Martins Kazaks,
+Klaas Knot, Mario Centeno, Francois Villeroy de Galhau,
+Fabio Panetta, Gabriel Makhlouf, Pierre Wunsch
+""",
         },
     }
 
     if divisa not in configuracion:
         return ""
 
-
     datos = configuracion[divisa]
 
     prompt = f"""
-    Search the web for relevant monetary-policy comments made during the last 48 hours
-    by CURRENT officials of the {configuracion[divisa]["banco"]}.
+Search the web for RECENT statements, interviews, speeches,
+media appearances or direct comments made during approximately
+the last 48 hours by members of the {datos["banco"]}.
 
-    Find only comments relevant to:
-    - interest rates
-    - inflation
-    - monetary policy
-    - policy outlook
-    - balance sheet / liquidity when relevant to monetary policy
+Currency: {divisa}
 
-    Ignore:
-    - generic market commentary
-    - analysts
-    - economists who are not policymakers
-    - duplicate reports
-    - comments unrelated to monetary policy
+Relevant people include:
+{datos["miembros"]}
 
-    Return a maximum of 5 events.
+The objective is NOT to provide general news about the central bank.
 
-    For each event return ONLY:
-    DATE:
-    MEMBER:
-    STATEMENT:
-    BIAS: Hawkish / Dovish / Neutral
-    IMPORTANCE: High / Medium / Low
-    SOURCE URL:
+I specifically want statements or comments actually made by
+central-bank officials that could matter for monetary policy
+or the {divisa} currency.
 
-    Be concise.
-    """
+Search broadly across:
+- official central-bank websites
+- Reuters
+- Bloomberg when publicly indexed
+- CNBC
+- financial press
+- interviews
+- speeches
+- conference appearances
+- reputable financial news websites
+
+Do NOT include:
+- analyst forecasts
+- market expectations without a direct central-bank statement
+- articles that merely mention the central bank
+- generic market commentary
+
+For each relevant event provide:
+
+DATE/TIME:
+MEMBER:
+CENTRAL BANK:
+STATEMENT:
+CONTEXT:
+MONETARY BIAS: Hawkish / Dovish / Neutral
+IMPORTANCE: High / Medium / Low
+SOURCE:
+SOURCE URL:
+
+If several articles report the same comments, consolidate them
+into one event.
+
+Prioritize completeness over speed.
+
+If there are no relevant comments, say:
+NO RELEVANT STATEMENTS FOUND.
+"""
 
     response = client.responses.create(
         model="gpt-5.6-luna",
-
         tools=[
             {
                 "type": "web_search",
-                "search_context_size": "low",
+                "search_context_size": "high",
             }
         ],
-
         input=prompt,
-
-        max_output_tokens=1500,
     )
 
-    return {
-        "currency": divisa,
-        "status": response.status,
-        "incomplete_details": (
-            str(response.incomplete_details)
-            if response.incomplete_details
-            else None
-        ),
-        "raw_result": response.output_text,
-    }
+    return response.output_text
 
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_oficiales(divisa):
@@ -876,7 +850,7 @@ def test_ia_web_bancos_centrales():
 
         try:
             resultado = buscar_bancos_centrales_ia_test("USD")
-            st.json(resultado)
+            st.write(resultado)
 
         except Exception as e:
             st.error(
@@ -888,13 +862,8 @@ def test_ia_web_bancos_centrales():
         st.markdown("### EUR")
 
         try:
-            with st.spinner(
-                "Buscando declaraciones de miembros del ECB..."
-            ):
-                resultado = buscar_bancos_centrales_ia_test("EUR")
-
-            st.success("Búsqueda completada")
-            st.json(resultado)
+            resultado = buscar_bancos_centrales_ia_test("EUR")
+            st.write(resultado)
 
         except Exception as e:
             st.error(
