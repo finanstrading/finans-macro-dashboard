@@ -638,6 +638,22 @@ IMPORTANCE: High / Medium / Low
 SOURCE:
 SOURCE URL:
 
+IMPORTANT OUTPUT RULES:
+
+- SOURCE must contain only the publisher or original source name.
+  Example: Reuters, CNBC, Federal Reserve.
+
+- SOURCE URL must contain ONLY one raw absolute URL beginning with https://
+  Do not use Markdown links.
+  Do not use brackets.
+  Do not add citations or source names inside SOURCE URL.
+
+- DATE/TIME must be ISO 8601 UTC when the exact time is known.
+  Example: 2026-08-28T16:00:00Z
+
+- If the exact time cannot be reliably established, return null for datetime.
+  Do not invent a time.
+
 If several articles report the same comments, consolidate them
 into one event.
 
@@ -671,7 +687,10 @@ NO RELEVANT STATEMENTS FOUND.
                                 "type": "object",
                                 "properties": {
                                     "datetime": {
-                                        "type": "string"
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
                                     },
                                     "currency": {
                                         "type": "string"
