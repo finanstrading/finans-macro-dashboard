@@ -588,6 +588,58 @@ Klaas Knot, Mario Centeno, Francois Villeroy de Galhau,
 Fabio Panetta, Gabriel Makhlouf, Pierre Wunsch
 """,
         },
+
+        "GBP": {
+            "banco": "Bank of England",
+            "miembros": """
+        Andrew Bailey, Sarah Breeden, Swati Dhingra, Megan Greene,
+        Clare Lombardelli, Catherine Mann, Huw Pill, Dave Ramsden,
+        Alan Taylor
+        """,
+        },
+
+        "JPY": {
+            "banco": "Bank of Japan",
+            "miembros": """
+        Kazuo Ueda, Shinichi Uchida, Ryozo Himino,
+        Hajime Takata, Naoki Tamura, Junko Koeda,
+        Kazuyuki Masu, Toichiro Asada, Ayano Sato
+        """,
+        },
+
+        "CHF": {
+            "banco": "Swiss National Bank",
+            "miembros": """
+        Martin Schlegel, Antoine Martin, Petra Tschudin
+        """,
+        },
+
+        "AUD": {
+            "banco": "Reserve Bank of Australia",
+            "miembros": """
+        Michele Bullock, Andrew Hauser, Marnie Baker,
+        Renee Fry-McKibbin, Ian Harper, Carolyn Hewson,
+        Iain Ross, Bruce Preston, Jenny Wilkinson
+        """,
+        },
+
+        "NZD": {
+            "banco": "Reserve Bank of New Zealand",
+            "miembros": """
+        Anna Breman, Karen Silk, Paul Conway,
+        Carl Hansen, Prasanna Gai, Hayley Gourley
+        """,
+        },
+
+        "CAD": {
+            "banco": "Bank of Canada",
+            "miembros": """
+        Tiff Macklem, Carolyn Rogers, Toni Gravelle,
+        Marc-Andre Gosselin, Nicolas Vincent,
+        Michelle Alexopoulos
+        """,
+        },
+
     }
 
     if divisa not in configuracion:
