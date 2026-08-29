@@ -7064,13 +7064,17 @@ if pagina_principal == "FX Live Drivers":
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
 
-if modo_live == "Bancos centrales":
+    if modo_live == "Bancos centrales":
 
-    render_central_bank_drivers(
-        divisa_live
-    )
+        render_central_bank_drivers(
+            divisa_live
+        )
 
-else:
+        st.stop()
+
+    # ===================================================
+    # FX LIVE DRIVERS — DATOS REALES
+    # ===================================================
 
     live_container = st.container()
 
