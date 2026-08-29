@@ -740,11 +740,17 @@ NO RELEVANT STATEMENTS FOUND.
 
         input=prompt,
 
-        max_output_tokens=1500,
+        max_output_tokens=5000,
     )
 
     return {
         "currency": divisa,
+        "status": response.status,
+        "incomplete_details": (
+            str(response.incomplete_details)
+            if response.incomplete_details
+            else None
+        ),
         "raw_result": response.output_text,
     }
 
