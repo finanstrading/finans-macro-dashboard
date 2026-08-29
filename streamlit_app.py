@@ -14,7 +14,7 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
-from cftc_positioning import render_cftc_positioning 
+from cftc_positioning import render_cftc_positioning
 
 import feedparser
 from datetime import datetime, timezone, timedelta
@@ -845,6 +845,60 @@ def preparar_central_bank_drivers(resultado_ia):
 
     return filas
 
+
+def guardar_central_bank_drivers(filas):
+    """
+    Envía eventos preparados al Web App de Apps Script.
+    Apps Script se encarga de evitar duplicados por EventID.
+    """
+
+    if not filas:
+        return {
+            "ok": True,
+            "received": 0,
+            "inserted": 0,
+            "duplicates": 0,
+        }
+
+    try:
+        url = st.secrets[
+            "CENTRAL_BANK_DRIVERS_WEBAPP_URL"
+        ]
+    except Exception:
+        raise ValueError(
+            "Falta CENTRAL_BANK_DRIVERS_WEBAPP_URL "
+            "en Streamlit Secrets."
+        )
+
+    payload = {
+        "action": "save_central_bank_drivers",
+        "events": filas,
+    }
+
+    response = requests.post(
+        url,
+        json=payload,
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
+    try:
+        data = response.json()
+    except Exception:
+        raise ValueError(
+            "Apps Script respondió, pero no devolvió JSON válido: "
+            + response.text[:500]
+        )
+
+    if not data.get("ok"):
+        raise ValueError(
+            "Apps Script devolvió error: "
+            + str(data.get("error"))
+        )
+
+    return data
+
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_oficiales(divisa):
     """
@@ -1046,7 +1100,16 @@ def test_ia_web_bancos_centrales():
                 resultado
             )
 
-            st.write("PASO 3 — JSON procesado")
+            resultado_guardado = guardar_central_bank_drivers(
+                filas
+            )
+
+            st.write(
+                "Guardado en Google Sheets:",
+                resultado_guardado
+            )
+
+            st.write("PASO 3 — JSON procesado — VERSION NUEVA")
             st.write(
                 "Eventos preparados:",
                 len(filas)
