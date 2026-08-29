@@ -7122,6 +7122,51 @@ if pagina_principal == "FX Live Drivers":
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
 
+    # ===================================================
+    # TEST TEMPORAL — ACTUALIZAR CENTRAL BANK USD
+    # ===================================================
+
+    if (
+        modo_live == "Bancos centrales"
+        and divisa_live == "USD"
+    ):
+
+        if st.button(
+            "Actualizar USD — OpenAI",
+            key="test_actualizar_cb_usd",
+        ):
+
+            with st.spinner(
+                "Buscando nuevas declaraciones USD..."
+            ):
+
+                resultado_ia = buscar_bancos_centrales_ia_test(
+                    "USD"
+                )
+
+                eventos = preparar_central_bank_drivers(
+                    resultado_ia,
+                    "USD",
+                )
+
+                resultado_guardado = guardar_central_bank_drivers(
+                    eventos
+                )
+
+            st.write(
+                "Eventos encontrados:",
+                len(eventos),
+            )
+
+            st.write(
+                "Resultado guardado:",
+                resultado_guardado,
+            )
+
+            st.cache_data.clear()
+
+            st.rerun()
+
     if modo_live == "Bancos centrales":
 
         render_central_bank_drivers(
