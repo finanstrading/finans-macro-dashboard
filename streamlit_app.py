@@ -1278,6 +1278,12 @@ def cargar_central_bank_drivers(divisa):
             errors="coerce",
         )
 
+        df["_event_date"] = pd.to_datetime(
+            df["EventDate"],
+            utc=True,
+            errors="coerce",
+        )
+
         detected = pd.to_datetime(
             df["DetectedAt"],
             utc=True,
@@ -1286,6 +1292,7 @@ def cargar_central_bank_drivers(divisa):
 
         df["_sort_time"] = (
             df["_event_time"]
+            .fillna(df["_event_date"])
             .fillna(detected)
         )
 
