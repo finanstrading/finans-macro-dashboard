@@ -18,7 +18,7 @@ from cftc_positioning import render_cftc_positioning
 
 from retail_positioning import render_retail_test
 
-# ===================================================
+# =================================================== 
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
