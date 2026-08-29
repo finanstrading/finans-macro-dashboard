@@ -7145,8 +7145,7 @@ if pagina_principal == "FX Live Drivers":
                 )
 
                 eventos = preparar_central_bank_drivers(
-                    resultado_ia,
-                    "USD",
+                    resultado_ia
                 )
 
                 resultado_guardado = guardar_central_bank_drivers(
