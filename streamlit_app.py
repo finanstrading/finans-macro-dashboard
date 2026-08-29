@@ -632,7 +632,7 @@ def buscar_bancos_centrales_ia_test(divisa):
     miembros = datos["grupos"][0]
     miembros_texto = ", ".join(miembros)
     prompt = f"""
-    
+
 Search the web comprehensively for RECENT statements, interviews,
 speeches, media appearances, conference remarks or direct comments
 made during approximately the last 48 hours by members of the
@@ -641,7 +641,7 @@ made during approximately the last 48 hours by members of the
 Currency: {divisa}
 
 Relevant officials:
-{datos["miembros"]}
+{miembros_texto}
 
 IMPORTANT SEARCH INSTRUCTION:
 
@@ -734,7 +734,7 @@ NO RELEVANT STATEMENTS FOUND.
         tools=[
             {
                 "type": "web_search",
-                "search_context_size": "medium",
+                "search_context_size": "low",
             }
         ],
 
