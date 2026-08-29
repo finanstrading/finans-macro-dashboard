@@ -594,39 +594,77 @@ Fabio Panetta, Gabriel Makhlouf, Pierre Wunsch
     datos = configuracion[divisa]
 
     prompt = f"""
-Search the web for RECENT statements, interviews, speeches,
-media appearances or direct comments made during approximately
-the last 48 hours by members of the {datos["banco"]}.
+Search the web comprehensively for RECENT statements, interviews,
+speeches, media appearances, conference remarks or direct comments
+made during approximately the last 48 hours by members of the
+{datos["banco"]}.
 
 Currency: {divisa}
 
-Relevant people include:
+Relevant officials:
 {datos["miembros"]}
 
-The objective is NOT to provide general news about the central bank.
+IMPORTANT SEARCH INSTRUCTION:
 
-I specifically want statements or comments actually made by
-central-bank officials that could matter for monetary policy
-or the {divisa} currency.
+Do not stop after finding one central-bank official.
 
-Search broadly across:
-- official central-bank websites
+You must actively search for comments from MULTIPLE officials
+individually.
+
+For EUR in particular, explicitly search for:
+
+- Martin Kocher ECB
+- Martin Kocher interest rates
+- Martin Kocher inflation
+- Martin Kocher monetary policy
+
+- Primoz Dolenc ECB
+- Primož Dolenc ECB
+- Dolenc interest rates
+- Dolenc September hike
+- Dolenc monetary policy
+
+Also search the remaining listed officials for relevant comments.
+
+Search across:
 - Reuters
 - Bloomberg when publicly indexed
 - CNBC
-- financial press
+- Yahoo Finance
+- MarketScreener
+- FXStreet
+- official central-bank websites
+- national central-bank websites
+- financial newspapers
 - interviews
-- speeches
 - conference appearances
-- reputable financial news websites
+- speeches
+
+The objective is NOT general news about the central bank.
+
+I specifically want statements ACTUALLY MADE by central-bank
+officials that could matter for:
+
+- interest rates
+- inflation
+- monetary-policy expectations
+- growth where relevant for policy
+- balance-sheet policy
+- FX implications
 
 Do NOT include:
 - analyst forecasts
-- market expectations without a direct central-bank statement
-- articles that merely mention the central bank
+- market expectations without an official statement
+- articles merely mentioning the central bank
 - generic market commentary
+- unrelated financial-technology topics unless they materially
+  affect monetary policy
 
-For each relevant event provide:
+VERY IMPORTANT:
+Finding one relevant official does NOT mean the search is complete.
+Continue searching the other officials before producing the answer.
+
+For each qualifying event provide:
 
 DATE/TIME:
 MEMBER:
@@ -638,12 +676,16 @@ IMPORTANCE: High / Medium / Low
 SOURCE:
 SOURCE URL:
 
-If several articles report the same comments, consolidate them
-into one event.
+If several articles report the same comments, consolidate them.
 
-Prioritize completeness over speed.
+Prioritize COMPLETENESS over speed.
 
-If there are no relevant comments, say:
+At the end include:
+
+OFFICIALS SEARCHED BUT NO RELEVANT COMMENTS FOUND:
+[list the relevant names checked]
+
+If there are no relevant comments at all, say:
 NO RELEVANT STATEMENTS FOUND.
 """
 
