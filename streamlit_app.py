@@ -1422,13 +1422,15 @@ def render_central_bank_drivers(divisa):
             driver.get("SourceURL") or ""
         ).strip()
 
-        datetime_evento = (
-            driver.get("DateTime")
-            or driver.get("DetectedAt")
-            or ""
-        )
+        datetime_evento = str(
+            driver.get("DateTime") or ""
+        ).strip()
 
-        if datetime_evento:
+        if (
+            datetime_evento
+            and datetime_evento.lower()
+            not in ["none", "nan", "nat"]
+        ):
             fecha = pd.to_datetime(
                 datetime_evento,
                 utc=True,
@@ -1440,9 +1442,10 @@ def render_central_bank_drivers(divisa):
                     "%d %b %Y · %H:%M UTC"
                 )
             else:
-                fecha_texto = ""
+                fecha_texto = "Fecha exacta no disponible"
+
         else:
-            fecha_texto = ""
+            fecha_texto = "Fecha exacta no disponible"
 
         etiqueta = (
             f"{divisa} · {bias.upper()} · "
