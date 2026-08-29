@@ -836,22 +836,39 @@ def test_ia_web_bancos_centrales():
 
     st.subheader("TEST — IA + Web Search")
 
-    if st.button("Ejecutar búsqueda IA"):
+    col1, col2 = st.columns(2)
 
-        for divisa in ["USD", "EUR"]:
+    with col1:
+        ejecutar_usd = st.button("Buscar USD")
 
-            st.markdown(f"### {divisa}")
+    with col2:
+        ejecutar_eur = st.button("Buscar EUR")
 
-            try:
-                resultado = buscar_bancos_centrales_ia_test(divisa)
+    if ejecutar_usd:
 
-                st.write(resultado)
+        st.markdown("### USD")
 
-            except Exception as e:
-                st.error(
-                    f"Error {divisa}: {str(e)}"
-                )
+        try:
+            resultado = buscar_bancos_centrales_ia_test("USD")
+            st.write(resultado)
 
+        except Exception as e:
+            st.error(
+                f"Error USD: {str(e)}"
+            )
+
+    if ejecutar_eur:
+
+        st.markdown("### EUR")
+
+        try:
+            resultado = buscar_bancos_centrales_ia_test("EUR")
+            st.write(resultado)
+
+        except Exception as e:
+            st.error(
+                f"Error EUR: {str(e)}"
+            )
 
 def construir_url(nombre_hoja):
     nombre_codificado = quote(nombre_hoja, safe="")
