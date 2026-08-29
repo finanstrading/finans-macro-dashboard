@@ -1230,15 +1230,6 @@ def cargar_central_bank_drivers(divisa):
         )
 
         df = pd.read_csv(url)
-        st.write(
-            "DEBUG CentralBank_Drivers columnas:",
-            df.columns.tolist()
-        )
-
-        st.write(
-            "DEBUG primeras filas:",
-            df.head()
-)
 
         df.columns = [
             str(col).strip()
