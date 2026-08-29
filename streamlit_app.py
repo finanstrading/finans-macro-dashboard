@@ -1153,6 +1153,23 @@ def test_ia_web_bancos_centrales():
                 hide_index=True,
             )
 
+            if st.button("TEST — Reenviar mismos eventos"):
+
+                try:
+                    resultado_duplicados = guardar_central_bank_drivers(
+                        filas
+                    )
+
+                    st.write(
+                        "Resultado test duplicados:",
+                        resultado_duplicados
+                    )
+
+                except Exception as e:
+                    st.error(
+                        f"Error test duplicados: {str(e)}"
+                    )
+
         except Exception as e:
             st.error(
                 f"Error USD: {str(e)}"
