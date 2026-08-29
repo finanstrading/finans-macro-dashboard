@@ -6577,6 +6577,71 @@ if pagina_principal == "FX Live Drivers":
             )
 
             # ===================================================
+            # TEST — CANDIDATOS PARA CENTRALBANK_DRIVERS
+            # ===================================================
+
+            if modo_live == "Bancos centrales":
+
+                candidatos_bc = []
+
+                for article in articles:
+
+                    titulo = str(
+                        article.get("title")
+                        or ""
+                    ).strip()
+
+                    url = str(
+                        article.get("url")
+                        or article.get("link")
+                        or ""
+                    ).strip()
+
+                    fecha = article.get("_fecha_live")
+
+                    provider = str(
+                        article.get("_provider")
+                        or article.get("source")
+                        or ""
+                    ).strip()
+
+                    if not titulo:
+                        continue
+
+                    # Identificador provisional.
+                    # Más adelante servirá para saber si ya fue analizado.
+                    clave = url if url else titulo.lower()
+
+                    candidatos_bc.append(
+                        {
+                            "key": clave,
+                            "currency": divisa_live,
+                            "title": titulo,
+                            "url": url,
+                            "published_at": (
+                                fecha.isoformat()
+                                if fecha is not None
+                                else None
+                            ),
+                            "provider": provider,
+                        }
+                    )
+
+                st.markdown("### TEST — CentralBank Drivers")
+
+                st.write(
+                    "Candidatos BC:",
+                    len(candidatos_bc),
+                )
+
+                for candidato in candidatos_bc[:10]:
+
+                    st.write(
+                        candidato["published_at"],
+                        candidato["provider"],
+                        candidato["title"],
+                    )
+            # ===================================================
             # ELIMINAR TITULARES DUPLICADOS / MUY SIMILARES
             # ===================================================
 
