@@ -6992,8 +6992,6 @@ if pagina_principal == "FX Live Drivers":
         unsafe_allow_html=True,
     )
 
-    test_fuentes_oficiales()
-    test_ia_web_bancos_centrales()
     # ===================================================
     # FX LIVE DRIVERS — SELECTOR DE DIVISA
     # ===================================================
