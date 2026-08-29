@@ -977,6 +977,20 @@ def guardar_central_bank_drivers(filas):
 
     return data
 
+
+def actualizar_central_bank_currency(currency):
+    currency = str(currency).strip().upper()
+
+    resultado_actualizacion = actualizar_central_bank_currency(
+        divisa_live
+    )
+
+    return {
+        "currency": currency,
+        "events_found": len(eventos),
+        "save_result": resultado_guardado,
+    }
+
 def probar_central_bank_webapp():
 
     url = st.secrets[
@@ -7206,12 +7220,12 @@ if pagina_principal == "FX Live Drivers":
 
             st.write(
                 "Eventos encontrados:",
-                len(eventos),
+                resultado_actualizacion["events_found"],
             )
 
             st.write(
                 "Resultado guardado:",
-                resultado_guardado,
+                resultado_actualizacion["save_result"],
             )
 
             st.cache_data.clear()
