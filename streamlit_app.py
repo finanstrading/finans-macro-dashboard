@@ -738,8 +738,6 @@ NO RELEVANT STATEMENTS FOUND.
 
     return response.output_text
 
-    return response.output_text
-
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_oficiales(divisa):
     """
