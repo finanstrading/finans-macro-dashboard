@@ -656,7 +656,87 @@ NO RELEVANT STATEMENTS FOUND.
             }
         ],
         input=prompt,
+
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "central_bank_drivers",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "events": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "datetime": {
+                                        "type": "string"
+                                    },
+                                    "currency": {
+                                        "type": "string"
+                                    },
+                                    "member": {
+                                        "type": "string"
+                                    },
+                                    "central_bank": {
+                                        "type": "string"
+                                    },
+                                    "statement": {
+                                        "type": "string"
+                                    },
+                                    "context": {
+                                        "type": "string"
+                                    },
+                                    "bias": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Hawkish",
+                                            "Dovish",
+                                            "Neutral"
+                                        ]
+                                    },
+                                    "importance": {
+                                        "type": "string",
+                                        "enum": [
+                                            "High",
+                                            "Medium",
+                                            "Low"
+                                        ]
+                                    },
+                                    "source": {
+                                        "type": "string"
+                                    },
+                                    "source_url": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "datetime",
+                                    "currency",
+                                    "member",
+                                    "central_bank",
+                                    "statement",
+                                    "context",
+                                    "bias",
+                                    "importance",
+                                    "source",
+                                    "source_url"
+                                ],
+                                "additionalProperties": False
+                            }
+                        }
+                    },
+                    "required": [
+                        "events"
+                    ],
+                    "additionalProperties": False
+                }
+            }
+        },
     )
+
+    return response.output_text
 
     return response.output_text
 
