@@ -121,3 +121,6 @@ def render_retail_test():
         st.error(
             f"Error conectando con Myfxbook: {error}"
         )
+
+    if __name__ == "__main__":
+        render_retail_test()
