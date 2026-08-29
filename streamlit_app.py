@@ -7066,45 +7066,6 @@ if pagina_principal == "FX Live Drivers":
     )
 
 
-    if modo_live == "Bancos centrales":
-
-        test_bc = cargar_central_bank_drivers(
-            divisa_live
-        )
-
-        st.markdown(
-            "### TEST — CentralBank_Drivers desde Google Sheets"
-        )
-
-        st.write(
-            "OK:",
-            test_bc["ok"]
-        )
-
-        st.write(
-            "Drivers:",
-            len(test_bc["drivers"])
-        )
-
-        if not test_bc["ok"]:
-            st.error(
-                test_bc["error"]
-            )
-
-        else:
-            for driver in test_bc["drivers"]:
-
-                st.write(
-                    driver["Member"],
-                    "|",
-                    driver["Bias"],
-                    "|",
-                    driver["Importance"],
-                    "|",
-                    driver["Statement"],
-                )
-
-
     # ===================================================
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
@@ -7116,7 +7077,7 @@ if pagina_principal == "FX Live Drivers":
         )
 
         st.stop()
-        
+
     # ===================================================
     # FX LIVE DRIVERS — DATOS REALES
     # ===================================================
