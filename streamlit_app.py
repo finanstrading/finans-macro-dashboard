@@ -905,7 +905,12 @@ def test_ia_web_bancos_centrales():
         st.markdown("### EUR")
 
         try:
-            resultado = buscar_bancos_centrales_ia_test("EUR")
+            with st.spinner(
+                "Buscando declaraciones de miembros del ECB..."
+            ):
+                resultado = buscar_bancos_centrales_ia_test("EUR")
+
+            st.success("Búsqueda completada")
             st.write(resultado)
 
         except Exception as e:
