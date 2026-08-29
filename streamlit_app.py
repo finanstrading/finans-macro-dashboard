@@ -7178,25 +7178,22 @@ if pagina_principal == "FX Live Drivers":
     # ===================================================
 
     # ===================================================
-    # TEST TEMPORAL — ACTUALIZAR CENTRAL BANK USD
+    # TEST TEMPORAL — ACTUALIZAR CENTRAL BANK
     # ===================================================
 
-    if (
-        modo_live == "Bancos centrales"
-        and divisa_live == "USD"
-    ):
+    if modo_live == "Bancos centrales":
 
         if st.button(
-            "Actualizar USD — OpenAI",
-            key="test_actualizar_cb_usd",
+            f"Actualizar {divisa_live} — OpenAI",
+            key=f"test_actualizar_cb_{divisa_live}",
         ):
 
             with st.spinner(
-                "Buscando nuevas declaraciones USD..."
+                f"Buscando nuevas declaraciones {divisa_live}..."
             ):
 
                 resultado_ia = buscar_bancos_centrales_ia_test(
-                    "USD"
+                    divisa_live
                 )
 
                 eventos = preparar_central_bank_drivers(
@@ -7218,7 +7215,6 @@ if pagina_principal == "FX Live Drivers":
             )
 
             st.cache_data.clear()
-
             st.rerun()
 
     if modo_live == "Bancos centrales":
