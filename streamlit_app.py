@@ -16,9 +16,8 @@ from currency_score_engine import (
 
 from cftc_positioning import render_cftc_positioning
 
-from retail_positioning import render_retail_test
 
-# =================================================== 
+# ===================================================
 # CONFIGURACIÓN GENERAL
 # ===================================================    
 
@@ -5451,7 +5450,6 @@ with st.sidebar:
             "Dashboard",
             "FX Live Drivers",
             "CFTC Positioning",
-            "Retail Test",
         ],
         index=0,
         label_visibility="collapsed",
@@ -5991,19 +5989,6 @@ if pagina_principal == "CFTC Positioning":
         render_logout(AUTH_PROFILE)
 
     render_cftc_positioning()
-
-    st.stop()
-
-# ===================================================
-# RETAIL POSITIONING TEST
-# ===================================================
-
-if pagina_principal == "Retail Test":
-
-    with st.sidebar:
-        render_logout(AUTH_PROFILE)
-
-    render_retail_test()
 
     st.stop()
 
