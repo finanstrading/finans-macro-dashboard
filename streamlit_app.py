@@ -19,6 +19,7 @@ from cftc_positioning import render_cftc_positioning
 import feedparser
 from datetime import datetime, timezone, timedelta
 
+from openai import OpenAI
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -552,8 +553,112 @@ st.markdown(
 
 
 # ===================================================
-# FX LIVE DRIVERS — FUENTES OFICIALES (TEST)
+# FX LIVE DRIVERS — IA + WEB SEARCH (TEST)
 # ===================================================
+
+@st.cache_data(ttl=900, show_spinner=False)
+def buscar_bancos_centrales_ia_test(divisa):
+
+    client = OpenAI(
+        api_key=st.secrets["OPENAI_API_KEY"]
+    )
+
+    configuracion = {
+
+        "USD": {
+            "banco": "Federal Reserve",
+            "miembros": """
+Kevin Warsh, John Williams, Michael Barr, Michelle Bowman,
+Lisa Cook, Beth Hammack, Philip Jefferson, Neel Kashkari,
+Lorie Logan, Anna Paulson, Jerome Powell, Christopher Waller,
+Austan Goolsbee, Susan Collins, Mary Daly, Thomas Barkin,
+Alberto Musalem, Jeffrey Schmid
+""",
+        },
+
+        "EUR": {
+            "banco": "European Central Bank / Eurosystem",
+            "miembros": """
+Christine Lagarde, Boris Vujcic, Philip Lane, Isabel Schnabel,
+Piero Cipollone, Luis de Guindos, Joachim Nagel, Olli Rehn,
+Martin Kocher, Bostjan Vasle, Primoz Dolenc, Martins Kazaks,
+Klaas Knot, Mario Centeno, Francois Villeroy de Galhau,
+Fabio Panetta, Gabriel Makhlouf, Pierre Wunsch
+""",
+        },
+    }
+
+    if divisa not in configuracion:
+        return ""
+
+    datos = configuracion[divisa]
+
+    prompt = f"""
+Search the web for RECENT statements, interviews, speeches,
+media appearances or direct comments made during approximately
+the last 48 hours by members of the {datos["banco"]}.
+
+Currency: {divisa}
+
+Relevant people include:
+{datos["miembros"]}
+
+The objective is NOT to provide general news about the central bank.
+
+I specifically want statements or comments actually made by
+central-bank officials that could matter for monetary policy
+or the {divisa} currency.
+
+Search broadly across:
+- official central-bank websites
+- Reuters
+- Bloomberg when publicly indexed
+- CNBC
+- financial press
+- interviews
+- speeches
+- conference appearances
+- reputable financial news websites
+
+Do NOT include:
+- analyst forecasts
+- market expectations without a direct central-bank statement
+- articles that merely mention the central bank
+- generic market commentary
+
+For each relevant event provide:
+
+DATE/TIME:
+MEMBER:
+CENTRAL BANK:
+STATEMENT:
+CONTEXT:
+MONETARY BIAS: Hawkish / Dovish / Neutral
+IMPORTANCE: High / Medium / Low
+SOURCE:
+SOURCE URL:
+
+If several articles report the same comments, consolidate them
+into one event.
+
+Prioritize completeness over speed.
+
+If there are no relevant comments, say:
+NO RELEVANT STATEMENTS FOUND.
+"""
+
+    response = client.responses.create(
+        model="gpt-5.6-luna",
+        tools=[
+            {
+                "type": "web_search",
+                "search_context_size": "high",
+            }
+        ],
+        input=prompt,
+    )
+
+    return response.output_text
 
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_oficiales(divisa):
@@ -726,6 +831,27 @@ def test_fuentes_oficiales():
                 article["source"],
                 article["title"],
             )
+
+def test_ia_web_bancos_centrales():
+
+    st.subheader("TEST — IA + Web Search")
+
+    if st.button("Ejecutar búsqueda IA"):
+
+        for divisa in ["USD", "EUR"]:
+
+            st.markdown(f"### {divisa}")
+
+            try:
+                resultado = buscar_bancos_centrales_ia_test(divisa)
+
+                st.write(resultado)
+
+            except Exception as e:
+                st.error(
+                    f"Error {divisa}: {str(e)}"
+                )
+
 
 def construir_url(nombre_hoja):
     nombre_codificado = quote(nombre_hoja, safe="")
@@ -6196,6 +6322,7 @@ if pagina_principal == "FX Live Drivers":
     )
 
     test_fuentes_oficiales()
+    test_ia_web_bancos_centrales()
     # ===================================================
     # FX LIVE DRIVERS — SELECTOR DE DIVISA
     # ===================================================
