@@ -578,6 +578,10 @@ def cargar_live_drivers_oficiales(divisa):
                 "source": "Federal Reserve",
                 "url": "https://www.federalreserve.gov/feeds/press_monetary.xml",
             },
+            {
+                "source": "Chicago Fed",
+                "url": "https://www.chicagofed.org/rss/speeches.xml",
+            },
         ],
 
         "EUR": [
