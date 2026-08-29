@@ -629,104 +629,36 @@ def buscar_bancos_centrales_ia_test(divisa):
 
     datos = configuracion[divisa]
 
-    miembros = datos["grupos"][0]
-    miembros_texto = ", ".join(miembros)
     prompt = f"""
+    Search the web for relevant monetary-policy comments made during the last 48 hours
+    by CURRENT officials of the {configuracion[divisa]["banco"]}.
 
-Search the web comprehensively for RECENT statements, interviews,
-speeches, media appearances, conference remarks or direct comments
-made during approximately the last 48 hours by members of the
-{datos["banco"]}.
+    Find only comments relevant to:
+    - interest rates
+    - inflation
+    - monetary policy
+    - policy outlook
+    - balance sheet / liquidity when relevant to monetary policy
 
-Currency: {divisa}
+    Ignore:
+    - generic market commentary
+    - analysts
+    - economists who are not policymakers
+    - duplicate reports
+    - comments unrelated to monetary policy
 
-Relevant officials:
-{miembros_texto}
+    Return a maximum of 5 events.
 
-IMPORTANT SEARCH INSTRUCTION:
+    For each event return ONLY:
+    DATE:
+    MEMBER:
+    STATEMENT:
+    BIAS: Hawkish / Dovish / Neutral
+    IMPORTANCE: High / Medium / Low
+    SOURCE URL:
 
-Do not stop after finding one central-bank official.
-
-You must actively search for comments from MULTIPLE officials
-individually.
-
-For EUR in particular, explicitly search for:
-
-- Martin Kocher ECB
-- Martin Kocher interest rates
-- Martin Kocher inflation
-- Martin Kocher monetary policy
-
-- Primoz Dolenc ECB
-- Primož Dolenc ECB
-- Dolenc interest rates
-- Dolenc September hike
-- Dolenc monetary policy
-
-Also search the remaining listed officials for relevant comments.
-
-Search across:
-- Reuters
-- Bloomberg when publicly indexed
-- CNBC
-- Yahoo Finance
-- MarketScreener
-- FXStreet
-- official central-bank websites
-- national central-bank websites
-- financial newspapers
-- interviews
-- conference appearances
-- speeches
-
-The objective is NOT general news about the central bank.
-
-I specifically want statements ACTUALLY MADE by central-bank
-officials that could matter for:
-
-- interest rates
-- inflation
-- monetary-policy expectations
-- growth where relevant for policy
-- balance-sheet policy
-- FX implications
-
-Do NOT include:
-- analyst forecasts
-- market expectations without an official statement
-- articles merely mentioning the central bank
-- generic market commentary
-- unrelated financial-technology topics unless they materially
-  affect monetary policy
-
-VERY IMPORTANT:
-Finding one relevant official does NOT mean the search is complete.
-Continue searching the other officials before producing the answer.
-
-For each qualifying event provide:
-
-DATE/TIME:
-MEMBER:
-CENTRAL BANK:
-STATEMENT:
-CONTEXT:
-MONETARY BIAS: Hawkish / Dovish / Neutral
-IMPORTANCE: High / Medium / Low
-SOURCE:
-SOURCE URL:
-
-If several articles report the same comments, consolidate them.
-
-Prioritize COMPLETENESS over speed.
-
-At the end include:
-
-OFFICIALS SEARCHED BUT NO RELEVANT COMMENTS FOUND:
-[list the relevant names checked]
-
-If there are no relevant comments at all, say:
-NO RELEVANT STATEMENTS FOUND.
-"""
+    Be concise.
+    """
 
     response = client.responses.create(
         model="gpt-5.6-luna",
@@ -740,7 +672,7 @@ NO RELEVANT STATEMENTS FOUND.
 
         input=prompt,
 
-        max_output_tokens=5000,
+        max_output_tokens=1500,
     )
 
     return {
