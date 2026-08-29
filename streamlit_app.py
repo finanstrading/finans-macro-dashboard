@@ -7274,7 +7274,48 @@ if pagina_principal == "FX Live Drivers":
     # ===================================================
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
+    # ===================================================
+    # TEST TEMPORAL — ACTUALIZAR TODOS LOS BANCOS CENTRALES
+    # ===================================================
 
+    if modo_live == "Bancos centrales":
+
+        if st.button(
+            "TEST — Actualizar todos",
+            key="test_actualizar_todos_cb",
+        ):
+
+            with st.spinner(
+                "Actualizando bancos centrales de las 8 divisas..."
+            ):
+
+                resultados = actualizar_todos_central_bank_drivers()
+
+            st.markdown("### Resultado actualización")
+
+            for resultado in resultados:
+
+                currency = resultado["currency"]
+
+                if resultado["ok"]:
+
+                    save_result = resultado["save_result"] or {}
+
+                    st.success(
+                        f"{currency} · "
+                        f"{resultado['events_found']} encontrados · "
+                        f"{save_result.get('inserted', 0)} nuevos · "
+                        f"{save_result.get('duplicates', 0)} duplicados"
+                    )
+
+                else:
+
+                    st.error(
+                        f"{currency} · ERROR · "
+                        f"{resultado['error']}"
+                    )
+
+            st.cache_data.clear()
     # ===================================================
     # TEST TEMPORAL — ACTUALIZAR CENTRAL BANK
     # ===================================================
@@ -7290,16 +7331,8 @@ if pagina_principal == "FX Live Drivers":
                 f"Buscando nuevas declaraciones {divisa_live}..."
             ):
 
-                resultado_ia = buscar_bancos_centrales_ia_test(
+                resultado_actualizacion = actualizar_central_bank_currency(
                     divisa_live
-                )
-
-                eventos = preparar_central_bank_drivers(
-                    resultado_ia
-                )
-
-                resultado_guardado = guardar_central_bank_drivers(
-                    eventos
                 )
 
             st.write(
