@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import time
-import hashlib 
+import hashlib
 import requests
-import plotly.graph_objects as go 
+import plotly.graph_objects as go
 from urllib.parse import quote  
 
 from auth import require_authenticated_user, render_logout
@@ -899,6 +899,23 @@ def guardar_central_bank_drivers(filas):
 
     return data
 
+def probar_central_bank_webapp():
+
+    url = st.secrets[
+        "CENTRAL_BANK_DRIVERS_WEBAPP_URL"
+    ]
+
+    response = requests.post(
+        url,
+        json={"action": "ping"},
+        timeout=20,
+    )
+
+    return {
+        "status_code": response.status_code,
+        "text": response.text,
+    }
+
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_oficiales(divisa):
     """
@@ -1082,6 +1099,21 @@ def test_ia_web_bancos_centrales():
 
     with col2:
         ejecutar_eur = st.button("Buscar EUR")
+
+    if st.button("Probar conexión CentralBank API"):
+
+        try:
+            resultado_ping = probar_central_bank_webapp()
+
+            st.write(
+                "Respuesta CentralBank API:",
+                resultado_ping
+            )
+
+        except Exception as e:
+            st.error(
+                f"Error conexión CentralBank API: {str(e)}"
+        )
 
     if ejecutar_usd:
 
