@@ -1025,7 +1025,7 @@ def test_ia_web_bancos_centrales():
 
         try:
             resultado = buscar_bancos_centrales_ia_test("USD")
-            st.write(resultado)
+            st.json(resultado)
 
         except Exception as e:
             st.error(
@@ -1043,7 +1043,7 @@ def test_ia_web_bancos_centrales():
                 resultado = buscar_bancos_centrales_ia_test("EUR")
 
             st.success("Búsqueda completada")
-            st.write(resultado)
+            st.json(resultado)
 
         except Exception as e:
             st.error(
