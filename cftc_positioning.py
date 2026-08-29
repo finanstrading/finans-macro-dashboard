@@ -626,6 +626,17 @@ def render_cftc_positioning():
         key=f"cftc_period_{currency}",
     )
 
+    tipo_grafico = st.segmented_control(
+        "Tipo de gráfico",
+        options=[
+            "Línea",
+            "Barras",
+        ],
+        default="Línea",
+        selection_mode="single",
+        key=f"cftc_chart_type_{currency}",
+    )
+
 
     df_historico = preparar_cftc_currency(currency).copy()
 
@@ -652,23 +663,41 @@ def render_cftc_positioning():
 
     fig = go.Figure()
 
-    fig.add_trace(
-        go.Scatter(
-            x=df_grafico["Fecha"],
-            y=df_grafico["Net_OI_Pct"],
-            mode="lines",
-            name="Net / Open Interest",
-            line=dict(
-                color="#D4A017",
-                width=2,
-            ),
-            hovertemplate=(
-                "%{x|%d/%m/%Y}<br>"
-                "Net / OI: %{y:.2f}%"
-                "<extra></extra>"
-            ),
+    if tipo_grafico == "Línea":
+
+        fig.add_trace(
+            go.Scatter(
+                x=df_grafico["Fecha"],
+                y=df_grafico["Net_OI_Pct"],
+                mode="lines",
+                name="Net / Open Interest",
+                line=dict(
+                    color="#D4A017",
+                    width=2,
+                ),
+                hovertemplate=(
+                    "%{x|%d/%m/%Y}<br>"
+                    "Net / OI: %{y:.2f}%"
+                    "<extra></extra>"
+                ),
+            )
         )
-    )
+
+    else:
+
+        fig.add_trace(
+            go.Bar(
+                x=df_grafico["Fecha"],
+                y=df_grafico["Net_OI_Pct"],
+                name="Net / Open Interest",
+                marker_color="#D4A017",
+                hovertemplate=(
+                    "%{x|%d/%m/%Y}<br>"
+                    "Net / OI: %{y:.2f}%"
+                    "<extra></extra>"
+                ),
+            )
+        )
 
     fig.add_hline(
         y=0,
