@@ -1224,9 +1224,12 @@ def construir_url(nombre_hoja):
 @st.cache_data(ttl=60, show_spinner=False)
 def cargar_central_bank_drivers(divisa):
     try:
-        df = pd.read_csv(
-            construir_url("CentralBank_Drivers")
+        url = (
+            f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?"
+            f"tqx=out:csv&sheet=CentralBank_Drivers&headers=1"
         )
+
+        df = pd.read_csv(url)
         st.write(
             "DEBUG CentralBank_Drivers columnas:",
             df.columns.tolist()
