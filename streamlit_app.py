@@ -697,7 +697,7 @@ NO RELEVANT STATEMENTS FOUND.
         tools=[
             {
                 "type": "web_search",
-                "search_context_size": "high",
+                "search_context_size": "medium"
             }
         ],
 
