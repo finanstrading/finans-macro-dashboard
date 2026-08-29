@@ -19,9 +19,10 @@ from cftc_positioning import render_cftc_positioning
 import feedparser
 from datetime import datetime, timezone, timedelta
 
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 import json
 import html
+import random
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -1015,30 +1016,62 @@ def actualizar_todos_central_bank_drivers():
 
     resultados = []
 
-    for currency in divisas:
+    for indice, currency in enumerate(divisas):
 
-        try:
-            resultado = actualizar_central_bank_currency(
-                currency
-            )
+        # Espaciamos las búsquedas para evitar una ráfaga
+        if indice > 0:
+            time.sleep(15)
 
-            resultados.append({
-                "currency": currency,
-                "ok": True,
-                "events_found": resultado["events_found"],
-                "save_result": resultado["save_result"],
-                "error": None,
-            })
+        max_intentos = 2
 
-        except Exception as error:
+        for intento in range(max_intentos):
 
-            resultados.append({
-                "currency": currency,
-                "ok": False,
-                "events_found": 0,
-                "save_result": None,
-                "error": str(error),
-            })
+            try:
+                resultado = actualizar_central_bank_currency(
+                    currency
+                )
+
+                resultados.append({
+                    "currency": currency,
+                    "ok": True,
+                    "events_found": resultado["events_found"],
+                    "save_result": resultado["save_result"],
+                    "error": None,
+                })
+
+                break
+
+            except RateLimitError as error:
+
+                # Primer fallo por rate limit:
+                # esperar y probar una sola vez más
+                if intento < max_intentos - 1:
+
+                    espera = 20 + random.uniform(0, 5)
+
+                    time.sleep(espera)
+
+                    continue
+
+                resultados.append({
+                    "currency": currency,
+                    "ok": False,
+                    "events_found": 0,
+                    "save_result": None,
+                    "error": f"Rate limit: {str(error)}",
+                })
+
+            except Exception as error:
+
+                resultados.append({
+                    "currency": currency,
+                    "ok": False,
+                    "events_found": 0,
+                    "save_result": None,
+                    "error": str(error),
+                })
+
+                break
 
     return resultados
 
