@@ -16,6 +16,9 @@ from currency_score_engine import (
 
 from cftc_positioning import render_cftc_positioning
 
+import feedparser
+from datetime import datetime, timezone, timedelta
+
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -546,6 +549,153 @@ st.markdown(
 # ===================================================
 # FUNCIONES
 # ===================================================
+
+
+# ===================================================
+# FX LIVE DRIVERS — FUENTES OFICIALES (TEST)
+# ===================================================
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cargar_live_drivers_oficiales(divisa):
+    """
+    TEST INDEPENDIENTE
+    Fuentes oficiales para FX Live Drivers.
+
+    Por ahora:
+    - USD -> Federal Reserve
+    - EUR -> European Central Bank
+
+    NO modifica NewsAPI ni Finnhub.
+    """
+
+    feeds = {
+        "USD": [
+            {
+                "source": "Federal Reserve",
+                "url": "https://www.federalreserve.gov/feeds/speeches.xml",
+            },
+            {
+                "source": "Federal Reserve",
+                "url": "https://www.federalreserve.gov/feeds/press_monetary.xml",
+            },
+        ],
+
+        "EUR": [
+            {
+                "source": "European Central Bank",
+                "url": "https://www.ecb.europa.eu/rss/press.html",
+            },
+        ],
+    }
+
+    if divisa not in feeds:
+        return {
+            "ok": True,
+            "error": None,
+            "articles": [],
+        }
+
+    articles = []
+
+    try:
+
+        for feed_config in feeds[divisa]:
+
+            feed = feedparser.parse(
+                feed_config["url"]
+            )
+
+            for entry in feed.entries:
+
+                title = str(
+                    entry.get("title", "")
+                ).strip()
+
+                url = str(
+                    entry.get("link", "")
+                ).strip()
+
+                summary = str(
+                    entry.get("summary", "")
+                ).strip()
+
+                published_at = None
+
+                if entry.get("published_parsed"):
+                    published_at = datetime(
+                        *entry.published_parsed[:6],
+                        tzinfo=timezone.utc,
+                    )
+
+                elif entry.get("updated_parsed"):
+                    published_at = datetime(
+                        *entry.updated_parsed[:6],
+                        tzinfo=timezone.utc,
+                    )
+
+                if not published_at:
+                    continue
+
+                articles.append(
+                    {
+                        "title": title,
+                        "url": url,
+                        "description": summary,
+                        "publishedAt": published_at.isoformat(),
+                        "source": feed_config["source"],
+                        "_provider": "Official",
+                        "_currency": divisa,
+                    }
+                )
+
+        fecha_limite = (
+            datetime.now(timezone.utc)
+            - timedelta(days=7)
+        )
+
+        articles = [
+            article
+            for article in articles
+            if datetime.fromisoformat(
+                article["publishedAt"]
+            ) >= fecha_limite
+        ]
+
+        articles_unicos = []
+        vistos = set()
+
+        for article in articles:
+
+            clave = (
+                article.get("url")
+                or article.get("title", "").lower()
+            )
+
+            if not clave or clave in vistos:
+                continue
+
+            vistos.add(clave)
+            articles_unicos.append(article)
+
+        articles_unicos.sort(
+            key=lambda x: x["publishedAt"],
+            reverse=True,
+        )
+
+        return {
+            "ok": True,
+            "error": None,
+            "articles": articles_unicos,
+        }
+
+    except Exception as e:
+
+        return {
+            "ok": False,
+            "error": str(e),
+            "articles": [],
+        }
+
 
 def construir_url(nombre_hoja):
     nombre_codificado = quote(nombre_hoja, safe="")
