@@ -1034,12 +1034,19 @@ def test_ia_web_bancos_centrales():
         st.markdown("### USD")
 
         try:
+            st.write("PASO 1 — iniciando búsqueda")
+
             resultado = buscar_bancos_centrales_ia_test("USD")
+
+            st.write("PASO 2 — respuesta recibida")
+            st.write("Tipo respuesta:", type(resultado).__name__)
+            st.write("Longitud respuesta:", len(resultado) if resultado else 0)
 
             filas = preparar_central_bank_drivers(
                 resultado
             )
 
+            st.write("PASO 3 — JSON procesado")
             st.write(
                 "Eventos preparados:",
                 len(filas)
