@@ -20,6 +20,7 @@ import feedparser
 from datetime import datetime, timezone, timedelta
 
 from openai import OpenAI
+import json
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -692,16 +693,147 @@ NO RELEVANT STATEMENTS FOUND.
 
     response = client.responses.create(
         model="gpt-5.6-luna",
+
         tools=[
             {
                 "type": "web_search",
                 "search_context_size": "high",
             }
         ],
+
         input=prompt,
+
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "central_bank_drivers",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+
+                    "properties": {
+
+                        "currency": {
+                            "type": "string"
+                        },
+
+                        "events": {
+                            "type": "array",
+
+                            "items": {
+                                "type": "object",
+
+                                "properties": {
+
+                                    "date_time_utc": {
+                                        "type": ["string", "null"]
+                                    },
+
+                                    "date_label": {
+                                        "type": "string"
+                                    },
+
+                                    "member": {
+                                        "type": "string"
+                                    },
+
+                                    "central_bank": {
+                                        "type": "string"
+                                    },
+
+                                    "statement": {
+                                        "type": "string"
+                                    },
+
+                                    "context": {
+                                        "type": "string"
+                                    },
+
+                                    "bias": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Hawkish",
+                                            "Dovish",
+                                            "Neutral"
+                                        ]
+                                    },
+
+                                    "importance": {
+                                        "type": "string",
+                                        "enum": [
+                                            "High",
+                                            "Medium",
+                                            "Low"
+                                        ]
+                                    },
+
+                                    "source": {
+                                        "type": "string"
+                                    },
+
+                                    "source_url": {
+                                        "type": "string"
+                                    }
+                                },
+
+                                "required": [
+                                    "date_time_utc",
+                                    "date_label",
+                                    "member",
+                                    "central_bank",
+                                    "statement",
+                                    "context",
+                                    "bias",
+                                    "importance",
+                                    "source",
+                                    "source_url"
+                                ],
+
+                                "additionalProperties": False
+                            }
+                        },
+
+                        "overall_bias": {
+                            "type": "string",
+                            "enum": [
+                                "Hawkish",
+                                "Dovish",
+                                "Neutral",
+                                "Mixed"
+                            ]
+                        },
+
+                        "summary": {
+                            "type": "string"
+                        },
+
+                        "officials_checked_no_relevant_comments": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+
+                    "required": [
+                        "currency",
+                        "events",
+                        "overall_bias",
+                        "summary",
+                        "officials_checked_no_relevant_comments"
+                    ],
+
+                    "additionalProperties": False
+                }
+            }
+        },
     )
 
-    return response.output_text
+    resultado = json.loads(
+        response.output_text
+    )
+
+    return resultado
 
 @st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_oficiales(divisa):
