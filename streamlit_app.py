@@ -1469,11 +1469,7 @@ def render_central_bank_drivers(divisa):
             f'font-weight:750;'
             f'margin-bottom:0.35rem;">'
             f'{member}'
-            + (
-                f' · {central_bank}'
-                if central_bank
-                else ""
-            )
+            f'{" · " + central_bank if central_bank else ""}'
             f'</div>'
 
             f'<div style="color:#111111;'
