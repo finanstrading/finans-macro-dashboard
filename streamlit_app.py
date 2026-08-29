@@ -21,6 +21,7 @@ from datetime import datetime, timezone, timedelta
 
 from openai import OpenAI
 import json
+import html
 
 # ===================================================
 # CONFIGURACIÓN GENERAL
@@ -1355,6 +1356,185 @@ def cargar_central_bank_drivers(divisa):
             "drivers": [],
             "error": str(error),
         }
+
+def render_central_bank_drivers(divisa):
+    resultado = cargar_central_bank_drivers(
+        divisa
+    )
+
+    if not resultado["ok"]:
+        st.error(
+            "No se pudo cargar CentralBank_Drivers."
+        )
+        st.caption(
+            resultado["error"]
+        )
+        return
+
+    drivers = resultado["drivers"]
+
+    if not drivers:
+        st.info(
+            f"No hay declaraciones recientes de bancos centrales "
+            f"para {divisa}."
+        )
+        return
+
+    # Máximo 7 visibles
+    drivers = drivers[:7]
+
+    st.caption(
+        f"{len(drivers)} drivers de bancos centrales · "
+        "Fuente: OpenAI Web Search"
+    )
+
+    for driver in drivers:
+
+        member = html.escape(
+            driver.get("Member") or "Banco central"
+        )
+
+        statement = html.escape(
+            driver.get("Statement") or ""
+        )
+
+        context = html.escape(
+            driver.get("Context") or ""
+        )
+
+        bias = html.escape(
+            driver.get("Bias") or "Neutral"
+        )
+
+        importance = html.escape(
+            driver.get("Importance") or "Medium"
+        )
+
+        central_bank = html.escape(
+            driver.get("CentralBank") or ""
+        )
+
+        source = html.escape(
+            driver.get("Source") or ""
+        )
+
+        source_url = str(
+            driver.get("SourceURL") or ""
+        ).strip()
+
+        datetime_evento = (
+            driver.get("DateTime")
+            or driver.get("DetectedAt")
+            or ""
+        )
+
+        if datetime_evento:
+            fecha = pd.to_datetime(
+                datetime_evento,
+                utc=True,
+                errors="coerce",
+            )
+
+            if pd.notna(fecha):
+                fecha_texto = fecha.strftime(
+                    "%d %b %Y · %H:%M UTC"
+                )
+            else:
+                fecha_texto = ""
+        else:
+            fecha_texto = ""
+
+        etiqueta = (
+            f"{divisa} · {bias.upper()} · "
+            f"{importance.upper()}"
+        )
+
+        html_driver = (
+            f'<div style="background:#FFFFFF;'
+            f'border:1px solid #E5E7EB;'
+            f'border-radius:14px;'
+            f'padding:1rem 1.15rem;'
+            f'margin-bottom:0.85rem;">'
+
+            f'<div style="color:#9A7A10;'
+            f'font-size:0.72rem;'
+            f'font-weight:800;'
+            f'letter-spacing:0.05em;'
+            f'margin-bottom:0.35rem;">'
+            f'{etiqueta}'
+            f'</div>'
+
+            f'<div style="color:#111111;'
+            f'font-size:0.82rem;'
+            f'font-weight:750;'
+            f'margin-bottom:0.35rem;">'
+            f'{member}'
+            + (
+                f' · {central_bank}'
+                if central_bank
+                else ""
+            )
+            f'</div>'
+
+            f'<div style="color:#111111;'
+            f'font-size:1.02rem;'
+            f'font-weight:750;'
+            f'line-height:1.5;">'
+            f'{statement}'
+            f'</div>'
+        )
+
+        if context:
+            html_driver += (
+                f'<div style="color:#6B7280;'
+                f'font-size:0.82rem;'
+                f'line-height:1.5;'
+                f'margin-top:0.55rem;">'
+                f'{context}'
+                f'</div>'
+            )
+
+        meta = []
+
+        if fecha_texto:
+            meta.append(fecha_texto)
+
+        if source:
+            meta.append(source)
+
+        if meta:
+            html_driver += (
+                f'<div style="color:#9CA3AF;'
+                f'font-size:0.74rem;'
+                f'margin-top:0.65rem;">'
+                f'{" · ".join(meta)}'
+                f'</div>'
+            )
+
+        if source_url.startswith("http"):
+            url_segura = html.escape(
+                source_url,
+                quote=True,
+            )
+
+            html_driver += (
+                f'<div style="margin-top:0.65rem;'
+                f'font-size:0.82rem;">'
+                f'<a href="{url_segura}" '
+                f'target="_blank" '
+                f'style="color:#2563EB;'
+                f'text-decoration:none;">'
+                f'Abrir fuente ↗'
+                f'</a>'
+                f'</div>'
+            )
+
+        html_driver += "</div>"
+
+        st.markdown(
+            html_driver,
+            unsafe_allow_html=True,
+        )
 
 @st.cache_data(ttl=60, show_spinner=False)
 def cargar_datos_mercado(nombres_posibles):
@@ -6923,6 +7103,20 @@ if pagina_principal == "FX Live Drivers":
                     "|",
                     driver["Statement"],
                 )
+
+
+    # ===================================================
+    # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
+    # ===================================================
+
+    if modo_live == "Bancos centrales":
+
+        render_central_bank_drivers(
+            divisa_live
+        )
+
+        st.stop()
+        
     # ===================================================
     # FX LIVE DRIVERS — DATOS REALES
     # ===================================================
