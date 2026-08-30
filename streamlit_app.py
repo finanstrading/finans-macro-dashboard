@@ -32,7 +32,7 @@ st.set_page_config(
     page_title="Finans Trading | Fundamental Dashboard",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
 AUTH_PROFILE = require_authenticated_user()
@@ -438,11 +438,7 @@ st.markdown(
             margin-top: 0.85rem;
         }}
 
-        @media (max-width: 900px) {{
-            .score-detail-grid {{
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }}
-        }}
+
 
         .macro-analysis-card {{
             background: #FFFFFF;
@@ -529,21 +525,132 @@ st.markdown(
             background: transparent;
         }}
 
-        @media (max-width: 900px) {{
+        /* ===================================================
+           RESPONSIVE — TABLET
+        =================================================== */
+
+        @media (max-width: 1024px) {{
+
             .block-container {{
-                padding-left: 1rem;
-                padding-right: 1rem;
-                padding-top: 1rem;
+                max-width: 100% !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                padding-top: 1rem !important;
+                padding-bottom: 2rem !important;
+            }}
+
+            .dashboard-header {{
+                padding: 1.25rem 1.3rem !important;
+                border-radius: 14px !important;
             }}
 
             .dashboard-title {{
-                font-size: 1.55rem;
+                font-size: 1.65rem !important;
+            }}
+
+            .dashboard-subtitle {{
+                font-size: 0.88rem !important;
+                line-height: 1.5 !important;
             }}
 
             .metric-value {{
-                font-size: 1.4rem;
+                font-size: 1.45rem !important;
+            }}
+
+            .score-detail-grid {{
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }}
+
+            .chart-card {{
+                padding: 0.8rem !important;
+                border-radius: 12px !important;
+            }}
+
+            /* Selectores de divisa / periodos */
+            div[data-testid="stSegmentedControl"] {{
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                padding-bottom: 0.15rem;
+            }}
+
+            div[data-testid="stSegmentedControl"] button {{
+                white-space: nowrap !important;
+                min-width: 58px !important;
+                flex-shrink: 0 !important;
+            }}
+
+            /* Evita desbordamiento horizontal general */
+            .stApp {{
+                overflow-x: hidden !important;
+            }}
+
+            div[data-testid="stPlotlyChart"] {{
+                max-width: 100% !important;
+                overflow: hidden !important;
             }}
         }}
+
+
+            /* ===================================================
+            RESPONSIVE — MÓVIL
+            =================================================== */
+
+            @media (max-width: 640px) {{
+
+                .block-container {{
+                    padding-left: 0.7rem !important;
+                    padding-right: 0.7rem !important;
+                    padding-top: 0.65rem !important;
+                }}
+
+                .dashboard-header {{
+                    padding: 1rem !important;
+                    margin-bottom: 0.9rem !important;
+                    border-radius: 12px !important;
+                }}
+
+                .dashboard-eyebrow {{
+                    font-size: 0.65rem !important;
+                }}
+
+                .dashboard-title {{
+                    font-size: 1.4rem !important;
+                }}
+
+                .dashboard-subtitle {{
+                    font-size: 0.82rem !important;
+                }}
+
+                .metric-card {{
+                    min-height: auto !important;
+                    padding: 0.8rem !important;
+                }}
+
+                .metric-value {{
+                    font-size: 1.3rem !important;
+                }}
+
+                .score-detail-grid {{
+                    grid-template-columns: 1fr !important;
+                }}
+
+                .macro-analysis-card {{
+                    min-height: auto !important;
+                    padding: 0.85rem !important;
+                }}
+
+                .macro-summary-box {{
+                    padding: 0.9rem !important;
+                }}
+
+                div[data-testid="stSegmentedControl"] button {{
+                    min-width: 52px !important;
+                    padding-left: 0.65rem !important;
+                    padding-right: 0.65rem !important;
+                }}
+            }}
+        
     </style>
     """,
     unsafe_allow_html=True
