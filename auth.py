@@ -139,6 +139,9 @@ def _create_persistent_session(user_id):
     admin = _session_admin_client()
 
     if admin is None:
+        st.session_state["persistent_debug"] = (
+            "ERROR: no se pudo crear admin client"
+        )
         return None
 
     token = secrets.token_urlsafe(48)
@@ -159,9 +162,16 @@ def _create_persistent_session(user_id):
             }
         ).execute()
 
+        st.session_state["persistent_debug"] = (
+            "OK: sesión persistente creada"
+        )
+
         return token
 
-    except Exception:
+    except Exception as error:
+        st.session_state["persistent_debug"] = (
+            f"ERROR SUPABASE: {error}"
+        )
         return None
 
 
@@ -647,6 +657,11 @@ def _render_login():
 def require_authenticated_user():
     client = _client()
 
+    if "persistent_debug" in st.session_state:
+        st.write(
+            "DEBUG persistent:",
+            st.session_state["persistent_debug"]
+        )
     # --------------------------------------------------------
     # 1. Si acabamos de hacer login, crear cookie persistente
     # --------------------------------------------------------
