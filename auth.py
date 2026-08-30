@@ -235,29 +235,31 @@ def _restore_persistent_user(token):
         return None
 
 
-def _revoke_persistent_session():
-    token = _cookie_value()
+def _revoke_persistent_session(token):
+    if not token:
+        return
 
-    if token:
-        admin = _session_admin_client()
+    admin = _session_admin_client()
 
-        if admin is not None:
-            try:
-                admin.table("user_sessions").update(
-                    {
-                        "revoked_at": datetime.now(
-                            timezone.utc
-                        ).isoformat()
-                    }
-                ).eq(
-                    "session_token_hash",
-                    _hash_session_token(token),
-                ).execute()
+    if admin is None:
+        return
 
-            except Exception:
-                pass
+    try:
+        admin.table("user_sessions").update(
+            {
+                "revoked_at": datetime.now(
+                    timezone.utc
+                ).isoformat()
+            }
+        ).eq(
+            "session_token_hash",
+            _hash_session_token(token),
+        ).execute()
 
-    _delete_persistent_cookie()
+    except Exception:
+        pass
+
+   
 
 
 def render_cookie_test():
@@ -657,11 +659,15 @@ def _render_login():
 def require_authenticated_user():
     client = _client()
 
-    if "persistent_debug" in st.session_state:
-        st.write(
-            "DEBUG persistent:",
-            st.session_state["persistent_debug"]
-        )
+    if st.session_state.pop(
+        "logout_cookie_pending",
+        False,
+    ):
+        _delete_persistent_cookie()
+        _clear_session()
+        _render_login()
+        st.stop()
+
     # --------------------------------------------------------
     # 1. Si acabamos de hacer login, crear cookie persistente
     # --------------------------------------------------------
@@ -711,10 +717,11 @@ def require_authenticated_user():
     
     cookie_debug = _cookie_value()
 
-    st.write(
-        "DEBUG cookie JS:",
-        "TOKEN PRESENTE" if cookie_debug else "None"
-    )
+    if cookie_debug:
+        st.session_state[
+            "persistent_cookie_token"
+        ] = cookie_debug
+
 
     persistent_user_id = _restore_persistent_user(
         token=cookie_debug
@@ -850,6 +857,12 @@ def render_logout(profile):
         "Cerrar sesión",
         use_container_width=True,
     ):
+        token = st.session_state.get(
+            "persistent_cookie_token"
+        )
+
+        _revoke_persistent_session(token)
+
         try:
             client = _client()
             _restore_session(client)
@@ -857,6 +870,10 @@ def render_logout(profile):
         except Exception:
             pass
 
-        _revoke_persistent_session()
         _clear_session()
+
+        st.session_state[
+            "logout_cookie_pending"
+        ] = True
+
         st.rerun()
