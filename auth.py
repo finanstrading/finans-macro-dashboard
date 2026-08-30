@@ -55,22 +55,9 @@ def send_password_reset_request(email: str) -> bool:
         return False
 
 
-def _clear_session(clear_cookie=False):
+def _clear_session():
     for key in SESSION_KEYS:
         st.session_state.pop(key, None)
-
-    if clear_cookie:
-        try:
-            if "sb_access_token" in cookies:
-                del cookies["sb_access_token"]
-
-            if "sb_refresh_token" in cookies:
-                del cookies["sb_refresh_token"]
-
-            cookies.save()
-
-        except Exception:
-            pass
 
 
 def _save_session(response):
@@ -80,32 +67,17 @@ def _save_session(response):
     if not session or not user:
         return False
 
-    access_token = session.access_token
-    refresh_token = session.refresh_token
-
-    # Sesión actual de Streamlit
-    st.session_state["sb_access_token"] = access_token
-    st.session_state["sb_refresh_token"] = refresh_token
+    st.session_state["sb_access_token"] = session.access_token
+    st.session_state["sb_refresh_token"] = session.refresh_token
     st.session_state["sb_user_id"] = user.id
     st.session_state["sb_user_email"] = user.email or ""
-
-    # Sesión persistente del navegador
-    cookies["sb_access_token"] = access_token
-    cookies["sb_refresh_token"] = refresh_token
-    cookies.save()
 
     return True
 
 
 def _restore_session(client):
-    # 1. Intentar primero desde session_state
     access_token = st.session_state.get("sb_access_token")
     refresh_token = st.session_state.get("sb_refresh_token")
-
-    # 2. Si Streamlit perdió la sesión, recuperar desde cookie
-    if not access_token or not refresh_token:
-        access_token = cookies.get("sb_access_token")
-        refresh_token = cookies.get("sb_refresh_token")
 
     if not access_token or not refresh_token:
         return False
@@ -121,18 +93,13 @@ def _restore_session(client):
             return False
 
         if response.session:
-            access_token = response.session.access_token
-            refresh_token = response.session.refresh_token
+            st.session_state["sb_access_token"] = (
+                response.session.access_token
+            )
 
-            # Actualizar session_state
-            st.session_state["sb_access_token"] = access_token
-            st.session_state["sb_refresh_token"] = refresh_token
-
-            # Supabase puede rotar el refresh token.
-            # Actualizamos también la cookie.
-            cookies["sb_access_token"] = access_token
-            cookies["sb_refresh_token"] = refresh_token
-            cookies.save()
+            st.session_state["sb_refresh_token"] = (
+                response.session.refresh_token
+            )
 
         st.session_state["sb_user_id"] = response.user.id
         st.session_state["sb_user_email"] = (
@@ -524,5 +491,5 @@ def render_logout(profile):
         except Exception:
             pass
 
-        _clear_session(clear_cookie=True)
+        _clear_session()
         st.rerun()
