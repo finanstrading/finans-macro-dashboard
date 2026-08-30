@@ -35,6 +35,11 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
+if not hasattr(st, "components") or not hasattr(st.components, "v2"):
+    st.error(f"Components v2 no disponible · Streamlit {st.__version__}")
+else:
+    st.success(f"Components v2 disponible · Streamlit {st.__version__}")
+
 AUTH_PROFILE = require_authenticated_user()
 
 SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU" 
