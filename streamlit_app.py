@@ -858,15 +858,6 @@ st.markdown(
                    SELECTS MÓVIL — MOSTRAR VALOR, SIN INPUT DE BÚSQUEDA
                 =================================================== */
 
-                section[data-testid="stSidebar"]
-                div[data-baseweb="select"] input {{
-                    position: absolute !important;
-                    width: 1px !important;
-                    height: 1px !important;
-                    opacity: 0 !important;
-                    pointer-events: none !important;
-                    caret-color: transparent !important;
-                }}
 
                 section[data-testid="stSidebar"]
                 div[data-baseweb="select"] > div > div,
