@@ -416,7 +416,7 @@ def crear_tarjeta_cftc(titulo, contenido):
 
 def render_cftc_positioning():
 
-        st.markdown(
+    st.markdown(
         """
         <style>
         /* ==========================================
@@ -475,7 +475,7 @@ def render_cftc_positioning():
         </style>
         """,
         unsafe_allow_html=True,
-    )
+    )   
 
     st.markdown(
         """
