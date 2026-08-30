@@ -797,6 +797,42 @@ st.markdown(
                     padding-right: 0.5rem !important;
                 }}
 
+                /* ===================================================
+                TEXTO SELECCIONADO — SELECTS MÓVIL
+                =================================================== */
+
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] [data-baseweb="value-container"],
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] [data-baseweb="value-container"] *,
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] [data-testid="stMarkdownContainer"],
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] [data-testid="stMarkdownContainer"] *,
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] input {
+                    color: #111111 !important;
+                    -webkit-text-fill-color: #111111 !important;
+                    opacity: 1 !important;
+                    font-weight: 600 !important;
+                }
+
+                /* Texto que BaseWeb coloca dentro del selector */
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] > div > div {
+                    color: #111111 !important;
+                    -webkit-text-fill-color: #111111 !important;
+                    opacity: 1 !important;
+                }
+
+                /* Mantener también la flecha visible */
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] svg {
+                    color: #111111 !important;
+                    fill: #111111 !important;
+                    opacity: 1 !important;
+                }
+
                 section[data-testid="stSidebar"] div[data-baseweb="select"] span,
                 section[data-testid="stSidebar"] div[data-baseweb="select"] div {{
                     color: #111111 !important;
