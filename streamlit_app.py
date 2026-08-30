@@ -531,34 +531,32 @@ st.markdown(
         =================================================== */
 
         [data-testid="stSidebarCollapseButton"] button {{
-            background: #111111 !important;
-            border: 1px solid #333333 !important;
+            background: #E3C85B !important;
+            border: 2px solid #111111 !important;
             border-radius: 10px !important;
 
-            width: 88px !important;
+            width: 90px !important;
             height: 42px !important;
 
-            color: #FFFFFF !important;
-
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20) !important;
+            color: #111111 !important;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18) !important;
 
             position: relative !important;
             overflow: hidden !important;
         }}
 
-        /* Ocultar el icono/flecha original */
         [data-testid="stSidebarCollapseButton"] button svg {{
             display: none !important;
         }}
 
-        /* Nuestro botón claramente visible */
         [data-testid="stSidebarCollapseButton"] button::after {{
-            content: "☰  MENÚ";
-            color: #FFFFFF !important;
-            -webkit-text-fill-color: #FFFFFF !important;
+            content: "☰ MENÚ";
+
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
 
             font-size: 13px !important;
-            font-weight: 800 !important;
+            font-weight: 900 !important;
             letter-spacing: 0.04em !important;
 
             position: absolute !important;
