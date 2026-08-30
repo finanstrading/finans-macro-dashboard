@@ -6636,7 +6636,7 @@ with st.sidebar:
         "Navegación",
         options=[
             "Dashboard",
-            "FX Live Drivers",
+            "🚀 Bancos Centrales",
             "CFTC Positioning",
         ],
         index=0,
