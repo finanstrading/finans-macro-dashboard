@@ -527,28 +527,44 @@ st.markdown(
 
         
         /* ===================================================
-           BOTÓN MENÚ — SIDEBAR
+           BOTÓN SIDEBAR — ABIERTO Y CERRADO
         =================================================== */
 
+        /* Botón base */
+        section[data-testid="stSidebar"]
         [data-testid="stSidebarCollapseButton"] button {{
             background: #E3C85B !important;
             border: 2px solid #111111 !important;
             border-radius: 10px !important;
 
-            width: 90px !important;
-            height: 42px !important;
-
             color: #111111 !important;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18) !important;
+
+            box-shadow:
+                0 3px 8px rgba(0, 0, 0, 0.32),
+                0 0 0 1px rgba(0, 0, 0, 0.10) !important;
 
             position: relative !important;
             overflow: hidden !important;
         }}
 
+        /* Quitamos la flecha plateada original */
+        section[data-testid="stSidebar"]
         [data-testid="stSidebarCollapseButton"] button svg {{
             display: none !important;
         }}
 
+
+        /* ===================================================
+           SIDEBAR ABIERTO
+        =================================================== */
+
+        section[data-testid="stSidebar"][aria-expanded="true"]
+        [data-testid="stSidebarCollapseButton"] button {{
+            width: 92px !important;
+            height: 42px !important;
+        }}
+
+        section[data-testid="stSidebar"][aria-expanded="true"]
         [data-testid="stSidebarCollapseButton"] button::after {{
             content: "☰ MENÚ";
 
@@ -557,7 +573,6 @@ st.markdown(
 
             font-size: 13px !important;
             font-weight: 900 !important;
-            letter-spacing: 0.04em !important;
 
             position: absolute !important;
             top: 50% !important;
@@ -567,33 +582,44 @@ st.markdown(
             white-space: nowrap !important;
         }}
 
+
         /* ===================================================
-        BOTÓN ABRIR MENÚ — SIDEBAR CERRADO
+           SIDEBAR CERRADO
         =================================================== */
 
-        [data-testid="stSidebarCollapsedControl"] button {{
-            background: #E3C85B !important;
-            border: 2px solid #111111 !important;
-            border-radius: 10px !important;
-
-            width: 48px !important;
-            height: 42px !important;
-
-            box-shadow:
-                0 3px 8px rgba(0, 0, 0, 0.35),
-                0 0 0 1px rgba(0, 0, 0, 0.15) !important;
-
-            color: #111111 !important;
+        section[data-testid="stSidebar"][aria-expanded="false"]
+        [data-testid="stSidebarCollapseButton"] {{
+            visibility: visible !important;
+            display: block !important;
         }}
 
-        /* Flecha/icono de Streamlit */
-        [data-testid="stSidebarCollapsedControl"] button svg {{
-            color: #111111 !important;
-            fill: #111111 !important;
-            stroke: #111111 !important;
+        section[data-testid="stSidebar"][aria-expanded="false"]
+        [data-testid="stSidebarCollapseButton"] button {{
+            width: 48px !important;
+            height: 44px !important;
 
-            width: 24px !important;
-            height: 24px !important;
+            background: #E3C85B !important;
+            border: 2px solid #111111 !important;
+
+            box-shadow:
+                0 4px 10px rgba(0, 0, 0, 0.35),
+                0 0 0 1px rgba(0, 0, 0, 0.15) !important;
+        }}
+
+        section[data-testid="stSidebar"][aria-expanded="false"]
+        [data-testid="stSidebarCollapseButton"] button::after {{
+            content: "☰";
+
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+
+            font-size: 23px !important;
+            font-weight: 900 !important;
+
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
         }}
 
         /* ===================================================
