@@ -1,7 +1,9 @@
 import requests
 import streamlit as st
+import secrets
+import hashlib
+from datetime import datetime, timedelta, timezone
 from supabase import create_client
-
 
 SESSION_KEYS = (
     "sb_access_token",
@@ -11,11 +13,15 @@ SESSION_KEYS = (
     "sb_profile",
 )
 
-COOKIE_TEST_JS = """
+PERSISTENT_COOKIE_NAME = "macrofx_session"
+PERSISTENT_SESSION_DAYS = 30
+
+
+PERSISTENT_COOKIE_JS = """
 export default function(component) {
     const { data, setStateValue } = component;
 
-    const cookieName = "macrofx_cookie_test";
+    const cookieName = "macrofx_session";
 
     function readCookie(name) {
         const prefix = name + "=";
@@ -34,7 +40,7 @@ export default function(component) {
         return null;
     }
 
-    if (data?.action === "write") {
+    if (data?.action === "write" && data?.value) {
         const maxAge = 60 * 60 * 24 * 30;
 
         document.cookie =
@@ -52,17 +58,191 @@ export default function(component) {
             "=; Max-Age=0; Path=/; SameSite=Lax; Secure";
     }
 
-    const currentValue = readCookie(cookieName);
-
-    setStateValue("cookie_value", currentValue);
+    setStateValue(
+        "cookie_value",
+        readCookie(cookieName)
+    );
 }
 """
 
 
-_cookie_test_component = st.components.v2.component(
-    "macrofx_cookie_test_component",
-    js=COOKIE_TEST_JS,
+_persistent_cookie_component = st.components.v2.component(
+    "macrofx_persistent_session",
+    js=PERSISTENT_COOKIE_JS,
 )
+
+
+def _session_admin_client():
+    try:
+        url = st.secrets["supabase"]["url"]
+        secret_key = st.secrets["supabase"]["secret_key"]
+    except Exception:
+        return None
+
+    return create_client(url, secret_key)
+
+
+def _hash_session_token(token):
+    return hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
+
+
+def _cookie_value():
+    try:
+        return st.context.cookies.get(
+            PERSISTENT_COOKIE_NAME
+        )
+    except Exception:
+        return None
+
+
+def _write_persistent_cookie(token):
+    _persistent_cookie_component(
+        data={
+            "action": "write",
+            "value": token,
+        },
+        default={
+            "cookie_value": None,
+        },
+        key="macrofx_cookie_writer",
+        on_cookie_value_change=lambda: None,
+        height=0,
+    )
+
+
+def _delete_persistent_cookie():
+    _persistent_cookie_component(
+        data={
+            "action": "delete",
+            "value": None,
+        },
+        default={
+            "cookie_value": None,
+        },
+        key="macrofx_cookie_delete",
+        on_cookie_value_change=lambda: None,
+        height=0,
+    )
+
+
+def _create_persistent_session(user_id):
+    admin = _session_admin_client()
+
+    if admin is None:
+        return None
+
+    token = secrets.token_urlsafe(48)
+    token_hash = _hash_session_token(token)
+
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(
+        days=PERSISTENT_SESSION_DAYS
+    )
+
+    try:
+        admin.table("user_sessions").insert(
+            {
+                "user_id": str(user_id),
+                "session_token_hash": token_hash,
+                "expires_at": expires_at.isoformat(),
+                "last_seen_at": now.isoformat(),
+            }
+        ).execute()
+
+        return token
+
+    except Exception:
+        return None
+
+
+def _restore_persistent_user():
+    token = _cookie_value()
+
+    if not token:
+        return None
+
+    admin = _session_admin_client()
+
+    if admin is None:
+        return None
+
+    token_hash = _hash_session_token(token)
+
+    try:
+        response = (
+            admin.table("user_sessions")
+            .select(
+                "id,user_id,expires_at,revoked_at"
+            )
+            .eq(
+                "session_token_hash",
+                token_hash,
+            )
+            .maybe_single()
+            .execute()
+        )
+
+        session = response.data
+
+        if not session:
+            return None
+
+        if session.get("revoked_at"):
+            return None
+
+        expires_at = datetime.fromisoformat(
+            session["expires_at"].replace(
+                "Z",
+                "+00:00",
+            )
+        )
+
+        now = datetime.now(timezone.utc)
+
+        if expires_at <= now:
+            return None
+
+        admin.table("user_sessions").update(
+            {
+                "last_seen_at": now.isoformat(),
+            }
+        ).eq(
+            "id",
+            session["id"],
+        ).execute()
+
+        return session["user_id"]
+
+    except Exception:
+        return None
+
+
+def _revoke_persistent_session():
+    token = _cookie_value()
+
+    if token:
+        admin = _session_admin_client()
+
+        if admin is not None:
+            try:
+                admin.table("user_sessions").update(
+                    {
+                        "revoked_at": datetime.now(
+                            timezone.utc
+                        ).isoformat()
+                    }
+                ).eq(
+                    "session_token_hash",
+                    _hash_session_token(token),
+                ).execute()
+
+            except Exception:
+                pass
+
+    _delete_persistent_cookie()
+
 
 def render_cookie_test():
     st.markdown("### Prueba cookie persistente")
@@ -270,6 +450,15 @@ def _perform_login(email, password):
         _save_session(response)
         st.session_state["sb_profile"] = profile
 
+        persistent_token = _create_persistent_session(
+            response.user.id
+        )
+
+        if persistent_token:
+            st.session_state[
+                "pending_persistent_cookie"
+            ] = persistent_token
+
         return True, ""
 
     except Exception as error:
@@ -451,11 +640,29 @@ def _render_login():
 
 def require_authenticated_user():
     client = _client()
+
+    # --------------------------------------------------------
+    # 1. Si acabamos de hacer login, crear cookie persistente
+    # --------------------------------------------------------
+    pending_token = st.session_state.pop(
+        "pending_persistent_cookie",
+        None,
+    )
+
+    if pending_token:
+        _write_persistent_cookie(pending_token)
+
+    # --------------------------------------------------------
+    # 2. Sesión normal de Streamlit
+    # --------------------------------------------------------
     profile = st.session_state.get("sb_profile")
 
     if profile and _is_active(profile):
         return profile
 
+    # --------------------------------------------------------
+    # 3. Intentar restaurar sesión Supabase existente
+    # --------------------------------------------------------
     if _restore_session(client):
         try:
             response = client.auth.get_user()
@@ -475,6 +682,37 @@ def require_authenticated_user():
                 )
                 return profile
 
+    # --------------------------------------------------------
+    # 4. F5 / nueva sesión Streamlit:
+    #    restaurar usuario desde cookie persistente
+    # --------------------------------------------------------
+    persistent_user_id = _restore_persistent_user()
+
+    if persistent_user_id:
+        admin = _session_admin_client()
+
+        if admin is not None:
+            profile = _load_profile(
+                admin,
+                persistent_user_id,
+            )
+
+            if _is_active(profile):
+                st.session_state["sb_user_id"] = (
+                    persistent_user_id
+                )
+                st.session_state["sb_user_email"] = (
+                    profile.get("email") or ""
+                )
+                st.session_state["sb_profile"] = (
+                    profile
+                )
+
+                return profile
+
+    # --------------------------------------------------------
+    # 5. No hay ninguna sesión válida
+    # --------------------------------------------------------
     _clear_session()
     _render_login()
     st.stop()
@@ -588,5 +826,6 @@ def render_logout(profile):
         except Exception:
             pass
 
+        _revoke_persistent_session()
         _clear_session()
         st.rerun()
