@@ -423,46 +423,55 @@ def render_cftc_positioning():
            CFTC POSITIONING — RESPONSIVE
            ========================================== */
 
-        /* Métricas */
+        /* TARJETAS DE MÉTRICAS */
         div[data-testid="stMetric"] {
-            background: #FFFFFF;
-            border: 1px solid #E5E7EB;
-            border-radius: 12px;
-            padding: 0.8rem 0.9rem;
+            background: #FFFFFF !important;
+            border: 1px solid #E5E7EB !important;
+            border-radius: 12px !important;
+            padding: 0.8rem 0.9rem !important;
         }
 
+        /* LABELS DE MÉTRICAS */
         div[data-testid="stMetric"] label,
-        div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+        div[data-testid="stMetric"] label *,
+        div[data-testid="stMetric"] [data-testid="stMetricLabel"],
+        div[data-testid="stMetric"] [data-testid="stMetricLabel"] * {
             color: #6B7280 !important;
+            -webkit-text-fill-color: #6B7280 !important;
+            opacity: 1 !important;
         }
 
-        div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        /* VALORES DE MÉTRICAS */
+        div[data-testid="stMetric"] [data-testid="stMetricValue"],
+        div[data-testid="stMetric"] [data-testid="stMetricValue"] *,
+        div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
             color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+            opacity: 1 !important;
         }
 
-        /* Texto general de la sección CFTC */
-        div[data-testid="stMainBlockContainer"] h3 {
-            color: #111111;
+        /* TEXTO NORMAL DE CFTC */
+        div[data-testid="stMainBlockContainer"] h3,
+        div[data-testid="stMainBlockContainer"] p,
+        div[data-testid="stMainBlockContainer"] span {
+            opacity: 1;
         }
 
-        /* Tablet / móvil */
+        /* TABLET */
         @media (max-width: 900px) {
 
             div[data-testid="stMetric"] {
-                padding: 0.65rem 0.7rem;
-                min-height: 88px;
+                padding: 0.65rem 0.7rem !important;
+                min-height: 88px !important;
             }
 
             div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-                font-size: 1.35rem !important;
+                font-size: 1.25rem !important;
             }
 
             div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
-                font-size: 0.72rem !important;
+                font-size: 0.70rem !important;
             }
-        }
-
-        @media (max-width: 600px) {
 
             .dashboard-title {
                 font-size: 1.55rem !important;
@@ -472,10 +481,27 @@ def render_cftc_positioning():
                 font-size: 0.85rem !important;
             }
         }
+
+        /* MÓVIL */
+        @media (max-width: 600px) {
+
+            div[data-testid="stMetric"] {
+                min-height: 78px !important;
+            }
+
+            div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+                font-size: 1.1rem !important;
+            }
+
+            div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+                font-size: 0.66rem !important;
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True,
-    )   
+    )
+    
 
     st.markdown(
         """
