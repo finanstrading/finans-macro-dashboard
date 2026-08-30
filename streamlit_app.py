@@ -8072,14 +8072,17 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    divisa = st.selectbox(
+    divisa = st.segmented_control(
         "Divisa",
         options=list(MERCADOS.keys()),
-        index=0,
+        default="GBP",
+        selection_mode="single",
         label_visibility="collapsed",
         key="selector_divisa"
     )
 
+    if divisa is None:
+        divisa = "GBP"
 
 # ===================================================
 # CARGA Y PREPARACIÓN DE DATOS
