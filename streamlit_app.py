@@ -530,70 +530,43 @@ st.markdown(
            BOTÓN MENÚ — SIDEBAR
         =================================================== */
 
-        /* Control cuando el sidebar está cerrado */
-        [data-testid="stSidebarCollapsedControl"] {{
-            position: fixed !important;
-            top: 12px !important;
-            left: 12px !important;
-
-            width: 48px !important;
-            height: 48px !important;
-            min-width: 48px !important;
-            min-height: 48px !important;
-
+        [data-testid="stSidebarCollapseButton"] button {{
             background: #111111 !important;
             border: 1px solid #333333 !important;
-            border-radius: 12px !important;
+            border-radius: 10px !important;
 
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            width: 88px !important;
+            height: 42px !important;
 
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22) !important;
-            z-index: 999999 !important;
-        }}
+            color: #FFFFFF !important;
 
-        [data-testid="stSidebarCollapsedControl"] button {{
-            width: 100% !important;
-            height: 100% !important;
-            background: transparent !important;
-            border: none !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20) !important;
+
             position: relative !important;
+            overflow: hidden !important;
         }}
 
-        /* Ocultamos el icono original */
-        [data-testid="stSidebarCollapsedControl"] svg {{
+        /* Ocultar el icono/flecha original */
+        [data-testid="stSidebarCollapseButton"] button svg {{
             display: none !important;
         }}
 
-        /* Ponemos un icono de menú grande */
-        [data-testid="stSidebarCollapsedControl"] button::after {{
-            content: "☰";
+        /* Nuestro botón claramente visible */
+        [data-testid="stSidebarCollapseButton"] button::after {{
+            content: "☰  MENÚ";
             color: #FFFFFF !important;
-            font-size: 26px !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+
+            font-size: 13px !important;
             font-weight: 800 !important;
-            line-height: 1 !important;
+            letter-spacing: 0.04em !important;
 
             position: absolute !important;
-            left: 50% !important;
             top: 50% !important;
+            left: 50% !important;
             transform: translate(-50%, -50%) !important;
-        }}
 
-
-        /* Botón cuando el sidebar está abierto */
-        section[data-testid="stSidebar"]
-        [data-testid="stSidebarCollapseButton"] {{
-            background: #1B1B1B !important;
-            border: 1px solid #3A3A3A !important;
-            border-radius: 10px !important;
-        }}
-
-        section[data-testid="stSidebar"]
-        [data-testid="stSidebarCollapseButton"] svg {{
-            color: #FFFFFF !important;
-            stroke: #FFFFFF !important;
-            fill: #FFFFFF !important;
+            white-space: nowrap !important;
         }}
 
         /* ===================================================
