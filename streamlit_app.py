@@ -7180,7 +7180,7 @@ if pagina_principal == "CFTC Positioning":
 
     st.stop()
 
-if pagina_principal == "FX Live Drivers":
+if pagina_principal == "🚀 Bancos Centrales":
 
     with st.sidebar:
         render_logout(AUTH_PROFILE)
@@ -7192,7 +7192,7 @@ if pagina_principal == "FX Live Drivers":
                 MACRO FX · LIVE
             </div>
             <div class="dashboard-title">
-                FX Live Drivers
+                🚀 Bancos Centrales
             </div>
             <div class="dashboard-subtitle">
                 Declaraciones de bancos centrales, política económica
