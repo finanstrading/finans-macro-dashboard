@@ -4123,7 +4123,7 @@ def calcular_historico_currency_score(
     data_version,
     frecuencia="W",
     periodos=26,
-    revision="release_v18",
+    revision="release_v19",
 ):
 
 
