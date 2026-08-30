@@ -1,15 +1,7 @@
 import requests
 import streamlit as st
 from supabase import create_client
-from streamlit_cookies_manager import EncryptedCookieManager
 
-cookies = EncryptedCookieManager(
-    prefix="macro_fx/",
-    password=st.secrets["COOKIE_PASSWORD"],
-)
-
-if not cookies.ready():
-    st.stop()
 
 SESSION_KEYS = (
     "sb_access_token",
