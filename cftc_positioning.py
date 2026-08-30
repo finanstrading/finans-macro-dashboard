@@ -451,10 +451,28 @@ def render_cftc_positioning():
         }
 
         /* TEXTO NORMAL DE CFTC */
-        div[data-testid="stMainBlockContainer"] h3,
-        div[data-testid="stMainBlockContainer"] p,
-        div[data-testid="stMainBlockContainer"] span {
-            opacity: 1;
+        div[data-testid="stMainBlockContainer"] h3 {
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+            opacity: 1 !important;
+        }
+
+        div[data-testid="stMainBlockContainer"]
+        div[data-testid="stMarkdownContainer"] p,
+        div[data-testid="stMainBlockContainer"]
+        div[data-testid="stMarkdownContainer"] strong {
+            color: #374151 !important;
+            -webkit-text-fill-color: #374151 !important;
+            opacity: 1 !important;
+        }
+
+        div[data-testid="stMainBlockContainer"]
+        div[data-testid="stCaptionContainer"],
+        div[data-testid="stMainBlockContainer"]
+        div[data-testid="stCaptionContainer"] * {
+            color: #6B7280 !important;
+            -webkit-text-fill-color: #6B7280 !important;
+            opacity: 1 !important;
         }
 
         /* TABLET */
