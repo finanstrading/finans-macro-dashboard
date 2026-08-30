@@ -56,6 +56,8 @@ export default function(component) {
         document.cookie =
             cookieName +
             "=; Max-Age=0; Path=/; SameSite=Lax; Secure";
+
+        return;
     }
 
     setStateValue(
