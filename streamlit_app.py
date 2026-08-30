@@ -8132,12 +8132,17 @@ try:
             unsafe_allow_html=True
         )
 
-        indicador = st.selectbox(
+        indicador = st.segmented_control(
             "Indicador",
-            indicadores,
+            options=indicadores,
+            default=indicadores[0],
+            selection_mode="single",
             label_visibility="collapsed",
-            key=f"indicador_{divisa}"
+            key=f"indicador_{divisa}",
         )
+
+        if indicador is None:
+            indicador = indicadores[0]
 
         st.markdown(
             '<div class="control-title">Periodo</div>',
