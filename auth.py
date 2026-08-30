@@ -54,6 +54,11 @@ export default function(component) {
             "; Max-Age=" +
             maxAge +
             "; Path=/; SameSite=Lax; Secure";
+
+        console.log(
+            "COOKIE AFTER WRITE:",
+            document.cookie
+        );
     }
 
     if (data?.action === "delete") {
