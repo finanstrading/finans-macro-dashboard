@@ -797,6 +797,34 @@ st.markdown(
                     padding-right: 0.5rem !important;
                 }}
 
+                section[data-testid="stSidebar"] div[data-baseweb="select"] span,
+                section[data-testid="stSidebar"] div[data-baseweb="select"] div {{
+                    color: #111111 !important;
+                    -webkit-text-fill-color: #111111 !important;
+                    opacity: 1 !important;
+                    font-size: 0.95rem !important;
+                }}
+
+                section[data-testid="stSidebar"] div[data-baseweb="select"] svg {{
+                    color: #111111 !important;
+                    fill: #111111 !important;
+                }}
+
+                /* Evita que el input interno parezca un campo vacío */
+                section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
+                    color: #111111 !important;
+                    -webkit-text-fill-color: #111111 !important;
+                    opacity: 1 !important;
+                }}
+
+                /* Etiquetas */
+                section[data-testid="stSidebar"] .control-title {{
+                    color: #D1D5DB !important;
+                    font-size: 0.75rem !important;
+                    font-weight: 800 !important;
+                    letter-spacing: 0.08em !important;
+                }}
+
                 /* ===================================================
                 TEXTO SELECCIONADO — SELECTS MÓVIL
                 =================================================== */
@@ -832,34 +860,6 @@ st.markdown(
                     fill: #111111 !important;
                     opacity: 1 !important;
                 }
-
-                section[data-testid="stSidebar"] div[data-baseweb="select"] span,
-                section[data-testid="stSidebar"] div[data-baseweb="select"] div {{
-                    color: #111111 !important;
-                    -webkit-text-fill-color: #111111 !important;
-                    opacity: 1 !important;
-                    font-size: 0.95rem !important;
-                }}
-
-                section[data-testid="stSidebar"] div[data-baseweb="select"] svg {{
-                    color: #111111 !important;
-                    fill: #111111 !important;
-                }}
-
-                /* Evita que el input interno parezca un campo vacío */
-                section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
-                    color: #111111 !important;
-                    -webkit-text-fill-color: #111111 !important;
-                    opacity: 1 !important;
-                }}
-
-                /* Etiquetas */
-                section[data-testid="stSidebar"] .control-title {{
-                    color: #D1D5DB !important;
-                    font-size: 0.75rem !important;
-                    font-weight: 800 !important;
-                    letter-spacing: 0.08em !important;
-                }}
 
                 /* ===================================================
                 DROPDOWN SELECTS — MÓVIL
