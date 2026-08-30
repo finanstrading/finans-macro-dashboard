@@ -862,6 +862,30 @@ st.markdown(
                 }}
 
                 /* ===================================================
+                   SELECTS MÓVIL — MOSTRAR VALOR, SIN INPUT DE BÚSQUEDA
+                =================================================== */
+
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] input {{
+                    position: absolute !important;
+                    width: 1px !important;
+                    height: 1px !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
+                    caret-color: transparent !important;
+                }}
+
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] > div > div,
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] span {{
+                    color: #111111 !important;
+                    -webkit-text-fill-color: #111111 !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }}
+
+                /* ===================================================
                 DROPDOWN SELECTS — MÓVIL
                 =================================================== */
 
