@@ -89,12 +89,20 @@ def _hash_session_token(token):
 
 
 def _cookie_value():
-    try:
-        return st.context.cookies.get(
-            PERSISTENT_COOKIE_NAME
-        )
-    except Exception:
-        return None
+    result = _persistent_cookie_component(
+        data={
+            "action": "read",
+            "value": None,
+        },
+        default={
+            "cookie_value": None,
+        },
+        key="macrofx_cookie_reader",
+        on_cookie_value_change=lambda: None,
+        height=0,
+    )
+
+    return result.cookie_value
 
 
 def _write_persistent_cookie(token):
@@ -686,9 +694,11 @@ def require_authenticated_user():
     # 4. F5 / nueva sesión Streamlit:
     #    restaurar usuario desde cookie persistente
     # --------------------------------------------------------
+    cookie_debug = _cookie_value()
+
     st.write(
-        "DEBUG macrofx_session:",
-        st.context.cookies.get("macrofx_session")
+        "DEBUG cookie JS:",
+        "TOKEN PRESENTE" if cookie_debug else "None"
     )
     
     persistent_user_id = _restore_persistent_user()
