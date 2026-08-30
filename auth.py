@@ -165,8 +165,9 @@ def _create_persistent_session(user_id):
         return None
 
 
-def _restore_persistent_user():
-    token = _cookie_value()
+def _restore_persistent_user(token=None):
+    if token is None:
+        token = _cookie_value()
 
     if not token:
         return None
@@ -694,15 +695,18 @@ def require_authenticated_user():
     # 4. F5 / nueva sesión Streamlit:
     #    restaurar usuario desde cookie persistente
     # --------------------------------------------------------
+
+    
     cookie_debug = _cookie_value()
 
     st.write(
         "DEBUG cookie JS:",
         "TOKEN PRESENTE" if cookie_debug else "None"
     )
-    
-    persistent_user_id = _restore_persistent_user()
 
+    persistent_user_id = _restore_persistent_user(
+        token=cookie_debug
+    )
     if persistent_user_id:
         admin = _session_admin_client()
 
