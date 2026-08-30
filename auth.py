@@ -20,6 +20,7 @@ PERSISTENT_SESSION_DAYS = 30
 PERSISTENT_COOKIE_JS = """
 export default function(component) {
     const { data, setStateValue } = component;
+    console.log("COMPONENT DATA:", data);
 
     const cookieName = "macrofx_session";
     console.log("HOSTNAME:", window.location.hostname);
