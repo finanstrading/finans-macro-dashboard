@@ -475,6 +475,20 @@ def render_cftc_positioning():
             opacity: 1 !important;
         }
 
+        /* EXPANDER CFTC */
+        div[data-testid="stExpander"] {
+            color: #374151 !important;
+        }
+
+        div[data-testid="stExpander"] summary,
+        div[data-testid="stExpander"] summary *,
+        div[data-testid="stExpander"] details,
+        div[data-testid="stExpander"] details * {
+            color: #374151 !important;
+            -webkit-text-fill-color: #374151 !important;
+            opacity: 1 !important;
+        }
+
         /* TABLET */
         @media (max-width: 900px) {
 
@@ -513,6 +527,25 @@ def render_cftc_positioning():
 
             div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
                 font-size: 0.66rem !important;
+            }
+
+            /* Selector de divisas — una sola fila */
+            div[data-testid="stSegmentedControl"]:first-of-type {
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                white-space: nowrap !important;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            div[data-testid="stSegmentedControl"]:first-of-type > div {
+                flex-wrap: nowrap !important;
+                width: max-content !important;
+                min-width: max-content !important;
+            }
+
+            div[data-testid="stSegmentedControl"]:first-of-type button {
+                flex: 0 0 auto !important;
+                min-width: 68px !important;
             }
         }
         </style>
