@@ -22,6 +22,10 @@ export default function(component) {
     const { data, setStateValue } = component;
 
     const cookieName = "macrofx_session";
+    console.log("HOSTNAME:", window.location.hostname);
+    console.log("ORIGIN:", window.location.origin);
+    console.log("COOKIE:", document.cookie);
+    
 
     function readCookie(name) {
         const prefix = name + "=";
