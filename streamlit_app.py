@@ -553,7 +553,40 @@ st.markdown(
             display: none !important;
         }}
 
+        /* ===================================================
+           BOTÓN ABRIR SIDEBAR — MENÚ CERRADO
+        =================================================== */
 
+        [data-testid="stExpandSidebarButton"] {{
+            background: #E3C85B !important;
+            border: 2px solid #111111 !important;
+            border-radius: 10px !important;
+
+            width: 48px !important;
+            height: 44px !important;
+            min-width: 48px !important;
+            min-height: 44px !important;
+
+            box-shadow:
+                0 4px 10px rgba(0, 0, 0, 0.35),
+                0 0 0 1px rgba(0, 0, 0, 0.12) !important;
+
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }}
+
+        /* Flecha >> de Streamlit */
+        [data-testid="stExpandSidebarButton"]
+        [data-testid="stIconMaterial"] {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+            opacity: 1 !important;
+
+            font-size: 26px !important;
+            font-weight: 900 !important;
+        }}
+        
         /* ===================================================
            SIDEBAR ABIERTO
         =================================================== */
@@ -628,13 +661,6 @@ st.markdown(
 
         @media (max-width: 1024px) {{
         
-            [data-testid="stSidebarCollapsedControl"] {{
-                width: 46px !important;
-                height: 46px !important;
-                min-width: 46px !important;
-                min-height: 46px !important;
-            }}
-
             .block-container {{
                 max-width: 100% !important;
                 padding-left: 1rem !important;
