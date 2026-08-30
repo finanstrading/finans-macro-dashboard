@@ -527,61 +527,73 @@ st.markdown(
 
         
         /* ===================================================
-           BOTÓN ABRIR / CERRAR SIDEBAR
+           BOTÓN MENÚ — SIDEBAR
         =================================================== */
 
-        /* SIDEBAR CERRADO */
+        /* Control cuando el sidebar está cerrado */
         [data-testid="stSidebarCollapsedControl"] {{
+            position: fixed !important;
+            top: 12px !important;
+            left: 12px !important;
+
+            width: 48px !important;
+            height: 48px !important;
+            min-width: 48px !important;
+            min-height: 48px !important;
+
             background: #111111 !important;
             border: 1px solid #333333 !important;
-            border-radius: 10px !important;
-            width: 40px !important;
-            height: 40px !important;
-            min-width: 40px !important;
-            min-height: 40px !important;
+            border-radius: 12px !important;
+
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.20) !important;
+
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22) !important;
             z-index: 999999 !important;
         }}
 
         [data-testid="stSidebarCollapsedControl"] button {{
-            background: transparent !important;
-            color: #FFFFFF !important;
             width: 100% !important;
             height: 100% !important;
+            background: transparent !important;
+            border: none !important;
+            position: relative !important;
         }}
 
-        [data-testid="stSidebarCollapsedControl"] svg,
-        [data-testid="stSidebarCollapsedControl"] button svg {{
+        /* Ocultamos el icono original */
+        [data-testid="stSidebarCollapsedControl"] svg {{
+            display: none !important;
+        }}
+
+        /* Ponemos un icono de menú grande */
+        [data-testid="stSidebarCollapsedControl"] button::after {{
+            content: "☰";
             color: #FFFFFF !important;
-            fill: #FFFFFF !important;
-            stroke: #FFFFFF !important;
-            opacity: 1 !important;
+            font-size: 26px !important;
+            font-weight: 800 !important;
+            line-height: 1 !important;
+
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
         }}
 
 
-        /* SIDEBAR ABIERTO */
+        /* Botón cuando el sidebar está abierto */
         section[data-testid="stSidebar"]
         [data-testid="stSidebarCollapseButton"] {{
             background: #1B1B1B !important;
             border: 1px solid #3A3A3A !important;
-            border-radius: 9px !important;
-        }}
-
-        section[data-testid="stSidebar"]
-        [data-testid="stSidebarCollapseButton"] button {{
-            background: transparent !important;
-            color: #FFFFFF !important;
+            border-radius: 10px !important;
         }}
 
         section[data-testid="stSidebar"]
         [data-testid="stSidebarCollapseButton"] svg {{
             color: #FFFFFF !important;
-            fill: #FFFFFF !important;
             stroke: #FFFFFF !important;
-            opacity: 1 !important;
+            fill: #FFFFFF !important;
         }}
 
         /* ===================================================
