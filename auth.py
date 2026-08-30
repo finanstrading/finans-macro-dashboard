@@ -686,6 +686,11 @@ def require_authenticated_user():
     # 4. F5 / nueva sesión Streamlit:
     #    restaurar usuario desde cookie persistente
     # --------------------------------------------------------
+    st.write(
+        "DEBUG macrofx_session:",
+        st.context.cookies.get("macrofx_session")
+    )
+    
     persistent_user_id = _restore_persistent_user()
 
     if persistent_user_id:
