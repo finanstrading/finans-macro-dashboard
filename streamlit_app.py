@@ -837,13 +837,6 @@ st.markdown(
                 div[data-baseweb="select"] [data-testid="stMarkdownContainer"],
                 section[data-testid="stSidebar"]
                 div[data-baseweb="select"] [data-testid="stMarkdownContainer"] *,
-                section[data-testid="stSidebar"]
-                div[data-baseweb="select"] input {{
-                    color: #111111 !important;
-                    -webkit-text-fill-color: #111111 !important;
-                    opacity: 1 !important;
-                    font-weight: 600 !important;
-                }}
 
                 /* Texto que BaseWeb coloca dentro del selector */
                 section[data-testid="stSidebar"]
