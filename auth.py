@@ -165,10 +165,7 @@ def _create_persistent_session(user_id):
         return None
 
 
-def _restore_persistent_user(token=None):
-    if token is None:
-        token = _cookie_value()
-
+def _restore_persistent_user(token):
     if not token:
         return None
 
