@@ -38,6 +38,10 @@ st.set_page_config(
 
 AUTH_PROFILE = require_authenticated_user()
 
+from auth import render_cookie_test
+
+render_cookie_test()
+
 SHEET_ID = "1dJB_3wWsSOkXm59dEJKYZlkK_wMlp89Pu1GObCNnyQU" 
 
 # Cada divisa se conecta exclusivamente con su pestaña.
