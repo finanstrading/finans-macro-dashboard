@@ -6635,7 +6635,7 @@ with st.sidebar:
     pagina_principal = st.radio(
         "Navegación",
         options=[
-            "Dashboard",
+            "Macro House",
             "🚀 Bancos Centrales",
             "CFTC Positioning",
         ],
