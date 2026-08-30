@@ -11,6 +11,103 @@ SESSION_KEYS = (
     "sb_profile",
 )
 
+COOKIE_TEST_JS = """
+export default function(component) {
+    const { data, setStateValue } = component;
+
+    const cookieName = "macrofx_cookie_test";
+
+    function readCookie(name) {
+        const prefix = name + "=";
+        const parts = document.cookie.split(";");
+
+        for (const part of parts) {
+            const value = part.trim();
+
+            if (value.startsWith(prefix)) {
+                return decodeURIComponent(
+                    value.substring(prefix.length)
+                );
+            }
+        }
+
+        return null;
+    }
+
+    if (data?.action === "write") {
+        const maxAge = 60 * 60 * 24 * 30;
+
+        document.cookie =
+            cookieName +
+            "=" +
+            encodeURIComponent(data.value) +
+            "; Max-Age=" +
+            maxAge +
+            "; Path=/; SameSite=Lax; Secure";
+    }
+
+    if (data?.action === "delete") {
+        document.cookie =
+            cookieName +
+            "=; Max-Age=0; Path=/; SameSite=Lax; Secure";
+    }
+
+    const currentValue = readCookie(cookieName);
+
+    setStateValue("cookie_value", currentValue);
+}
+"""
+
+
+_cookie_test_component = st.components.v2.component(
+    "macrofx_cookie_test_component",
+    js=COOKIE_TEST_JS,
+)
+
+def render_cookie_test():
+    st.markdown("### Prueba cookie persistente")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        escribir = st.button(
+            "Crear cookie de prueba",
+            key="create_cookie_test",
+        )
+
+    with col2:
+        borrar = st.button(
+            "Borrar cookie de prueba",
+            key="delete_cookie_test",
+        )
+
+    action = "read"
+    value = None
+
+    if escribir:
+        action = "write"
+        value = "MACROFX_OK"
+
+    elif borrar:
+        action = "delete"
+
+    result = _cookie_test_component(
+        data={
+            "action": action,
+            "value": value,
+        },
+        default={
+            "cookie_value": None,
+        },
+        key="macrofx_cookie_test",
+        on_cookie_value_change=lambda: None,
+        height=0,
+    )
+
+    st.write(
+        "Cookie detectada:",
+        result.cookie_value or "NINGUNA",
+    )
 
 def _client():
     try:
