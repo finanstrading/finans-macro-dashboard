@@ -475,14 +475,19 @@ def render_cftc_positioning():
             opacity: 1 !important;
         }
 
-        /* EXPANDER CFTC */
+        /* EXPANDER CFTC — SOLO CONTENIDO PRINCIPAL */
+        div[data-testid="stMainBlockContainer"]
         div[data-testid="stExpander"] {
             color: #374151 !important;
         }
 
+        div[data-testid="stMainBlockContainer"]
         div[data-testid="stExpander"] summary,
+        div[data-testid="stMainBlockContainer"]
         div[data-testid="stExpander"] summary *,
+        div[data-testid="stMainBlockContainer"]
         div[data-testid="stExpander"] details,
+        div[data-testid="stMainBlockContainer"]
         div[data-testid="stExpander"] details * {
             color: #374151 !important;
             -webkit-text-fill-color: #374151 !important;
