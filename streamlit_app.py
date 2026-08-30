@@ -589,6 +589,13 @@ st.markdown(
         =================================================== */
 
         @media (max-width: 1024px) {{
+        
+            [data-testid="stSidebarCollapsedControl"] {{
+                width: 46px !important;
+                height: 46px !important;
+                min-width: 46px !important;
+                min-height: 46px !important;
+            }}
 
             .block-container {{
                 max-width: 100% !important;
