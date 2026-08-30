@@ -416,6 +416,67 @@ def crear_tarjeta_cftc(titulo, contenido):
 
 def render_cftc_positioning():
 
+        st.markdown(
+        """
+        <style>
+        /* ==========================================
+           CFTC POSITIONING — RESPONSIVE
+           ========================================== */
+
+        /* Métricas */
+        div[data-testid="stMetric"] {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 0.8rem 0.9rem;
+        }
+
+        div[data-testid="stMetric"] label,
+        div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+            color: #6B7280 !important;
+        }
+
+        div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+            color: #111111 !important;
+        }
+
+        /* Texto general de la sección CFTC */
+        div[data-testid="stMainBlockContainer"] h3 {
+            color: #111111;
+        }
+
+        /* Tablet / móvil */
+        @media (max-width: 900px) {
+
+            div[data-testid="stMetric"] {
+                padding: 0.65rem 0.7rem;
+                min-height: 88px;
+            }
+
+            div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+                font-size: 1.35rem !important;
+            }
+
+            div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+                font-size: 0.72rem !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+
+            .dashboard-title {
+                font-size: 1.55rem !important;
+            }
+
+            .dashboard-subtitle {
+                font-size: 0.85rem !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown(
         """
         <div class="dashboard-header">
@@ -468,8 +529,10 @@ def render_cftc_positioning():
     # MÉTRICAS PRINCIPALES
     # ============================================================
 
-    col1, col2, col3, col4 = st.columns(4)
-
+    col1, col2, col3, col4 = st.columns(
+        4,
+        gap="small",
+    )
     with col1:
         st.metric(
             "Net Position",
