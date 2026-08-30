@@ -824,6 +824,25 @@ st.markdown(
                     font-weight: 800 !important;
                     letter-spacing: 0.08em !important;
                 }}
+
+                /* ===================================================
+                DROPDOWN SELECTS — MÓVIL
+                =================================================== */
+
+                div[role="listbox"] {{
+                    max-height: 320px !important;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
+                    border-radius: 10px !important;
+                }}
+
+                div[role="option"] {{
+                    min-height: 44px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    padding-top: 0.55rem !important;
+                    padding-bottom: 0.55rem !important;
+                }}
             }}
         
     </style>
