@@ -20,13 +20,8 @@ PERSISTENT_SESSION_DAYS = 30
 PERSISTENT_COOKIE_JS = """
 export default function(component) {
     const { data, setStateValue } = component;
-    console.log("COMPONENT DATA:", data);
 
     const cookieName = "macrofx_session";
-    console.log("HOSTNAME:", window.location.hostname);
-    console.log("ORIGIN:", window.location.origin);
-    console.log("COOKIE:", document.cookie);
-    
 
     function readCookie(name) {
         const prefix = name + "=";
@@ -55,11 +50,6 @@ export default function(component) {
             "; Max-Age=" +
             maxAge +
             "; Path=/; SameSite=Lax; Secure";
-
-        console.log(
-            "COOKIE AFTER WRITE:",
-            document.cookie
-        );
     }
 
     if (data?.action === "delete") {
