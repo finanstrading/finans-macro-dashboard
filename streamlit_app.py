@@ -887,6 +887,38 @@ st.markdown(
                     padding-top: 0.55rem !important;
                     padding-bottom: 0.55rem !important;
                 }}
+
+                /* ===================================================
+                INDICADOR MÓVIL — DESACTIVAR BÚSQUEDA/TECLADO
+                =================================================== */
+
+                /* Ocultar únicamente el input escribible de Indicador */
+                section[data-testid="stSidebar"]
+                input[aria-label="Indicador"] {{
+                    display: none !important;
+                }}
+
+                /* Mantener visible el valor seleccionado */
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] {{
+                    cursor: pointer !important;
+                }}
+
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] > div > div {{
+                    color: #111111 !important;
+                    -webkit-text-fill-color: #111111 !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                }}
+
+                /* Flecha visible */
+                section[data-testid="stSidebar"]
+                div[data-baseweb="select"] svg {{
+                    color: #111111 !important;
+                    fill: #111111 !important;
+                    opacity: 1 !important;
+                }}
             }}
         
     </style>
