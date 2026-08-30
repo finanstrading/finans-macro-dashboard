@@ -695,7 +695,7 @@ def require_authenticated_user():
             "persistent_cookie_token"
         ] = pending_token
 
-        st.rerun()
+        st.stop()
 
     # --------------------------------------------------------
     # 2. Sesión normal de Streamlit
