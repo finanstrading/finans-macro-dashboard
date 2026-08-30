@@ -14,7 +14,7 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
-from cftc_positioning import render_cftc_positioning
+from cftc_positioning import render_cftc_positioning 
 
 import feedparser
 from datetime import datetime, timezone, timedelta
