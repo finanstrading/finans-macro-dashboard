@@ -571,7 +571,7 @@ st.markdown(
         BOTÓN ABRIR MENÚ — SIDEBAR CERRADO
         =================================================== */
 
-        [data-testid="stSidebarCollapsedControl"] button {
+        [data-testid="stSidebarCollapsedControl"] button {{
             background: #E3C85B !important;
             border: 2px solid #111111 !important;
             border-radius: 10px !important;
@@ -584,17 +584,17 @@ st.markdown(
                 0 0 0 1px rgba(0, 0, 0, 0.15) !important;
 
             color: #111111 !important;
-        }
+        }}
 
         /* Flecha/icono de Streamlit */
-        [data-testid="stSidebarCollapsedControl"] button svg {
+        [data-testid="stSidebarCollapsedControl"] button svg {{
             color: #111111 !important;
             fill: #111111 !important;
             stroke: #111111 !important;
 
             width: 24px !important;
             height: 24px !important;
-        }
+        }}
 
         /* ===================================================
            RESPONSIVE — TABLET
