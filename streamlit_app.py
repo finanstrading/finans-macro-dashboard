@@ -655,6 +655,60 @@ st.markdown(
             transform: translate(-50%, -50%) !important;
         }}
 
+        
+        /* ===================================================
+           DIVISAS SIDEBAR — DESKTOP
+        =================================================== */
+
+        @media (min-width: 1025px) {{
+
+            section[data-testid="stSidebar"]
+            div[data-testid="stSegmentedControl"] button {{
+                background: #1B1B1B !important;
+                border: 1px solid #3A3A3A !important;
+
+                color: #F3F4F6 !important;
+                -webkit-text-fill-color: #F3F4F6 !important;
+
+                font-weight: 700 !important;
+                min-height: 38px !important;
+
+                transition:
+                    background 0.15s ease,
+                    border-color 0.15s ease,
+                    color 0.15s ease !important;
+            }}
+
+            /* Hover */
+            section[data-testid="stSidebar"]
+            div[data-testid="stSegmentedControl"] button:hover {{
+                background: #262626 !important;
+                border-color: #666666 !important;
+            }}
+
+            /* Divisa seleccionada */
+            section[data-testid="stSidebar"]
+            div[data-testid="stSegmentedControl"]
+            button[aria-pressed="true"] {{
+                background: #211C0D !important;
+                border: 1.5px solid #E3C85B !important;
+
+                color: #FFFFFF !important;
+                -webkit-text-fill-color: #FFFFFF !important;
+
+                box-shadow:
+                    inset 0 0 0 1px rgba(227, 200, 91, 0.10),
+                    0 0 8px rgba(227, 200, 91, 0.12) !important;
+            }}
+
+            /* Asegurar texto visible */
+            section[data-testid="stSidebar"]
+            div[data-testid="stSegmentedControl"] button * {{
+                color: inherit !important;
+                -webkit-text-fill-color: inherit !important;
+                opacity: 1 !important;
+            }}
+        }}
         /* ===================================================
            RESPONSIVE — TABLET
         =================================================== */
