@@ -530,35 +530,60 @@ st.markdown(
            BOTÓN ABRIR / CERRAR SIDEBAR
         =================================================== */
 
-        /* Sidebar cerrado — botón visible sobre fondo claro */
-        [data-testid="stSidebarCollapsedControl"] button {{
+        /* SIDEBAR CERRADO */
+        [data-testid="stSidebarCollapsedControl"] {{
             background: #111111 !important;
             border: 1px solid #333333 !important;
             border-radius: 10px !important;
-            width: 38px !important;
-            height: 38px !important;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.20) !important;
+            z-index: 999999 !important;
         }}
 
+        [data-testid="stSidebarCollapsedControl"] button {{
+            background: transparent !important;
+            color: #FFFFFF !important;
+            width: 100% !important;
+            height: 100% !important;
+        }}
+
+        [data-testid="stSidebarCollapsedControl"] svg,
         [data-testid="stSidebarCollapsedControl"] button svg {{
             color: #FFFFFF !important;
             fill: #FFFFFF !important;
+            stroke: #FFFFFF !important;
+            opacity: 1 !important;
         }}
 
-        /* Sidebar abierto — botón sobre fondo negro */
+
+        /* SIDEBAR ABIERTO */
         section[data-testid="stSidebar"]
-        [data-testid="stSidebarCollapseButton"] button {{
+        [data-testid="stSidebarCollapseButton"] {{
             background: #1B1B1B !important;
             border: 1px solid #3A3A3A !important;
             border-radius: 9px !important;
         }}
 
         section[data-testid="stSidebar"]
-        [data-testid="stSidebarCollapseButton"] button svg {{
+        [data-testid="stSidebarCollapseButton"] button {{
+            background: transparent !important;
+            color: #FFFFFF !important;
+        }}
+
+        section[data-testid="stSidebar"]
+        [data-testid="stSidebarCollapseButton"] svg {{
             color: #FFFFFF !important;
             fill: #FFFFFF !important;
+            stroke: #FFFFFF !important;
+            opacity: 1 !important;
         }}
-        
+
         /* ===================================================
            RESPONSIVE — TABLET
         =================================================== */
