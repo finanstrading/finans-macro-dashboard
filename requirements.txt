@@ -6,3 +6,4 @@ streamlit-js-eval
 requests
 feedparser
 openai
+streamlit-cookies-manager
