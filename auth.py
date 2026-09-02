@@ -41,7 +41,13 @@ export default function(component) {
     }
 
     if (data?.action === "write" && data?.value) {
-        const maxAge = 60 * 60 * 24 * 30;
+        console.log(
+            "MACROFX COOKIE WRITE",
+            window.location.hostname,
+            data.value
+        );
+
+    const maxAge = 60 * 60 * 24 * 30;
 
         document.cookie =
             cookieName +
@@ -51,6 +57,11 @@ export default function(component) {
             maxAge +
             "; Path=/; SameSite=Lax; Secure";
     }
+
+    console.log(
+        "MACROFX COOKIE AFTER WRITE",
+        document.cookie
+    );
 
     if (data?.action === "delete") {
         document.cookie =
