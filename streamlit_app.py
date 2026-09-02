@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from urllib.parse import quote  
 
 from auth import require_authenticated_user, render_logout
-from monetary_engine import analizar_indicador, ENGINE_VERSION 
+from monetary_engine import analizar_indicador, ENGINE_VERSION
 
 from currency_score_engine import (
     calcular_currency_score,
@@ -1955,7 +1955,7 @@ def render_central_bank_drivers(divisa):
 
     st.caption(
         f"{len(drivers)} drivers de bancos centrales · "
-        "Fuente: OpenAI Web Search"
+        "Fuente: Multiple"
     )
 
     for driver in drivers:
