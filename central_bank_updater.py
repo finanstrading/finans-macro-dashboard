@@ -313,8 +313,16 @@ def preparar_central_bank_drivers(resultado_ia):
     if not resultado_ia:
         return []
 
-    data = json.loads(resultado_ia)
+    try:
+        data = json.loads(resultado_ia)
 
+    except Exception as error:
+        print("DEBUG JSON INVALIDO:")
+        print(repr(resultado_ia))
+
+        raise ValueError(
+            f"No se pudo interpretar la respuesta de OpenAI como JSON: {error}"
+        )
     eventos = data.get(
         "events",
         []
