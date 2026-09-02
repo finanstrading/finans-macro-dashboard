@@ -90,52 +90,21 @@ def _hash_session_token(token):
     ).hexdigest()
 
 
-def _cookie_value():
+def _persistent_cookie(action="read", value=None):
     result = _persistent_cookie_component(
         data={
-            "action": "read",
-            "value": None,
+            "action": action,
+            "value": value,
         },
         default={
             "cookie_value": None,
         },
-        key="macrofx_cookie_reader",
+        key="macrofx_persistent_cookie",
         on_cookie_value_change=lambda: None,
         height=0,
     )
 
     return result.cookie_value
-
-
-def _write_persistent_cookie(token):
-    _persistent_cookie_component(
-        data={
-            "action": "write",
-            "value": token,
-        },
-        default={
-            "cookie_value": None,
-        },
-        key="macrofx_cookie_writer",
-        on_cookie_value_change=lambda: None,
-        height=0,
-    )
-
-
-def _delete_persistent_cookie():
-    _persistent_cookie_component(
-        data={
-            "action": "delete",
-            "value": None,
-        },
-        default={
-            "cookie_value": None,
-        },
-        key="macrofx_cookie_delete",
-        on_cookie_value_change=lambda: None,
-        height=0,
-    )
-
 
 def _create_persistent_session(user_id):
     admin = _session_admin_client()
@@ -661,47 +630,87 @@ def _render_login():
 def require_authenticated_user():
     client = _client()
 
-    if st.session_state.pop(
+    # --------------------------------------------------------
+    # 1. Determinar qué debe hacer EL ÚNICO componente
+    #    persistente de cookies en este rerun
+    # --------------------------------------------------------
+
+    logout_pending = st.session_state.pop(
         "logout_cookie_pending",
         False,
-    ):
-        _delete_persistent_cookie()
-        _clear_session()
-        _render_login()
-        st.stop()
+    )
 
-    # --------------------------------------------------------
-    # 1. Si acabamos de hacer login, crear cookie persistente
-    # --------------------------------------------------------
     pending_token = st.session_state.pop(
         "pending_persistent_cookie",
         None,
     )
 
-    if pending_token:
-        _write_persistent_cookie(pending_token)
+    cookie_action = "read"
+    cookie_value_to_write = None
+
+    if logout_pending:
+        cookie_action = "delete"
+
+    elif pending_token:
+        cookie_action = "write"
+        cookie_value_to_write = pending_token
 
         st.session_state[
             "persistent_cookie_token"
         ] = pending_token
 
-   
+    # IMPORTANTE:
+    # El mismo componente y la misma key se renderizan
+    # siempre, independientemente del estado del login.
+    browser_cookie = _persistent_cookie(
+        action=cookie_action,
+        value=cookie_value_to_write,
+    )
 
     # --------------------------------------------------------
-    # 2. Sesión normal de Streamlit
+    # 2. Logout
     # --------------------------------------------------------
-    profile = st.session_state.get("sb_profile")
+
+    if logout_pending:
+        st.session_state.pop(
+            "persistent_cookie_token",
+            None,
+        )
+
+        _clear_session()
+        _render_login()
+        st.stop()
+
+    # --------------------------------------------------------
+    # 3. Si el componente ya nos devuelve la cookie,
+    #    conservarla para restauración/logout
+    # --------------------------------------------------------
+
+    if browser_cookie:
+        st.session_state[
+            "persistent_cookie_token"
+        ] = browser_cookie
+
+    # --------------------------------------------------------
+    # 4. Sesión normal de Streamlit
+    # --------------------------------------------------------
+
+    profile = st.session_state.get(
+        "sb_profile"
+    )
 
     if profile and _is_active(profile):
         return profile
 
     # --------------------------------------------------------
-    # 3. Intentar restaurar sesión Supabase existente
+    # 5. Intentar restaurar sesión Supabase existente
     # --------------------------------------------------------
+
     if _restore_session(client):
         try:
             response = client.auth.get_user()
             user = response.user
+
         except Exception:
             user = None
 
@@ -712,28 +721,30 @@ def require_authenticated_user():
             )
 
             if _is_active(profile):
-                st.session_state["sb_profile"] = (
-                    profile
-                )
+                st.session_state[
+                    "sb_profile"
+                ] = profile
+
                 return profile
 
     # --------------------------------------------------------
-    # 4. F5 / nueva sesión Streamlit:
-    #    restaurar usuario desde cookie persistente
+    # 6. F5 / nueva sesión Streamlit:
+    #    restaurar desde cookie persistente
     # --------------------------------------------------------
 
-    
-    cookie_debug = _cookie_value()
-
-    if cookie_debug:
-        st.session_state[
+    persistent_token = (
+        browser_cookie
+        or st.session_state.get(
             "persistent_cookie_token"
-        ] = cookie_debug
-
-
-    persistent_user_id = _restore_persistent_user(
-        token=cookie_debug
+        )
     )
+
+    persistent_user_id = (
+        _restore_persistent_user(
+            token=persistent_token
+        )
+    )
+
     if persistent_user_id:
         admin = _session_admin_client()
 
@@ -744,25 +755,30 @@ def require_authenticated_user():
             )
 
             if _is_active(profile):
-                st.session_state["sb_user_id"] = (
-                    persistent_user_id
+                st.session_state[
+                    "sb_user_id"
+                ] = persistent_user_id
+
+                st.session_state[
+                    "sb_user_email"
+                ] = (
+                    profile.get("email")
+                    or ""
                 )
-                st.session_state["sb_user_email"] = (
-                    profile.get("email") or ""
-                )
-                st.session_state["sb_profile"] = (
-                    profile
-                )
+
+                st.session_state[
+                    "sb_profile"
+                ] = profile
 
                 return profile
 
     # --------------------------------------------------------
-    # 5. No hay ninguna sesión válida
+    # 7. No hay ninguna sesión válida
     # --------------------------------------------------------
+
     _clear_session()
     _render_login()
     st.stop()
-
 
 def _change_password_form():
     with st.expander(
