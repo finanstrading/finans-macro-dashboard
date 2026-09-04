@@ -665,6 +665,8 @@ def require_authenticated_user():
         f"{st.session_state.get('debug_token_created', False)}"
         f" · pending recibido: "
         f"{bool(pending_token)}"
+        f" · persistent: "
+        f"{st.session_state.get('persistent_debug', 'SIN DATO')}"
     )
 
     cookie_action = "read"
