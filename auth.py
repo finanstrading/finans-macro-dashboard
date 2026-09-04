@@ -41,13 +41,7 @@ export default function(component) {
     }
 
     if (data?.action === "write" && data?.value) {
-        console.log(
-            "MACROFX COOKIE WRITE",
-            window.location.hostname,
-            data.value
-        );
-
-    const maxAge = 60 * 60 * 24 * 30;
+        const maxAge = 60 * 60 * 24 * 30;
 
         document.cookie =
             cookieName +
@@ -57,11 +51,6 @@ export default function(component) {
             maxAge +
             "; Path=/; SameSite=Lax; Secure";
     }
-
-    console.log(
-        "MACROFX COOKIE AFTER WRITE",
-        document.cookie
-    );
 
     if (data?.action === "delete") {
         document.cookie =
@@ -92,10 +81,7 @@ def _session_admin_client():
 
         return create_client(url, secret_key)
 
-    except Exception as error:
-        st.session_state["persistent_debug"] = (
-            f"ERROR ADMIN CLIENT: {type(error).__name__}: {error}"
-        )
+    except Exception:
         return None
 
 
@@ -145,16 +131,9 @@ def _create_persistent_session(user_id):
             }
         ).execute()
 
-        st.session_state["persistent_debug"] = (
-            "OK: sesión persistente creada"
-        )
-
         return token
 
-    except Exception as error:
-        st.session_state["persistent_debug"] = (
-            f"ERROR SUPABASE: {error}"
-        )
+    except Exception:
         return None
 
 
@@ -243,53 +222,6 @@ def _revoke_persistent_session(token):
         pass
 
    
-
-
-def render_cookie_test():
-    st.markdown("### Prueba cookie persistente")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        escribir = st.button(
-            "Crear cookie de prueba",
-            key="create_cookie_test",
-        )
-
-    with col2:
-        borrar = st.button(
-            "Borrar cookie de prueba",
-            key="delete_cookie_test",
-        )
-
-    action = "read"
-    value = None
-
-    if escribir:
-        action = "write"
-        value = "MACROFX_OK"
-
-    elif borrar:
-        action = "delete"
-
-    result = _cookie_test_component(
-        data={
-            "action": action,
-            "value": value,
-        },
-        default={
-            "cookie_value": None,
-        },
-        key="macrofx_cookie_test",
-        on_cookie_value_change=lambda: None,
-        height=0,
-    )
-
-    st.write(
-        "Cookie detectada:",
-        result.cookie_value or "NINGUNA",
-    )
-
 def _client():
     try:
         url = st.secrets["supabase"]["url"]
@@ -460,7 +392,6 @@ def _perform_login(email, password):
                 "pending_persistent_cookie"
             ] = persistent_token
 
-        st.session_state["debug_token_created"] = bool(persistent_token)
         return True, ""
 
     except Exception as error:
@@ -652,22 +583,8 @@ def require_authenticated_user():
         False,
     )
 
-    pending_token = st.session_state.get(
+    pending_token = st.session_state.pop(
         "pending_persistent_cookie"
-    )
-
-    if pending_token:
-        st.session_state["debug_pending_token"] = True
-    elif "debug_pending_token" not in st.session_state:
-        st.session_state["debug_pending_token"] = False
-
-    st.warning(
-        f"DEBUG — token creado: "
-        f"{st.session_state.get('debug_token_created', False)}"
-        f" · pending recibido: "
-        f"{bool(pending_token)}"
-        f" · persistent: "
-        f"{st.session_state.get('persistent_debug', 'SIN DATO')}"
     )
 
     cookie_action = "read"
