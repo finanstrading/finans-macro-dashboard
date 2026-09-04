@@ -584,7 +584,8 @@ def require_authenticated_user():
     )
 
     pending_token = st.session_state.pop(
-        "pending_persistent_cookie"
+        "pending_persistent_cookie",
+        None,
     )
 
     cookie_action = "read"
