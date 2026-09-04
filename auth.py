@@ -459,6 +459,7 @@ def _perform_login(email, password):
                 "pending_persistent_cookie"
             ] = persistent_token
 
+        st.session_state["debug_token_created"] = bool(persistent_token)
         return True, ""
 
     except Exception as error:
@@ -471,7 +472,6 @@ def _perform_login(email, password):
             return False, "Confirma tu correo antes de entrar."
 
         return False, f"No se pudo iniciar sesión: {error}"
-
 
 def _auth_page_styles():
     st.markdown(
@@ -661,8 +661,10 @@ def require_authenticated_user():
         st.session_state["debug_pending_token"] = False
 
     st.warning(
-        f"DEBUG COOKIE — pending_token recibido: "
-        f"{st.session_state['debug_pending_token']}"
+        f"DEBUG — token creado: "
+        f"{st.session_state.get('debug_token_created', False)}"
+        f" · pending recibido: "
+        f"{bool(pending_token)}"
     )
 
     cookie_action = "read"
