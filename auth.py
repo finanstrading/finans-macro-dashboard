@@ -651,9 +651,8 @@ def require_authenticated_user():
         False,
     )
 
-    pending_token = st.session_state.pop(
-        "pending_persistent_cookie",
-        None,
+    pending_token = st.session_state.get(
+        "pending_persistent_cookie"
     )
 
     if pending_token:
@@ -665,7 +664,7 @@ def require_authenticated_user():
         f"DEBUG COOKIE — pending_token recibido: "
         f"{st.session_state['debug_pending_token']}"
     )
-    
+
     cookie_action = "read"
     cookie_value_to_write = None
 
