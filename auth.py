@@ -656,6 +656,13 @@ def require_authenticated_user():
         None,
     )
 
+    st.write(
+        "DEBUG COOKIE ACTION:",
+        "pending_token:",
+        bool(pending_token),
+        "profile:",
+        bool(st.session_state.get("sb_profile")),
+    )
     cookie_action = "read"
     cookie_value_to_write = None
 
