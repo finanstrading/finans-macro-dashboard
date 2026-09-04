@@ -656,13 +656,16 @@ def require_authenticated_user():
         None,
     )
 
-    st.write(
-        "DEBUG COOKIE ACTION:",
-        "pending_token:",
-        bool(pending_token),
-        "profile:",
-        bool(st.session_state.get("sb_profile")),
+    if pending_token:
+        st.session_state["debug_pending_token"] = True
+    elif "debug_pending_token" not in st.session_state:
+        st.session_state["debug_pending_token"] = False
+
+    st.warning(
+        f"DEBUG COOKIE — pending_token recibido: "
+        f"{st.session_state['debug_pending_token']}"
     )
+    
     cookie_action = "read"
     cookie_value_to_write = None
 
