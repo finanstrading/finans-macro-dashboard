@@ -89,10 +89,14 @@ def _session_admin_client():
     try:
         url = st.secrets["supabase"]["url"]
         secret_key = st.secrets["supabase"]["secret_key"]
-    except Exception:
-        return None
 
-    return create_client(url, secret_key)
+        return create_client(url, secret_key)
+
+    except Exception as error:
+        st.session_state["persistent_debug"] = (
+            f"ERROR ADMIN CLIENT: {type(error).__name__}: {error}"
+        )
+        return None
 
 
 def _hash_session_token(token):
