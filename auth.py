@@ -125,9 +125,6 @@ def _create_persistent_session(user_id):
     admin = _session_admin_client()
 
     if admin is None:
-        st.session_state["persistent_debug"] = (
-            "ERROR: no se pudo crear admin client"
-        )
         return None
 
     token = secrets.token_urlsafe(48)
