@@ -8260,16 +8260,23 @@ try:
 
             function bloquearEscrituraIndicador() {
                 if (window.parent.innerWidth <= 1400) {
+
                     const input = parentDoc.querySelector(
                         'input[aria-label="Indicador"]'
                     );
 
-                    if (input) {
-                        input.readOnly = true;
-                        input.setAttribute("readonly", "");
-                        input.setAttribute("inputmode", "none");
-                        input.setAttribute("autocomplete", "off");
-                    }
+                    if (!input) return;
+
+                    input.readOnly = true;
+                    input.setAttribute("readonly", "");
+                    input.setAttribute("inputmode", "none");
+                    input.setAttribute("autocomplete", "off");
+
+                    /* Solo restauramos el aspecto del propio input */
+                    input.style.color = "#111111";
+                    input.style.webkitTextFillColor = "#111111";
+                    input.style.backgroundColor = "transparent";
+                    input.style.opacity = "1";
                 }
             }
 
