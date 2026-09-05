@@ -787,6 +787,7 @@ st.markdown(
                 opacity: 1 !important;
             }}
         }}
+        
 
             @media (max-width: 1400px) {{
 
