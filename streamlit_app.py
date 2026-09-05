@@ -8273,10 +8273,16 @@ try:
                 }
 
                 input.dataset.macrofxNoKeyboard = "1";
-
-                input.setAttribute("inputmode", "none");
                 input.setAttribute("autocomplete", "off");
 
+                input.addEventListener(
+                    "focus",
+                    function() {
+                        setTimeout(function() {
+                            input.blur();
+                        }, 0);
+                    }
+                );
             }
 
             prepararIndicadorMovil();
