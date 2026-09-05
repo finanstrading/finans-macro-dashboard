@@ -8257,41 +8257,42 @@ try:
             """
             <script>
             const parentDoc = window.parent.document;
+            const indicadorActual = """ + json.dumps(indicador) + """;
 
             function bloquearEscrituraIndicador() {
-                if (window.parent.innerWidth <= 1400) {
 
-                    const input = parentDoc.querySelector(
-                        'input[aria-label="Indicador"]'
-                    );
-
-                    if (!input) return;
-
-                    input.readOnly = true;
-                    input.setAttribute("readonly", "");
-                    input.setAttribute("inputmode", "none");
-                    input.setAttribute("autocomplete", "off");
-
-                    const selectorIndicador =
-                        input.closest('[data-baseweb="select"]');
-
-                    if (selectorIndicador) {
-                        selectorIndicador
-                            .querySelectorAll("div, span, input")
-                            .forEach(function(elemento) {
-                                elemento.style.color = "#FFFFFF";
-                                elemento.style.webkitTextFillColor = "#FFFFFF";
-                                elemento.style.opacity = "1";
-                            });
-                    }
+                if (window.parent.innerWidth > 1400) {
+                    return;
                 }
+
+                const input = parentDoc.querySelector(
+                    'input[aria-label="Indicador"]'
+                );
+
+                if (!input) {
+                    return;
+                }
+
+                /* Evitar escritura / teclado */
+                input.readOnly = true;
+                input.setAttribute("readonly", "");
+                input.setAttribute("inputmode", "none");
+                input.setAttribute("autocomplete", "off");
+
+                /* Mantener visible el indicador seleccionado */
+                input.value = indicadorActual;
+
+                /* Texto visible sobre fondo negro */
+                input.style.color = "#FFFFFF";
+                input.style.webkitTextFillColor = "#FFFFFF";
+                input.style.opacity = "1";
             }
 
             bloquearEscrituraIndicador();
 
-            const observer = new MutationObserver(
-                bloquearEscrituraIndicador
-            );
+            const observer = new MutationObserver(function() {
+                bloquearEscrituraIndicador();
+            });
 
             observer.observe(
                 parentDoc.body,
@@ -8300,6 +8301,12 @@ try:
                     subtree: true
                 }
             );
+
+            /* BaseWeb a veces limpia el input después del render */
+            setTimeout(bloquearEscrituraIndicador, 50);
+            setTimeout(bloquearEscrituraIndicador, 200);
+            setTimeout(bloquearEscrituraIndicador, 500);
+
             </script>
             """,
             height=0,
