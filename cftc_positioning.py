@@ -876,6 +876,15 @@ def render_cftc_positioning():
     st.plotly_chart(
         fig,
         use_container_width=True,
+        config={
+            "displayModeBar": True,
+            "displaylogo": False,
+            "modeBarButtons": [
+                ["toImage"]
+            ],
+            "scrollZoom": False,
+            "doubleClick": False,
+        },
     )
 
     analisis = generar_analisis_cftc(
