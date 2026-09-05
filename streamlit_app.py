@@ -9126,12 +9126,6 @@ try:
                 f'</div>'
                 f'</div>'
 
-                f'<div style="text-align:right;'
-                f'font-size:12px;'
-                f'color:#6B7280;">'
-                f'Cobertura '
-                f'{coverage_rank * 100:.0f}%'
-                f'</div>'
 
                 f'</div>'
             )
