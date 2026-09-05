@@ -789,9 +789,21 @@ st.markdown(
 
             @media (max-width: 1400px) {{
 
+                section[data-testid="stMain"] [data-testid="stMetric"] {{
+                    min-width: 0 !important;
+                    overflow: visible !important;
+                }}
+
                 section[data-testid="stMain"] [data-testid="stMetricValue"],
+                section[data-testid="stMain"] [data-testid="stMetricValue"] > div,
                 section[data-testid="stMain"] [data-testid="stMetricValue"] * {{
-                    font-size: 2rem !important;
+                    font-size: 1.75rem !important;
+                    white-space: normal !important;
+                    overflow: visible !important;
+                    text-overflow: clip !important;
+                    max-width: none !important;
+                    width: auto !important;
+                    line-height: 1.1 !important;
                 }}
 
             }}
