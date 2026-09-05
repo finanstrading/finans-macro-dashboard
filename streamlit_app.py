@@ -8254,12 +8254,13 @@ try:
         )
 
         components.html(
-            """
+            f"""
             <script>
             const parentDoc = window.parent.document;
+            const indicadorActual = {json.dumps(indicador)};
 
-            function bloquearEscrituraIndicador() {
-                if (window.parent.innerWidth <= 1400) {
+            function bloquearEscrituraIndicador() {{
+                if (window.parent.innerWidth <= 1400) {{
 
                     const input = parentDoc.querySelector(
                         'input[aria-label="Indicador"]'
@@ -8272,13 +8273,13 @@ try:
                     input.setAttribute("inputmode", "none");
                     input.setAttribute("autocomplete", "off");
 
-                    /* Solo restauramos el aspecto del propio input */
+                    input.value = indicadorActual;
+
                     input.style.color = "#111111";
                     input.style.webkitTextFillColor = "#111111";
-                    input.style.backgroundColor = "transparent";
                     input.style.opacity = "1";
-                }
-            }
+                }}
+            }}
 
             bloquearEscrituraIndicador();
 
@@ -8288,10 +8289,10 @@ try:
 
             observer.observe(
                 parentDoc.body,
-                {
+                {{
                     childList: true,
                     subtree: true
-                }
+                }}
             );
             </script>
             """,
