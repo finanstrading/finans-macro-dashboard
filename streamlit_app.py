@@ -8277,13 +8277,6 @@ try:
                 input.setAttribute("inputmode", "none");
                 input.setAttribute("autocomplete", "off");
 
-                input.addEventListener(
-                    "touchstart",
-                    function(event) {
-                        event.preventDefault();
-                    },
-                    { passive: false }
-                );
             }
 
             prepararIndicadorMovil();
