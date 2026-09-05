@@ -8253,64 +8253,7 @@ try:
             key=f"indicador_{divisa}"
         )
 
-        components.html(
-            """
-            <script>
-            const parentDoc = window.parent.document;
 
-            function prepararIndicadorMovil() {
-
-                if (window.parent.innerWidth > 1400) {
-                    return;
-                }
-
-                const input = parentDoc.querySelector(
-                    'input[aria-label="Indicador"]'
-                );
-
-                if (!input || input.dataset.macrofxTouchReady === "1") {
-                    return;
-                }
-
-                input.dataset.macrofxTouchReady = "1";
-
-                input.addEventListener(
-                    "touchstart",
-                    function() {
-
-                        /* Evita que iOS abra el teclado */
-                        input.readOnly = true;
-                        input.setAttribute("readonly", "");
-
-                        /* Lo quitamos enseguida para no romper BaseWeb */
-                        setTimeout(function() {
-                            input.readOnly = false;
-                            input.removeAttribute("readonly");
-                        }, 300);
-
-                    },
-                    { passive: true }
-                );
-            }
-
-            prepararIndicadorMovil();
-
-            const observer = new MutationObserver(
-                prepararIndicadorMovil
-            );
-
-            observer.observe(
-                parentDoc.body,
-                {
-                    childList: true,
-                    subtree: true
-                }
-            );
-            </script>
-            """,
-            height=0,
-            width=0,
-        )
         st.markdown(
             '<div class="control-title">Periodo</div>',
             unsafe_allow_html=True
