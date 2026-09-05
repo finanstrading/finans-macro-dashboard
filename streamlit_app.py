@@ -8273,11 +8273,16 @@ try:
                     input.setAttribute("inputmode", "none");
                     input.setAttribute("autocomplete", "off");
 
-                    input.value = indicadorActual;
+                    /* Afecta únicamente al selector de Indicador */
+                    const selectorIndicador = input.closest('[data-baseweb="select"]');
 
-                    input.style.color = "#FFFFFF";
-                    input.style.webkitTextFillColor = "#FFFFFF";
-                    input.style.opacity = "1";
+                    if (selectorIndicador) {
+                        selectorIndicador
+                            .querySelectorAll("div, span, input")
+                            .forEach(function(elemento) {
+                                elemento.style.color = "#FFFFFF";
+                                elemento.style.webkitTextFillColor = "#FFFFFF";
+                                elemento.style.opacity = "1";
                 }}
             }}
 
