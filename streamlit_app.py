@@ -8181,6 +8181,27 @@ if pagina_principal == "🚀 Bancos Centrales":
 
 with st.sidebar:
 
+    # ===================================================
+    # SELECTOR DE VISTA
+    # ===================================================
+
+    st.markdown(
+        '<div class="control-title">Vista</div>',
+        unsafe_allow_html=True
+    )
+
+    vista = st.radio(
+        "Vista",
+        ["Indicador", "Currency Score"],
+        index=0,
+        label_visibility="collapsed",
+        key="selector_vista",
+    )
+
+    # ===================================================
+    # MERCADO
+    # ===================================================
+
     st.markdown(
         '<div class="control-title">Mercado</div>',
         unsafe_allow_html=True
@@ -8427,15 +8448,6 @@ try:
         indicadores,
     )
 
-# ===================================================
-# SELECTOR DE VISTA
-# ===================================================
-
-    vista = st.sidebar.radio(
-        "VISTA",
-        ["Indicador", "Currency Score"],
-        index=0,
-    )
 
     currency_score = calcular_currency_score(
         divisa,
