@@ -8275,8 +8275,8 @@ try:
 
                     input.value = indicadorActual;
 
-                    input.style.color = "#111111";
-                    input.style.webkitTextFillColor = "#111111";
+                    input.style.color = "#FFFFFF";
+                    input.style.webkitTextFillColor = "#FFFFFF";
                     input.style.opacity = "1";
                 }}
             }}
