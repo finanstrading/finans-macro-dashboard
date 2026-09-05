@@ -8259,7 +8259,7 @@ try:
             const parentDoc = window.parent.document;
             const indicadorActual = """ + json.dumps(indicador) + """;
 
-            function bloquearEscrituraIndicador() {
+            function prepararIndicador() {
 
                 if (window.parent.innerWidth > 1400) {
                     return;
@@ -8273,25 +8273,60 @@ try:
                     return;
                 }
 
-                /* Evitar escritura / teclado */
+                /* Evitar escritura y teclado */
                 input.readOnly = true;
                 input.setAttribute("readonly", "");
                 input.setAttribute("inputmode", "none");
                 input.setAttribute("autocomplete", "off");
 
-                /* Mantener visible el indicador seleccionado */
-                input.value = indicadorActual;
+                /* Localizar SOLO este selectbox */
+                const selector = input.closest(
+                    '[data-baseweb="select"]'
+                );
 
-                /* Texto visible sobre fondo negro */
-                input.style.color = "#FFFFFF";
-                input.style.webkitTextFillColor = "#FFFFFF";
-                input.style.opacity = "1";
+                if (!selector) {
+                    return;
+                }
+
+                selector.style.position = "relative";
+
+                /* Crear texto visible si todavía no existe */
+                let texto = selector.querySelector(
+                    '.macrofx-indicador-visible'
+                );
+
+                if (!texto) {
+                    texto = parentDoc.createElement("div");
+                    texto.className = "macrofx-indicador-visible";
+
+                    texto.style.position = "absolute";
+                    texto.style.left = "14px";
+                    texto.style.right = "38px";
+                    texto.style.top = "50%";
+                    texto.style.transform = "translateY(-50%)";
+
+                    texto.style.color = "#FFFFFF";
+                    texto.style.fontSize = "15px";
+                    texto.style.fontWeight = "700";
+
+                    texto.style.whiteSpace = "nowrap";
+                    texto.style.overflow = "hidden";
+                    texto.style.textOverflow = "ellipsis";
+
+                    texto.style.pointerEvents = "none";
+                    texto.style.zIndex = "5";
+
+                    selector.appendChild(texto);
+                }
+
+                /* Mostrar siempre el valor real de Streamlit */
+                texto.textContent = indicadorActual;
             }
 
-            bloquearEscrituraIndicador();
+            prepararIndicador();
 
             const observer = new MutationObserver(function() {
-                bloquearEscrituraIndicador();
+                prepararIndicador();
             });
 
             observer.observe(
@@ -8302,10 +8337,8 @@ try:
                 }
             );
 
-            /* BaseWeb a veces limpia el input después del render */
-            setTimeout(bloquearEscrituraIndicador, 50);
-            setTimeout(bloquearEscrituraIndicador, 200);
-            setTimeout(bloquearEscrituraIndicador, 500);
+            setTimeout(prepararIndicador, 100);
+            setTimeout(prepararIndicador, 300);
 
             </script>
             """,
