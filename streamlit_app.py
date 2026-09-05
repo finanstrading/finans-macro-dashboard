@@ -8253,97 +8253,11 @@ try:
             key=f"indicador_{divisa}"
         )
 
-        components.html(
-            """
-            <script>
-            const parentDoc = window.parent.document;
-            const indicadorActual = """ + json.dumps(indicador) + """;
-
-            function prepararIndicador() {
-
-                if (window.parent.innerWidth > 1400) {
-                    return;
-                }
-
-                const input = parentDoc.querySelector(
-                    'input[aria-label="Indicador"]'
-                );
-
-                if (!input) {
-                    return;
-                }
-
-                /* Evitar escritura y teclado */
-                input.readOnly = true;
-                input.setAttribute("readonly", "");
-                input.setAttribute("inputmode", "none");
-                input.setAttribute("autocomplete", "off");
-
-                /* Localizar SOLO este selectbox */
-                const selector = input.closest(
-                    '[data-baseweb="select"]'
-                );
-
-                if (!selector) {
-                    return;
-                }
-
-                selector.style.position = "relative";
-
-                /* Crear texto visible si todavía no existe */
-                let texto = selector.querySelector(
-                    '.macrofx-indicador-visible'
-                );
-
-                if (!texto) {
-                    texto = parentDoc.createElement("div");
-                    texto.className = "macrofx-indicador-visible";
-
-                    texto.style.position = "absolute";
-                    texto.style.left = "14px";
-                    texto.style.right = "38px";
-                    texto.style.top = "50%";
-                    texto.style.transform = "translateY(-50%)";
-
-                    texto.style.color = "#FFFFFF";
-                    texto.style.fontSize = "15px";
-                    texto.style.fontWeight = "700";
-
-                    texto.style.whiteSpace = "nowrap";
-                    texto.style.overflow = "hidden";
-                    texto.style.textOverflow = "ellipsis";
-
-                    texto.style.pointerEvents = "none";
-                    texto.style.zIndex = "5";
-
-                    selector.appendChild(texto);
-                }
-
-                /* Mostrar siempre el valor real de Streamlit */
-                texto.textContent = indicadorActual;
-            }
-
-            prepararIndicador();
-
-            const observer = new MutationObserver(function() {
-                prepararIndicador();
-            });
-
-            observer.observe(
-                parentDoc.body,
-                {
-                    childList: true,
-                    subtree: true
-                }
-            );
-
-            setTimeout(prepararIndicador, 100);
-            setTimeout(prepararIndicador, 300);
-
-            </script>
-            """,
-            height=0,
-            width=0,
+        indicador = st.selectbox(
+            "Indicador",
+            indicadores,
+            label_visibility="collapsed",
+            key=f"indicador_{divisa}"
         )
         st.markdown(
             '<div class="control-title">Periodo</div>',
