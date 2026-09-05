@@ -657,7 +657,39 @@ st.markdown(
             transform: translate(-50%, -50%) !important;
         }}
 
-        
+        /* ===================================================
+        CONTENIDO PRINCIPAL — CONTRASTE
+        =================================================== */
+
+        section[data-testid="stMain"] h1,
+        section[data-testid="stMain"] h2,
+        section[data-testid="stMain"] h3,
+        section[data-testid="stMain"] h4 {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+            opacity: 1 !important;
+        }}
+
+        section[data-testid="stMain"] [data-testid="stMarkdownContainer"] p,
+        section[data-testid="stMain"] [data-testid="stCaptionContainer"],
+        section[data-testid="stMain"] [data-testid="stCaptionContainer"] * {{
+            color: #4B5563 !important;
+            -webkit-text-fill-color: #4B5563 !important;
+            opacity: 1 !important;
+        }}
+
+        section[data-testid="stMain"] [data-testid="stMetric"] {{
+            color: #111111 !important;
+        }}
+
+        section[data-testid="stMain"] [data-testid="stMetric"] label,
+        section[data-testid="stMain"] [data-testid="stMetric"] label *,
+        section[data-testid="stMain"] [data-testid="stMetricValue"],
+        section[data-testid="stMain"] [data-testid="stMetricValue"] * {{
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+            opacity: 1 !important;
+        }}
 
         /* ===================================================
            RESPONSIVE — TABLET
