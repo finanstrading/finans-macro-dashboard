@@ -787,6 +787,14 @@ st.markdown(
             }}
         }}
 
+            @media (max-width: 1400px) {{
+
+                section[data-testid="stMain"] [data-testid="stMetricValue"],
+                section[data-testid="stMain"] [data-testid="stMetricValue"] * {{
+                    font-size: 2rem !important;
+                }}
+
+            }}
 
     
             /* ===================================================
