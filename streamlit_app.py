@@ -8268,28 +8268,21 @@ try:
                     'input[aria-label="Indicador"]'
                 );
 
-                if (!input || input.dataset.macrofxTouchReady === "1") {
+                if (!input || input.dataset.macrofxNoKeyboard === "1") {
                     return;
                 }
 
-                input.dataset.macrofxTouchReady = "1";
+                input.dataset.macrofxNoKeyboard = "1";
+
+                input.setAttribute("inputmode", "none");
+                input.setAttribute("autocomplete", "off");
 
                 input.addEventListener(
                     "touchstart",
-                    function() {
-
-                        /* Evita que iOS abra el teclado */
-                        input.readOnly = true;
-                        input.setAttribute("readonly", "");
-
-                        /* Lo quitamos enseguida para no romper BaseWeb */
-                        setTimeout(function() {
-                            input.readOnly = false;
-                            input.removeAttribute("readonly");
-                        }, 300);
-
+                    function(event) {
+                        event.preventDefault();
                     },
-                    { passive: true }
+                    { passive: false }
                 );
             }
 
