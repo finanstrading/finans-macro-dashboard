@@ -865,12 +865,24 @@ def render_cftc_positioning():
     fig.update_xaxes(
         showgrid=False,
         fixedrange=True,
+        tickfont=dict(
+            color="#4B5563",
+            size=12,
+        ),
     )
 
     fig.update_yaxes(
-        gridcolor="#EAEAEA",
+        gridcolor="#D1D5DB",
         zeroline=False,
         fixedrange=True,
+        tickfont=dict(
+            color="#4B5563",
+            size=12,
+        ),
+        title_font=dict(
+            color="#4B5563",
+            size=13,
+        ),
     )
 
     st.plotly_chart(
