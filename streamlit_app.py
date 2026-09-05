@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import time
 import hashlib
@@ -8250,6 +8251,44 @@ try:
             key=f"indicador_{divisa}"
         )
 
+        components.html(
+            """
+            <script>
+            const parentDoc = window.parent.document;
+
+            function bloquearEscrituraIndicador() {
+                if (window.parent.innerWidth <= 1400) {
+                    const input = parentDoc.querySelector(
+                        'input[aria-label="Indicador"]'
+                    );
+
+                    if (input) {
+                        input.readOnly = true;
+                        input.setAttribute("readonly", "");
+                        input.setAttribute("inputmode", "none");
+                        input.setAttribute("autocomplete", "off");
+                    }
+                }
+            }
+
+            bloquearEscrituraIndicador();
+
+            const observer = new MutationObserver(
+                bloquearEscrituraIndicador
+            );
+
+            observer.observe(
+                parentDoc.body,
+                {
+                    childList: true,
+                    subtree: true
+                }
+            );
+            </script>
+            """,
+            height=0,
+            width=0,
+        )
         st.markdown(
             '<div class="control-title">Periodo</div>',
             unsafe_allow_html=True
