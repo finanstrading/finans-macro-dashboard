@@ -8254,13 +8254,12 @@ try:
         )
 
         components.html(
-            f"""
+            """
             <script>
             const parentDoc = window.parent.document;
-            const indicadorActual = {json.dumps(indicador)};
 
-            function bloquearEscrituraIndicador() {{
-                if (window.parent.innerWidth <= 1400) {{
+            function bloquearEscrituraIndicador() {
+                if (window.parent.innerWidth <= 1400) {
 
                     const input = parentDoc.querySelector(
                         'input[aria-label="Indicador"]'
@@ -8273,8 +8272,8 @@ try:
                     input.setAttribute("inputmode", "none");
                     input.setAttribute("autocomplete", "off");
 
-                    /* Afecta únicamente al selector de Indicador */
-                    const selectorIndicador = input.closest('[data-baseweb="select"]');
+                    const selectorIndicador =
+                        input.closest('[data-baseweb="select"]');
 
                     if (selectorIndicador) {
                         selectorIndicador
@@ -8283,8 +8282,10 @@ try:
                                 elemento.style.color = "#FFFFFF";
                                 elemento.style.webkitTextFillColor = "#FFFFFF";
                                 elemento.style.opacity = "1";
-                }}
-            }}
+                            });
+                    }
+                }
+            }
 
             bloquearEscrituraIndicador();
 
@@ -8294,10 +8295,10 @@ try:
 
             observer.observe(
                 parentDoc.body,
-                {{
+                {
                     childList: true,
                     subtree: true
-                }}
+                }
             );
             </script>
             """,
