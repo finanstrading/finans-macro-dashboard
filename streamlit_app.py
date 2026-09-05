@@ -128,24 +128,6 @@ st.markdown(
             -webkit-text-fill-color: #111111 !important;
             opacity: 1 !important;
 
-        /* INDICADOR — VALOR SELECCIONADO VISIBLE */
-        section[data-testid="stSidebar"]
-        input[aria-label="Indicador"][readonly] {{
-            color: #111111 !important;
-            -webkit-text-fill-color: #111111 !important;
-            opacity: 1 !important;
-            background: transparent !important;
-
-        section[data-testid="stSidebar"]
-        input[aria-label="Indicador"][readonly] + div,
-        section[data-testid="stSidebar"]
-        input[aria-label="Indicador"][readonly] ~ div,
-        section[data-testid="stSidebar"]
-        input[aria-label="Indicador"][readonly] ~ span {{
-            color: #111111 !important;
-            -webkit-text-fill-color: #111111 !important;
-            opacity: 1 !important;
-        }}
 
         }}
 
