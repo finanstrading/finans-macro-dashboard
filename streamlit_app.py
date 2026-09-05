@@ -8253,12 +8253,6 @@ try:
             key=f"indicador_{divisa}"
         )
 
-        indicador = st.selectbox(
-            "Indicador",
-            indicadores,
-            label_visibility="collapsed",
-            key=f"indicador_{divisa}"
-        )
         st.markdown(
             '<div class="control-title">Periodo</div>',
             unsafe_allow_html=True
