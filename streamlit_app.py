@@ -976,13 +976,15 @@ st.markdown(
                 }}
 
                 /* ===================================================
-                INDICADOR MÓVIL — DESACTIVAR BÚSQUEDA/TECLADO
+                INDICADOR — SOLO SELECCIÓN, SIN ESCRITURA
                 =================================================== */
 
-                /* Ocultar únicamente el input escribible de Indicador */
                 section[data-testid="stSidebar"]
                 input[aria-label="Indicador"] {{
-                    display: none !important;
+                    pointer-events: none !important;
+                    caret-color: transparent !important;
+                    user-select: none !important;
+                    font-size: 16px !important;
                 }}
 
                 /* Mantener visible el valor seleccionado */
