@@ -864,11 +864,13 @@ def render_cftc_positioning():
 
     fig.update_xaxes(
         showgrid=False,
+        fixedrange=True,
     )
 
     fig.update_yaxes(
         gridcolor="#EAEAEA",
         zeroline=False,
+        fixedrange=True,
     )
 
     st.plotly_chart(
