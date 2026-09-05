@@ -976,17 +976,6 @@ st.markdown(
                     padding-bottom: 0.55rem !important;
                 }}
 
-                /* ===================================================
-                INDICADOR — SOLO SELECCIÓN, SIN ESCRITURA
-                =================================================== */
-
-                section[data-testid="stSidebar"]
-                input[aria-label="Indicador"] {{
-                    pointer-events: none !important;
-                    caret-color: transparent !important;
-                    user-select: none !important;
-                    font-size: 16px !important;
-                }}
 
                 /* Mantener visible el valor seleccionado */
                 section[data-testid="stSidebar"]
