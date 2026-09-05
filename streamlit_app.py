@@ -697,6 +697,14 @@ st.markdown(
 
         @media (max-width: 1024px) {{
         
+            section[data-testid="stSidebar"]
+            input[aria-label="Indicador"] {{
+                pointer-events: none !important;
+                caret-color: transparent !important;
+                user-select: none !important;
+                font-size: 16px !important;
+            }}
+        
             .block-container {{
                 max-width: 100% !important;
                 padding-left: 1rem !important;
