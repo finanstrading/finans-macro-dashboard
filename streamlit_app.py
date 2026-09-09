@@ -2005,11 +2005,36 @@ def cargar_central_bank_drivers(divisa):
             "error": str(error),
         }
 
+
 # ===================================================
-# CENTRAL BANK COMMITTEE MAP — OPENAI + WEB SEARCH
+# CENTRAL BANK COMMITTEE MAP — CAPA ADICIONAL
+# No altera el feed existente de declaraciones.
+# La actualización IA solo se ejecuta bajo demanda.
 # ===================================================
 
 COMMITTEE_MAP_CONFIG = {
+    "USD": {
+        "bank": "Federal Reserve",
+        "committee": "FOMC",
+        "members": [
+            "Kevin Warsh", "John Williams", "Michael Barr", "Michelle Bowman",
+            "Lisa Cook", "Beth Hammack", "Philip Jefferson", "Neel Kashkari",
+            "Lorie Logan", "Anna Paulson", "Jerome Powell", "Christopher Waller",
+            "Austan Goolsbee", "Susan Collins", "Mary Daly", "Thomas Barkin",
+            "Alberto Musalem", "Jeffrey Schmid",
+        ],
+    },
+    "EUR": {
+        "bank": "European Central Bank / Eurosystem",
+        "committee": "Governing Council",
+        "members": [
+            "Christine Lagarde", "Boris Vujcic", "Philip Lane", "Isabel Schnabel",
+            "Piero Cipollone", "Luis de Guindos", "Joachim Nagel", "Olli Rehn",
+            "Martin Kocher", "Bostjan Vasle", "Primoz Dolenc", "Martins Kazaks",
+            "Mario Centeno", "Francois Villeroy de Galhau", "Fabio Panetta",
+            "Gabriel Makhlouf", "Pierre Wunsch",
+        ],
+    },
     "GBP": {
         "bank": "Bank of England",
         "committee": "MPC",
@@ -2028,17 +2053,96 @@ COMMITTEE_MAP_CONFIG = {
             "Ayano Sato",
         ],
     },
-    "CHF": {"bank": "Swiss National Bank", "committee": "Governing Board", "members": ["Martin Schlegel", "Antoine Martin", "Petra Tschudin"]},
-    "AUD": {"bank": "Reserve Bank of Australia", "committee": "Monetary Policy Board", "members": ["Michele Bullock", "Andrew Hauser", "Marnie Baker", "Renee Fry-McKibbin", "Ian Harper", "Carolyn Hewson", "Iain Ross", "Bruce Preston", "Jenny Wilkinson"]},
-    "NZD": {"bank": "Reserve Bank of New Zealand", "committee": "MPC", "members": ["Anna Breman", "Karen Silk", "Paul Conway", "Carl Hansen", "Prasanna Gai", "Hayley Gourley"]},
-    "CAD": {"bank": "Bank of Canada", "committee": "Governing Council", "members": ["Tiff Macklem", "Carolyn Rogers", "Toni Gravelle", "Marc-Andre Gosselin", "Nicolas Vincent", "Michelle Alexopoulos"]},
-    "USD": {"bank": "Federal Reserve", "committee": "FOMC", "members": ["Kevin Warsh", "John Williams", "Michael Barr", "Michelle Bowman", "Lisa Cook", "Beth Hammack", "Philip Jefferson", "Neel Kashkari", "Lorie Logan", "Anna Paulson", "Jerome Powell", "Christopher Waller", "Austan Goolsbee", "Susan Collins", "Mary Daly", "Thomas Barkin", "Alberto Musalem", "Jeffrey Schmid"]},
-    "EUR": {"bank": "European Central Bank / Eurosystem", "committee": "Governing Council", "members": ["Christine Lagarde", "Boris Vujcic", "Philip Lane", "Isabel Schnabel", "Piero Cipollone", "Luis de Guindos", "Joachim Nagel", "Olli Rehn", "Martin Kocher", "Bostjan Vasle", "Primoz Dolenc", "Martins Kazaks", "Klaas Knot", "Mario Centeno", "Francois Villeroy de Galhau", "Fabio Panetta", "Gabriel Makhlouf", "Pierre Wunsch"]},
+    "CHF": {
+        "bank": "Swiss National Bank",
+        "committee": "Governing Board",
+        "members": ["Martin Schlegel", "Antoine Martin", "Petra Tschudin"],
+    },
+    "AUD": {
+        "bank": "Reserve Bank of Australia",
+        "committee": "Monetary Policy Board",
+        "members": [
+            "Michele Bullock", "Andrew Hauser", "Marnie Baker",
+            "Renee Fry-McKibbin", "Ian Harper", "Carolyn Hewson",
+            "Iain Ross", "Bruce Preston", "Jenny Wilkinson",
+        ],
+    },
+    "NZD": {
+        "bank": "Reserve Bank of New Zealand",
+        "committee": "MPC",
+        "members": [
+            "Anna Breman", "Karen Silk", "Paul Conway",
+            "Carl Hansen", "Prasanna Gai", "Hayley Gourley",
+        ],
+    },
+    "CAD": {
+        "bank": "Bank of Canada",
+        "committee": "Governing Council",
+        "members": [
+            "Tiff Macklem", "Carolyn Rogers", "Toni Gravelle",
+            "Marc-Andre Gosselin", "Nicolas Vincent", "Michelle Alexopoulos",
+        ],
+    },
+}
+
+
+# Referencia inicial visible al instante.
+# Solo GBP se precarga con una lectura estructural; el resto queda pendiente
+# hasta que el usuario pulse el botón de actualización IA.
+COMMITTEE_MAP_BASELINE = {
+    "GBP": {
+        "summary": (
+            "MPC dividido: Greene, Mann y Pill forman el núcleo hawkish; "
+            "Lombardelli es el principal perfil de transición y Dhingra el más dovish."
+        ),
+        "members": [
+            {"name": "Andrew Bailey", "bias": "Neutral", "change": "No Change", "expected_vote": "Hold", "confidence": "Medium", "reason": "Perfil centrista y dependiente de datos; ha rechazado que una subida sea inevitable.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Sarah Breeden", "bias": "Lean Dovish", "change": "No Change", "expected_vote": "Hold", "confidence": "Medium", "reason": "Se mantiene en el bloque favorable a conservar los tipos sin endurecimiento inmediato.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Swati Dhingra", "bias": "Dovish", "change": "No Change", "expected_vote": "Hold", "confidence": "High", "reason": "Sigue siendo el perfil estructuralmente más dovish del MPC.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Megan Greene", "bias": "Hawkish", "change": "No Change", "expected_vote": "Hike", "confidence": "High", "reason": "Ha defendido actuar preventivamente ante el riesgo de persistencia inflacionaria.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Clare Lombardelli", "bias": "Lean Hawkish", "change": "No Change", "expected_vote": "Hike or Hold", "confidence": "Medium", "reason": "Perfil de transición que puede inclinar el balance si aumentan los riesgos inflacionarios.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Catherine Mann", "bias": "Hawkish", "change": "No Change", "expected_vote": "Hike", "confidence": "High", "reason": "Mantiene una reacción más agresiva frente a riesgos de inflación persistente.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Huw Pill", "bias": "Hawkish", "change": "No Change", "expected_vote": "Hike", "confidence": "High", "reason": "Su historial reciente de voto y comunicación lo sitúa en el bloque hawkish.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Dave Ramsden", "bias": "Neutral", "change": "More Dovish", "expected_vote": "Hold", "confidence": "Medium", "reason": "Ha descrito las presiones inflacionarias domésticas como relativamente benignas.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+            {"name": "Alan Taylor", "bias": "Lean Dovish", "change": "No Change", "expected_vote": "Hold", "confidence": "Medium", "reason": "Considera que mantener la restricción actual puede ser suficiente frente a riesgos externos.", "evidence_date": None, "source": "Referencia inicial", "source_url": ""},
+        ],
+    }
 }
 
 
 def _normalizar_member_key(nombre):
     return " ".join(str(nombre or "").strip().lower().split())
+
+
+def _committee_empty_result(divisa):
+    cfg = COMMITTEE_MAP_CONFIG.get(divisa, {})
+    return {
+        "ok": True,
+        "summary": "Clasificación estructural pendiente de actualización.",
+        "members": [
+            {
+                "name": name,
+                "bias": "Pending",
+                "change": "Unclear",
+                "expected_vote": "Unclear",
+                "confidence": "Low",
+                "reason": "Pulsa Actualizar mapa con IA para clasificar este miembro con evidencia reciente.",
+                "evidence_date": None,
+                "source": "",
+                "source_url": "",
+            }
+            for name in cfg.get("members", [])
+        ],
+        "error": None,
+    }
+
+
+def _committee_initial_result(divisa):
+    divisa = str(divisa or "").strip().upper()
+    baseline = COMMITTEE_MAP_BASELINE.get(divisa)
+    if baseline:
+        return {"ok": True, "error": None, **baseline}
+    return _committee_empty_result(divisa)
 
 
 @st.cache_data(ttl=21600, show_spinner=False)
@@ -2057,145 +2161,197 @@ Central bank: {cfg['bank']}
 Committee: {cfg['committee']}
 Currency: {divisa}
 
-Classify the CURRENT STRUCTURAL POLICY BIAS of every member below using recent reliable web evidence.
-Prioritize official votes/decisions, official speeches/testimony/interviews, minutes/transcripts, then Reuters/Bloomberg/FT.
+Classify the CURRENT STRUCTURAL POLICY BIAS of every listed member using recent reliable web evidence.
+Prioritize official votes, decisions, speeches, testimony, interviews and minutes; then Reuters/Bloomberg/FT.
 
 Members:
 {members_text}
 
-Allowed bias: Hawkish, Lean Hawkish, Neutral, Lean Dovish, Dovish.
-Do not change a structural label because of one isolated sentence if broader voting history points elsewhere.
-If evidence is mixed, prefer Neutral or a Lean label and lower confidence.
-change = More Hawkish / No Change / More Dovish / Unclear relative to the member's recent prior stance.
-expected_vote = Hike / Hold / Cut / Hike or Hold / Hold or Cut / Unclear.
-reason: Spanish, factual, maximum 28 words.
-evidence_date: YYYY-MM-DD if reliable, otherwise null.
-source: source name only. source_url: one raw https URL or empty string.
-Return each listed member exactly once and add no one else.
-Also provide a Spanish committee summary, max 35 words, emphasizing balance and swing members.
+Bias must be one of: Hawkish, Lean Hawkish, Neutral, Lean Dovish, Dovish.
+Do not change structural bias from one isolated sentence. Use voting history and repeated communication.
+change = More Hawkish / No Change / More Dovish / Unclear versus the member's recent prior stance.
+expected_vote = Hike / Hold / Cut / Hike or Hold / Hold or Cut / Unclear for the next policy meeting.
+reason must be factual Spanish, maximum 28 words.
+evidence_date = YYYY-MM-DD if reliable, otherwise null.
+source = publisher/source name only.
+source_url = one raw https URL or empty string.
+Return every listed member exactly once and nobody else.
+Also return a Spanish summary of maximum 35 words describing the committee balance and relevant swing members.
 """
+
         response = client.responses.create(
             model="gpt-5.6-luna",
             tools=[{"type": "web_search", "search_context_size": "high"}],
             input=prompt,
-            text={"format": {"type": "json_schema", "name": "committee_policy_map", "strict": True, "schema": {
-                "type": "object",
-                "properties": {
-                    "summary": {"type": "string"},
-                    "members": {"type": "array", "items": {"type": "object", "properties": {
-                        "name": {"type": "string"},
-                        "bias": {"type": "string", "enum": ["Hawkish", "Lean Hawkish", "Neutral", "Lean Dovish", "Dovish"]},
-                        "change": {"type": "string", "enum": ["More Hawkish", "No Change", "More Dovish", "Unclear"]},
-                        "expected_vote": {"type": "string", "enum": ["Hike", "Hold", "Cut", "Hike or Hold", "Hold or Cut", "Unclear"]},
-                        "confidence": {"type": "string", "enum": ["High", "Medium", "Low"]},
-                        "reason": {"type": "string"},
-                        "evidence_date": {"type": ["string", "null"]},
-                        "source": {"type": "string"},
-                        "source_url": {"type": "string"}
-                    }, "required": ["name", "bias", "change", "expected_vote", "confidence", "reason", "evidence_date", "source", "source_url"], "additionalProperties": False}}
-                },
-                "required": ["summary", "members"],
-                "additionalProperties": False
-            }}}
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "committee_policy_map",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "summary": {"type": "string"},
+                            "members": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {"type": "string"},
+                                        "bias": {"type": "string", "enum": ["Hawkish", "Lean Hawkish", "Neutral", "Lean Dovish", "Dovish"]},
+                                        "change": {"type": "string", "enum": ["More Hawkish", "No Change", "More Dovish", "Unclear"]},
+                                        "expected_vote": {"type": "string", "enum": ["Hike", "Hold", "Cut", "Hike or Hold", "Hold or Cut", "Unclear"]},
+                                        "confidence": {"type": "string", "enum": ["High", "Medium", "Low"]},
+                                        "reason": {"type": "string"},
+                                        "evidence_date": {"type": ["string", "null"]},
+                                        "source": {"type": "string"},
+                                        "source_url": {"type": "string"},
+                                    },
+                                    "required": ["name", "bias", "change", "expected_vote", "confidence", "reason", "evidence_date", "source", "source_url"],
+                                    "additionalProperties": False,
+                                },
+                            },
+                        },
+                        "required": ["summary", "members"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
         )
+
         data = json.loads(response.output_text)
-        returned = {_normalizar_member_key(x.get("name")): x for x in data.get("members", [])}
+        returned = {
+            _normalizar_member_key(item.get("name")): item
+            for item in data.get("members", [])
+        }
         ordered = []
         for official_name in cfg["members"]:
-            item = returned.get(_normalizar_member_key(official_name)) or {
-                "name": official_name, "bias": "Neutral", "change": "Unclear", "expected_vote": "Unclear",
-                "confidence": "Low", "reason": "No hay evidencia reciente suficiente para clasificarlo con confianza.",
-                "evidence_date": None, "source": "", "source_url": ""
-            }
+            item = returned.get(_normalizar_member_key(official_name))
+            if not item:
+                item = {
+                    "name": official_name, "bias": "Neutral", "change": "Unclear",
+                    "expected_vote": "Unclear", "confidence": "Low",
+                    "reason": "No hay evidencia reciente suficiente para una clasificación robusta.",
+                    "evidence_date": None, "source": "", "source_url": "",
+                }
             item["name"] = official_name
             ordered.append(item)
-        return {"ok": True, "members": ordered, "summary": str(data.get("summary") or "").strip(), "error": None}
+
+        return {
+            "ok": True,
+            "members": ordered,
+            "summary": str(data.get("summary") or "").strip(),
+            "error": None,
+        }
     except Exception as error:
         return {"ok": False, "members": [], "summary": "", "error": str(error)}
 
 
-def _committee_bias_badge(bias):
-    styles = {
-        "Hawkish": ("#FEE2E2", "#991B1B", "HAWKISH"),
-        "Lean Hawkish": ("#FFF7ED", "#9A3412", "LEAN HAWKISH"),
-        "Neutral": ("#F3F4F6", "#4B5563", "NEUTRAL"),
-        "Lean Dovish": ("#ECFDF5", "#047857", "LEAN DOVISH"),
-        "Dovish": ("#DCFCE7", "#166534", "DOVISH"),
-    }
-    bg, fg, label = styles.get(bias, styles["Neutral"])
-    return f'<span style="display:inline-block;background:{bg};color:{fg};border-radius:999px;padding:0.19rem 0.48rem;font-size:0.66rem;font-weight:850;letter-spacing:0.035em;vertical-align:middle;">{label}</span>'
-
-
 def render_committee_map(divisa):
-    """Mapa del comité sin HTML dinámico para evitar conflictos DOM/React."""
-    divisa = str(divisa or "").upper()
+    divisa = str(divisa or "").strip().upper()
     cfg = COMMITTEE_MAP_CONFIG.get(divisa)
     if not cfg:
         return {}
 
     state_key = f"committee_map_result_{divisa}"
-    result = st.session_state.get(state_key)
+    if state_key not in st.session_state:
+        st.session_state[state_key] = _committee_initial_result(divisa)
 
-    if st.button(
-        "Actualizar mapa con IA",
-        key=f"committee_map_refresh_{divisa}",
-        help="Busca evidencia reciente y actualiza la clasificación del comité.",
-    ):
-        with st.spinner(f"Actualizando {cfg['committee']}..."):
-            cargar_committee_map_openai.clear()
-            result = cargar_committee_map_openai(divisa)
-            st.session_state[state_key] = result
+    result = st.session_state[state_key]
 
-    if not result:
-        st.caption(
-            f"{cfg['bank']} · mapa del comité aún no cargado. "
-            "Pulsa 'Actualizar mapa con IA' cuando quieras refrescarlo."
-        )
-        return {}
+    with st.container(border=True):
+        header_col, button_col = st.columns([4.5, 1.5], vertical_alignment="center")
+        with header_col:
+            st.markdown(f"**Composición del comité · {cfg['bank']} · {cfg['committee']}**")
+        with button_col:
+            actualizar = st.button(
+                "Actualizar con IA",
+                key=f"committee_map_refresh_{divisa}",
+                width="stretch",
+                help="Actualiza únicamente este mapa con evidencia reciente. No afecta al feed de declaraciones.",
+            )
 
-    if not result.get("ok"):
-        st.warning("Mapa del comité temporalmente no disponible. Las declaraciones siguen funcionando con normalidad.")
-        return {}
+        if actualizar:
+            with st.spinner(f"Actualizando {cfg['committee']}..."):
+                cargar_committee_map_openai.clear()
+                nuevo_resultado = cargar_committee_map_openai(divisa)
+            if nuevo_resultado.get("ok"):
+                st.session_state[state_key] = nuevo_resultado
+                result = nuevo_resultado
+            else:
+                st.warning("No se pudo actualizar el mapa. Se mantiene la última clasificación disponible.")
 
-    members = result.get("members", [])
-    member_map = {_normalizar_member_key(x.get("name")): x for x in members}
-    hawks = sum(x.get("bias") in ["Hawkish", "Lean Hawkish"] for x in members)
-    neutral = sum(x.get("bias") == "Neutral" for x in members)
-    doves = sum(x.get("bias") in ["Dovish", "Lean Dovish"] for x in members)
+        members = result.get("members", [])
+        clasificados = [m for m in members if m.get("bias") != "Pending"]
+        hawks = sum(m.get("bias") in {"Hawkish", "Lean Hawkish"} for m in clasificados)
+        neutral = sum(m.get("bias") == "Neutral" for m in clasificados)
+        doves = sum(m.get("bias") in {"Dovish", "Lean Dovish"} for m in clasificados)
 
-    st.markdown(f"**Composición del comité · {cfg['bank']} · {cfg['committee']}**")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Hawks", hawks)
-    c2.metric("Neutral", neutral)
-    c3.metric("Doves", doves)
-    if result.get("summary"):
-        st.caption(result["summary"])
+        if clasificados:
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Hawks", hawks)
+            c2.metric("Neutral", neutral)
+            c3.metric("Doves", doves)
+        else:
+            st.caption("Clasificación pendiente. La actualización solo se ejecuta cuando pulses el botón.")
 
-    with st.expander("Ver composición, cambios y postura esperada", expanded=False):
-        for item in members:
-            change_display = {
-                "More Hawkish": "↑ Más hawkish",
-                "No Change": "→ Sin cambio",
-                "More Dovish": "↓ Más dovish",
-                "Unclear": "? Cambio incierto",
-            }.get(item.get("change"), "? Cambio incierto")
-            vote_display = {
-                "Hike": "Subir", "Hold": "Mantener", "Cut": "Recortar",
-                "Hike or Hold": "Subir / Mantener",
-                "Hold or Cut": "Mantener / Recortar", "Unclear": "Incierto",
-            }.get(item.get("expected_vote"), "Incierto")
-            st.markdown(f"**{item.get('name','')} · {item.get('bias','Neutral')}**")
-            st.caption(f"{change_display} · Voto esperado: {vote_display} · Confianza: {item.get('confidence','Low')}")
-            if item.get("reason"):
-                st.write(item["reason"])
-            if item.get("source_url"):
-                st.link_button("Abrir evidencia ↗", item["source_url"])
-            st.divider()
+        summary = str(result.get("summary") or "").strip()
+        if summary:
+            st.caption(summary)
 
-    return member_map
+        with st.expander("Ver composición, cambios y postura esperada", expanded=False):
+            for item in members:
+                bias = item.get("bias", "Pending")
+                bias_display = {
+                    "Hawkish": "🔴 Hawkish",
+                    "Lean Hawkish": "🟠 Lean Hawkish",
+                    "Neutral": "⚪ Neutral",
+                    "Lean Dovish": "🟢 Lean Dovish",
+                    "Dovish": "🟢 Dovish",
+                    "Pending": "⚪ Pendiente",
+                }.get(bias, bias)
+                change_display = {
+                    "More Hawkish": "↑ Más hawkish",
+                    "No Change": "→ Sin cambio",
+                    "More Dovish": "↓ Más dovish",
+                    "Unclear": "? Cambio incierto",
+                }.get(item.get("change"), "? Cambio incierto")
+                vote_display = {
+                    "Hike": "Subir",
+                    "Hold": "Mantener",
+                    "Cut": "Recortar",
+                    "Hike or Hold": "Subir / Mantener",
+                    "Hold or Cut": "Mantener / Recortar",
+                    "Unclear": "Incierto",
+                }.get(item.get("expected_vote"), "Incierto")
+
+                st.markdown(f"**{item.get('name', '')} · {bias_display}**")
+                st.caption(
+                    f"{change_display} · Voto esperado: {vote_display} · "
+                    f"Confianza: {item.get('confidence', 'Low')}"
+                )
+                if item.get("reason"):
+                    st.write(item["reason"])
+                evidencia = []
+                if item.get("evidence_date"):
+                    evidencia.append(str(item["evidence_date"]))
+                if item.get("source"):
+                    evidencia.append(str(item["source"]))
+                if evidencia:
+                    st.caption(" · ".join(evidencia))
+                if str(item.get("source_url") or "").startswith("http"):
+                    st.link_button("Abrir evidencia ↗", item["source_url"])
+                st.divider()
+
+    return {
+        _normalizar_member_key(item.get("name")): item
+        for item in result.get("members", [])
+        if item.get("bias") != "Pending"
+    }
 
 
-def render_central_bank_drivers(divisa):
+
+def render_central_bank_drivers(divisa, committee_member_map=None):
     resultado = cargar_central_bank_drivers(
         divisa
     )
@@ -2305,9 +2461,23 @@ def render_central_bank_drivers(divisa):
                 )
 
         etiqueta = (
-            f"{divisa} · {bias.upper()} · "
+            f"{divisa} · DECLARACIÓN {bias.upper()} · "
             f"{importance.upper()}"
         )
+
+        structural = None
+        if committee_member_map:
+            structural = committee_member_map.get(
+                _normalizar_member_key(driver.get("Member") or "")
+            )
+
+        structural_text = ""
+        if structural:
+            structural_text = (
+                f' · <span style="color:#6B7280;font-weight:700;">'
+                f'BANDO: {html.escape(str(structural.get("bias") or "Neutral").upper())}'
+                f'</span>'
+            )
 
         html_driver = (
             f'<div style="background:#FFFFFF;'
@@ -2330,6 +2500,7 @@ def render_central_bank_drivers(divisa):
             f'margin-bottom:0.35rem;">'
             f'{member}'
             f'{" · " + central_bank if central_bank else ""}'
+            f'{structural_text}'
             f'</div>'
 
             f'<div style="color:#111111;'
@@ -7911,10 +8082,13 @@ if pagina_principal == "🚀 Bancos Centrales":
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
 
-    render_committee_map(divisa_live)
+    committee_member_map = render_committee_map(
+        divisa_live
+    )
 
     render_central_bank_drivers(
-        divisa_live
+        divisa_live,
+        committee_member_map=committee_member_map,
     )
 
     st.stop()
