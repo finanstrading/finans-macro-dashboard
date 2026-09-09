@@ -2127,13 +2127,12 @@ def _committee_bias_badge(bias):
 
 
 def render_committee_map(divisa):
+    """Mapa del comité sin HTML dinámico para evitar conflictos DOM/React."""
     divisa = str(divisa or "").upper()
     cfg = COMMITTEE_MAP_CONFIG.get(divisa)
     if not cfg:
         return {}
 
-    # Rendimiento: no ejecutar OpenAI + web search automáticamente al cambiar
-    # de divisa. Streamlit vuelve a ejecutar el script completo en cada cambio.
     state_key = f"committee_map_result_{divisa}"
     result = st.session_state.get(state_key)
 
@@ -2150,61 +2149,53 @@ def render_committee_map(divisa):
     if not result:
         st.caption(
             f"{cfg['bank']} · mapa del comité aún no cargado. "
-            "Pulsa ‘Actualizar mapa con IA’ cuando quieras refrescarlo."
+            "Pulsa 'Actualizar mapa con IA' cuando quieras refrescarlo."
         )
         return {}
 
     if not result.get("ok"):
-        st.caption("Mapa del comité temporalmente no disponible. Las declaraciones siguen funcionando con normalidad.")
+        st.warning("Mapa del comité temporalmente no disponible. Las declaraciones siguen funcionando con normalidad.")
         return {}
 
     members = result.get("members", [])
     member_map = {_normalizar_member_key(x.get("name")): x for x in members}
-    hawks = sum((x.get("bias") in ["Hawkish", "Lean Hawkish"]) for x in members)
-    neutral = sum((x.get("bias") == "Neutral") for x in members)
-    doves = sum((x.get("bias") in ["Dovish", "Lean Dovish"]) for x in members)
-    summary = html.escape(result.get("summary") or "")
+    hawks = sum(x.get("bias") in ["Hawkish", "Lean Hawkish"] for x in members)
+    neutral = sum(x.get("bias") == "Neutral" for x in members)
+    doves = sum(x.get("bias") in ["Dovish", "Lean Dovish"] for x in members)
 
-    st.markdown(
-        f'''<div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;padding:0.95rem 1.05rem;margin:0.65rem 0 0.75rem 0;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
-        <div><div style="color:#9A7A10;font-size:0.70rem;font-weight:850;letter-spacing:0.075em;">COMPOSICIÓN DEL COMITÉ · {html.escape(cfg['bank'])} · {html.escape(cfg['committee'])}</div>
-        <div style="color:#6B7280;font-size:0.78rem;margin-top:0.3rem;line-height:1.45;">{summary}</div></div>
-        <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
-        <span style="background:#FEE2E2;color:#991B1B;border-radius:999px;padding:0.30rem 0.62rem;font-size:0.72rem;font-weight:800;">Hawks {hawks}</span>
-        <span style="background:#F3F4F6;color:#4B5563;border-radius:999px;padding:0.30rem 0.62rem;font-size:0.72rem;font-weight:800;">Neutral {neutral}</span>
-        <span style="background:#DCFCE7;color:#166534;border-radius:999px;padding:0.30rem 0.62rem;font-size:0.72rem;font-weight:800;">Doves {doves}</span>
-        </div></div></div>''', unsafe_allow_html=True)
+    st.markdown(f"**Composición del comité · {cfg['bank']} · {cfg['committee']}**")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Hawks", hawks)
+    c2.metric("Neutral", neutral)
+    c3.metric("Doves", doves)
+    if result.get("summary"):
+        st.caption(result["summary"])
 
     with st.expander("Ver composición, cambios y postura esperada", expanded=False):
         for item in members:
-            change_display = {"More Hawkish": "↑ Más hawkish", "No Change": "→ Sin cambio", "More Dovish": "↓ Más dovish", "Unclear": "? Cambio incierto"}.get(item.get("change"), "? Cambio incierto")
-            vote_display = {"Hike": "Subir", "Hold": "Mantener", "Cut": "Recortar", "Hike or Hold": "Subir / Mantener", "Hold or Cut": "Mantener / Recortar", "Unclear": "Incierto"}.get(item.get("expected_vote"), "Incierto")
-            name = html.escape(item.get("name") or "")
-            reason = html.escape(item.get("reason") or "")
-            confidence = html.escape(item.get("confidence") or "Low")
-            evidence_date = html.escape(str(item.get("evidence_date") or ""))
-            source = html.escape(item.get("source") or "")
-            source_url = str(item.get("source_url") or "").strip()
-            source_html = ""
-            if source_url.startswith("https://"):
-                source_html = f' · <a href="{html.escape(source_url, quote=True)}" target="_blank" style="color:#2563EB;text-decoration:none;">{source or "Fuente"} ↗</a>'
-            elif source:
-                source_html = f" · {source}"
-            st.markdown(
-                f'''<div style="border-bottom:1px solid #EEF0F3;padding:0.72rem 0;">
-                <div style="display:flex;justify-content:space-between;gap:0.8rem;align-items:center;flex-wrap:wrap;">
-                <div style="color:#111111;font-size:0.88rem;font-weight:800;">{name} &nbsp; {_committee_bias_badge(item.get('bias') or 'Neutral')}</div>
-                <div style="color:#6B7280;font-size:0.74rem;font-weight:700;">{html.escape(change_display)} · Voto: {html.escape(vote_display)}</div></div>
-                <div style="color:#4B5563;font-size:0.80rem;line-height:1.5;margin-top:0.35rem;">{reason}</div>
-                <div style="color:#9CA3AF;font-size:0.70rem;margin-top:0.28rem;">Confianza: {confidence}{' · ' + evidence_date if evidence_date else ''}{source_html}</div></div>''',
-                unsafe_allow_html=True)
+            change_display = {
+                "More Hawkish": "↑ Más hawkish",
+                "No Change": "→ Sin cambio",
+                "More Dovish": "↓ Más dovish",
+                "Unclear": "? Cambio incierto",
+            }.get(item.get("change"), "? Cambio incierto")
+            vote_display = {
+                "Hike": "Subir", "Hold": "Mantener", "Cut": "Recortar",
+                "Hike or Hold": "Subir / Mantener",
+                "Hold or Cut": "Mantener / Recortar", "Unclear": "Incierto",
+            }.get(item.get("expected_vote"), "Incierto")
+            st.markdown(f"**{item.get('name','')} · {item.get('bias','Neutral')}**")
+            st.caption(f"{change_display} · Voto esperado: {vote_display} · Confianza: {item.get('confidence','Low')}")
+            if item.get("reason"):
+                st.write(item["reason"])
+            if item.get("source_url"):
+                st.link_button("Abrir evidencia ↗", item["source_url"])
+            st.divider()
+
     return member_map
 
 
 def render_central_bank_drivers(divisa):
-    committee_member_map = render_committee_map(divisa)
-
     resultado = cargar_central_bank_drivers(
         divisa
     )
@@ -2314,19 +2305,9 @@ def render_central_bank_drivers(divisa):
                 )
 
         etiqueta = (
-            f"{divisa} · DECLARACIÓN {bias.upper()} · "
+            f"{divisa} · {bias.upper()} · "
             f"{importance.upper()}"
         )
-
-        member_committee = committee_member_map.get(
-            _normalizar_member_key(driver.get("Member") or "")
-        )
-        member_band_html = ""
-        if member_committee:
-            member_band_html = (
-                " &nbsp; BANDO: "
-                + _committee_bias_badge(member_committee.get("bias") or "Neutral")
-            )
 
         html_driver = (
             f'<div style="background:#FFFFFF;'
@@ -2349,7 +2330,6 @@ def render_central_bank_drivers(divisa):
             f'margin-bottom:0.35rem;">'
             f'{member}'
             f'{" · " + central_bank if central_bank else ""}'
-            f'{member_band_html}'
             f'</div>'
 
             f'<div style="color:#111111;'
@@ -7930,6 +7910,8 @@ if pagina_principal == "🚀 Bancos Centrales":
     # ===================================================
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
+
+    render_committee_map(divisa_live)
 
     render_central_bank_drivers(
         divisa_live
