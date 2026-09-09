@@ -2738,41 +2738,198 @@ def obtener_firma_actualizacion_declaraciones(divisa):
         )
     ).hexdigest()[:20]
 
+
+@st.cache_data(ttl=60, show_spinner=False)
+def cargar_central_bank_members(divisa):
+    """
+    Lee el snapshot de CentralBank_Members generado por GitHub Actions.
+    No ejecuta OpenAI ni web_search desde Streamlit.
+    """
+    try:
+        url = (
+            f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?"
+            f"tqx=out:csv&sheet=CentralBank_Members&headers=1"
+        )
+
+        df = pd.read_csv(url)
+
+        df.columns = [
+            str(col).strip()
+            for col in df.columns
+        ]
+
+        if df.empty or "Currency" not in df.columns:
+            return {
+                "ok": True,
+                "members": [],
+                "summary": "",
+                "membership_as_of": None,
+                "next_meeting_date": None,
+                "membership_source": "",
+                "membership_source_url": "",
+                "error": None,
+            }
+
+        df["Currency"] = (
+            df["Currency"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+        df = df[
+            df["Currency"]
+            == str(divisa or "").strip().upper()
+        ].copy()
+
+        if df.empty:
+            return {
+                "ok": True,
+                "members": [],
+                "summary": "",
+                "membership_as_of": None,
+                "next_meeting_date": None,
+                "membership_source": "",
+                "membership_source_url": "",
+                "error": None,
+            }
+
+        def _cell(row, column, default=""):
+            value = row.get(column, default)
+            if pd.isna(value):
+                return default
+            return str(value).strip()
+
+        members = []
+
+        for _, row in df.iterrows():
+            name = _cell(row, "Member")
+
+            if not name:
+                continue
+
+            members.append({
+                "name": name,
+                "bias": _cell(
+                    row,
+                    "StructuralBias",
+                    "Neutral",
+                ) or "Neutral",
+                "change": _cell(
+                    row,
+                    "BiasChange",
+                    "No Change",
+                ) or "No Change",
+                "latest_signal": _cell(
+                    row,
+                    "LatestSignal",
+                ),
+                "expected_vote": _cell(
+                    row,
+                    "ExpectedVote",
+                    "Unclear",
+                ) or "Unclear",
+                "confidence": _cell(
+                    row,
+                    "Confidence",
+                    "Low",
+                ) or "Low",
+                "reason": _cell(
+                    row,
+                    "Evidence",
+                ),
+                "evidence_date": _cell(
+                    row,
+                    "EvidenceDate",
+                ),
+                "source": _cell(
+                    row,
+                    "Source",
+                ),
+                "source_url": _cell(
+                    row,
+                    "SourceURL",
+                ),
+                "previous_bias": _cell(
+                    row,
+                    "PreviousBias",
+                ),
+                "evidence_type": _cell(
+                    row,
+                    "EvidenceType",
+                ),
+                "updated_at": _cell(
+                    row,
+                    "UpdatedAt",
+                ),
+            })
+
+        first = df.iloc[0]
+
+        def _first(column):
+            value = first.get(column, "")
+            if pd.isna(value):
+                return ""
+            return str(value).strip()
+
+        return {
+            "ok": True,
+            "members": members,
+            "summary": _first(
+                "CommitteeSummary"
+            ),
+            "membership_as_of": _first(
+                "MembershipAsOf"
+            ) or None,
+            "next_meeting_date": _first(
+                "NextMeetingDate"
+            ) or None,
+            "membership_source": _first(
+                "MembershipSource"
+            ),
+            "membership_source_url": _first(
+                "MembershipSourceURL"
+            ),
+            "error": None,
+        }
+
+    except Exception as error:
+        return {
+            "ok": False,
+            "members": [],
+            "summary": "",
+            "membership_as_of": None,
+            "next_meeting_date": None,
+            "membership_source": "",
+            "membership_source_url": "",
+            "error": str(error),
+        }
+
 def render_committee_map(divisa, declarations_signature=None):
     divisa = str(divisa or "").strip().upper()
     cfg = COMMITTEE_MAP_CONFIG.get(divisa)
     if not cfg:
         return {}
 
-    # Versión del estado del mapa.
-    # Se cambia la clave para no reutilizar estados "Pending" guardados
-    # por versiones anteriores del dashboard en la sesión del navegador.
-    state_key = f"committee_map_result_v7_{divisa}"
+    # Backend-first:
+    # GitHub Actions + OpenAI actualizan CentralBank_Members.
+    # Streamlit solo lee ese snapshot; no ejecuta IA al cambiar divisa.
+    backend_result = cargar_central_bank_members(
+        divisa
+    )
 
-    if state_key not in st.session_state:
-        st.session_state[state_key] = _committee_initial_result(divisa)
-
-    result = st.session_state[state_key]
-
-    # Migración defensiva: si por cualquier motivo llega un mapa antiguo
-    # completamente pendiente, lo sustituimos por la referencia estructural
-    # inicial de esta versión sin ejecutar OpenAI.
-    members_estado = result.get("members", []) if isinstance(result, dict) else []
     if (
-        divisa != "GBP"
-        and members_estado
-        and all(str(m.get("bias") or "") == "Pending" for m in members_estado)
+        backend_result.get("ok")
+        and backend_result.get("members")
     ):
-        st.session_state[state_key] = _committee_reference_result(divisa)
-        result = st.session_state[state_key]
-
-    # IMPORTANTE:
-    # El frontend NO ejecuta OpenAI ni web_search al cargar/cambiar divisa.
-    # Esto mantiene la navegación inmediata.
-    #
-    # La actualización automática del comité debe hacerse en el mismo
-    # proceso backend/GitHub Action que actualiza CentralBank_Drivers.
-    # Streamlit aquí se limita a mostrar el último mapa disponible.
+        result = backend_result
+    else:
+        # Fallback visual mientras CentralBank_Members todavía no
+        # exista o no tenga datos para esta divisa.
+        result = _committee_initial_result(
+            divisa
+        )
     with st.container(border=True):
         st.markdown(
             f"**Composición del comité · "
@@ -2804,7 +2961,7 @@ def render_committee_map(divisa, declarations_signature=None):
                 unsafe_allow_html=True,
             )
         else:
-            st.caption("Clasificación pendiente. La actualización solo se ejecuta cuando pulses el botón.")
+            st.caption("Clasificación backend todavía no disponible para esta divisa.")
 
         summary = str(
             result.get("summary") or ""
@@ -2823,9 +2980,9 @@ def render_committee_map(divisa, declarations_signature=None):
             )
 
         st.caption(
-            "Mapa optimizado para carga rápida. "
-            "La actualización automática debe ejecutarse en backend "
-            "junto con el feed de declaraciones."
+            "Actualización automática desde backend: "
+            "votantes, sesgo y cambios se sincronizan "
+            "con Central Bank Drivers."
         )
 
         membership_as_of = result.get(
@@ -2929,6 +3086,7 @@ def render_committee_map(divisa, declarations_signature=None):
                     "More Hawkish": "↑ Más hawkish",
                     "No Change": "→ Sin cambio",
                     "More Dovish": "↓ Más dovish",
+                    "Initial": "• Clasificación inicial",
                     "Unclear": "? Cambio incierto",
                 }.get(item.get("change"), "? Cambio incierto")
                 vote_display = {
@@ -2948,9 +3106,23 @@ def render_committee_map(divisa, declarations_signature=None):
                     f'{bias_badge}</div>',
                     unsafe_allow_html=True,
                 )
-                st.caption(
-                    f"{change_display} · Voto esperado: {vote_display} · "
+                latest_signal = str(
+                    item.get("latest_signal") or ""
+                ).strip()
+
+                detalle_miembro = (
+                    f"{change_display} · "
+                    f"Voto esperado: {vote_display} · "
                     f"Confianza: {item.get('confidence', 'Low')}"
+                )
+
+                if latest_signal:
+                    detalle_miembro += (
+                        f" · Última señal: {latest_signal}"
+                    )
+
+                st.caption(
+                    detalle_miembro
                 )
                 if item.get("reason"):
                     st.write(item["reason"])
