@@ -2747,7 +2747,7 @@ def render_committee_map(divisa, declarations_signature=None):
     # Versión del estado del mapa.
     # Se cambia la clave para no reutilizar estados "Pending" guardados
     # por versiones anteriores del dashboard en la sesión del navegador.
-    state_key = f"committee_map_result_v6_{divisa}"
+    state_key = f"committee_map_result_v7_{divisa}"
 
     if state_key not in st.session_state:
         st.session_state[state_key] = _committee_initial_result(divisa)
@@ -2766,103 +2766,13 @@ def render_committee_map(divisa, declarations_signature=None):
         st.session_state[state_key] = _committee_reference_result(divisa)
         result = st.session_state[state_key]
 
-    # La lista se refresca automáticamente cuando cambia el feed de
-    # declaraciones para esta divisa. No hay botón manual.
-    signature_key = (
-        f"committee_map_driver_signature_v6_{divisa}"
-    )
-
-    firma_anterior = st.session_state.get(
-        signature_key
-    )
-
-    debe_actualizar = (
-        declarations_signature is not None
-        and declarations_signature
-        != firma_anterior
-    )
-
-    if debe_actualizar:
-        miembros_previos = {
-            _normalizar_member_key(
-                m.get("name")
-            ): str(
-                m.get("name") or ""
-            ).strip()
-            for m in result.get(
-                "members",
-                [],
-            )
-            if str(
-                m.get("name") or ""
-            ).strip()
-        }
-
-        # Se invalida la caché solo cuando el feed de declaraciones
-        # realmente ha cambiado. Así evitamos lentitud al cambiar divisa.
-        cargar_committee_map_openai.clear()
-
-        nuevo_resultado = (
-            cargar_committee_map_openai(
-                divisa
-            )
-        )
-
-        if nuevo_resultado.get("ok"):
-            miembros_nuevos = {
-                _normalizar_member_key(
-                    m.get("name")
-                ): str(
-                    m.get("name") or ""
-                ).strip()
-                for m in nuevo_resultado.get(
-                    "members",
-                    [],
-                )
-                if str(
-                    m.get("name") or ""
-                ).strip()
-            }
-
-            altas = [
-                miembros_nuevos[k]
-                for k in (
-                    miembros_nuevos.keys()
-                    - miembros_previos.keys()
-                )
-            ]
-
-            bajas = [
-                miembros_previos[k]
-                for k in (
-                    miembros_previos.keys()
-                    - miembros_nuevos.keys()
-                )
-            ]
-
-            nuevo_resultado[
-                "membership_changes"
-            ] = {
-                "added": sorted(
-                    altas
-                ),
-                "removed": sorted(
-                    bajas
-                ),
-            }
-
-            st.session_state[
-                state_key
-            ] = nuevo_resultado
-            result = nuevo_resultado
-
-        # Marcamos la versión del feed como procesada incluso si la
-        # búsqueda falla, para no entrar en un bucle de llamadas en
-        # cada rerun de Streamlit.
-        st.session_state[
-            signature_key
-        ] = declarations_signature
-
+    # IMPORTANTE:
+    # El frontend NO ejecuta OpenAI ni web_search al cargar/cambiar divisa.
+    # Esto mantiene la navegación inmediata.
+    #
+    # La actualización automática del comité debe hacerse en el mismo
+    # proceso backend/GitHub Action que actualiza CentralBank_Drivers.
+    # Streamlit aquí se limita a mostrar el último mapa disponible.
     with st.container(border=True):
         st.markdown(
             f"**Composición del comité · "
@@ -2913,9 +2823,9 @@ def render_committee_map(divisa, declarations_signature=None):
             )
 
         st.caption(
-            "Actualización automática: la composición, "
-            "sesgo y cambios se revisan cuando se actualiza "
-            "el feed de declaraciones."
+            "Mapa optimizado para carga rápida. "
+            "La actualización automática debe ejecutarse en backend "
+            "junto con el feed de declaraciones."
         )
 
         membership_as_of = result.get(
@@ -8801,15 +8711,8 @@ if pagina_principal == "🚀 Bancos Centrales":
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
 
-    declarations_signature = (
-        obtener_firma_actualizacion_declaraciones(
-            divisa_live
-        )
-    )
-
     committee_member_map = render_committee_map(
-        divisa_live,
-        declarations_signature=declarations_signature,
+        divisa_live
     )
 
     render_central_bank_drivers(
