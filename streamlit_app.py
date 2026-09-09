@@ -2127,10 +2127,33 @@ def _committee_bias_badge(bias):
 
 
 def render_committee_map(divisa):
-    cfg = COMMITTEE_MAP_CONFIG.get(str(divisa or "").upper())
+    divisa = str(divisa or "").upper()
+    cfg = COMMITTEE_MAP_CONFIG.get(divisa)
     if not cfg:
         return {}
-    result = cargar_committee_map_openai(divisa)
+
+    # Rendimiento: no ejecutar OpenAI + web search automáticamente al cambiar
+    # de divisa. Streamlit vuelve a ejecutar el script completo en cada cambio.
+    state_key = f"committee_map_result_{divisa}"
+    result = st.session_state.get(state_key)
+
+    if st.button(
+        "Actualizar mapa con IA",
+        key=f"committee_map_refresh_{divisa}",
+        help="Busca evidencia reciente y actualiza la clasificación del comité.",
+    ):
+        with st.spinner(f"Actualizando {cfg['committee']}..."):
+            cargar_committee_map_openai.clear()
+            result = cargar_committee_map_openai(divisa)
+            st.session_state[state_key] = result
+
+    if not result:
+        st.caption(
+            f"{cfg['bank']} · mapa del comité aún no cargado. "
+            "Pulsa ‘Actualizar mapa con IA’ cuando quieras refrescarlo."
+        )
+        return {}
+
     if not result.get("ok"):
         st.caption("Mapa del comité temporalmente no disponible. Las declaraciones siguen funcionando con normalidad.")
         return {}
