@@ -2398,11 +2398,27 @@ def render_committee_map(divisa):
     if not cfg:
         return {}
 
-    state_key = f"committee_map_result_{divisa}"
+    # Versión del estado del mapa.
+    # Se cambia la clave para no reutilizar estados "Pending" guardados
+    # por versiones anteriores del dashboard en la sesión del navegador.
+    state_key = f"committee_map_result_v2_{divisa}"
+
     if state_key not in st.session_state:
         st.session_state[state_key] = _committee_initial_result(divisa)
 
     result = st.session_state[state_key]
+
+    # Migración defensiva: si por cualquier motivo llega un mapa antiguo
+    # completamente pendiente, lo sustituimos por la referencia estructural
+    # inicial de esta versión sin ejecutar OpenAI.
+    members_estado = result.get("members", []) if isinstance(result, dict) else []
+    if (
+        divisa != "GBP"
+        and members_estado
+        and all(str(m.get("bias") or "") == "Pending" for m in members_estado)
+    ):
+        st.session_state[state_key] = _committee_reference_result(divisa)
+        result = st.session_state[state_key]
 
     with st.container(border=True):
         header_col, button_col = st.columns([4.5, 1.5], vertical_alignment="center")
@@ -2411,7 +2427,7 @@ def render_committee_map(divisa):
         with button_col:
             actualizar = st.button(
                 "Actualizar con IA",
-                key=f"committee_map_refresh_{divisa}",
+                key=f"committee_map_refresh_v2_{divisa}",
                 width="stretch",
                 help="Actualiza únicamente este mapa con evidencia reciente. No afecta al feed de declaraciones.",
             )
