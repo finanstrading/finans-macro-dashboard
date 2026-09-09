@@ -2005,7 +2005,183 @@ def cargar_central_bank_drivers(divisa):
             "error": str(error),
         }
 
+# ===================================================
+# CENTRAL BANK COMMITTEE MAP — OPENAI + WEB SEARCH
+# ===================================================
+
+COMMITTEE_MAP_CONFIG = {
+    "GBP": {
+        "bank": "Bank of England",
+        "committee": "MPC",
+        "members": [
+            "Andrew Bailey", "Sarah Breeden", "Swati Dhingra", "Megan Greene",
+            "Clare Lombardelli", "Catherine Mann", "Huw Pill", "Dave Ramsden",
+            "Alan Taylor",
+        ],
+    },
+    "JPY": {
+        "bank": "Bank of Japan",
+        "committee": "Policy Board",
+        "members": [
+            "Kazuo Ueda", "Shinichi Uchida", "Ryozo Himino", "Hajime Takata",
+            "Naoki Tamura", "Junko Koeda", "Kazuyuki Masu", "Toichiro Asada",
+            "Ayano Sato",
+        ],
+    },
+    "CHF": {"bank": "Swiss National Bank", "committee": "Governing Board", "members": ["Martin Schlegel", "Antoine Martin", "Petra Tschudin"]},
+    "AUD": {"bank": "Reserve Bank of Australia", "committee": "Monetary Policy Board", "members": ["Michele Bullock", "Andrew Hauser", "Marnie Baker", "Renee Fry-McKibbin", "Ian Harper", "Carolyn Hewson", "Iain Ross", "Bruce Preston", "Jenny Wilkinson"]},
+    "NZD": {"bank": "Reserve Bank of New Zealand", "committee": "MPC", "members": ["Anna Breman", "Karen Silk", "Paul Conway", "Carl Hansen", "Prasanna Gai", "Hayley Gourley"]},
+    "CAD": {"bank": "Bank of Canada", "committee": "Governing Council", "members": ["Tiff Macklem", "Carolyn Rogers", "Toni Gravelle", "Marc-Andre Gosselin", "Nicolas Vincent", "Michelle Alexopoulos"]},
+    "USD": {"bank": "Federal Reserve", "committee": "FOMC", "members": ["Kevin Warsh", "John Williams", "Michael Barr", "Michelle Bowman", "Lisa Cook", "Beth Hammack", "Philip Jefferson", "Neel Kashkari", "Lorie Logan", "Anna Paulson", "Jerome Powell", "Christopher Waller", "Austan Goolsbee", "Susan Collins", "Mary Daly", "Thomas Barkin", "Alberto Musalem", "Jeffrey Schmid"]},
+    "EUR": {"bank": "European Central Bank / Eurosystem", "committee": "Governing Council", "members": ["Christine Lagarde", "Boris Vujcic", "Philip Lane", "Isabel Schnabel", "Piero Cipollone", "Luis de Guindos", "Joachim Nagel", "Olli Rehn", "Martin Kocher", "Bostjan Vasle", "Primoz Dolenc", "Martins Kazaks", "Klaas Knot", "Mario Centeno", "Francois Villeroy de Galhau", "Fabio Panetta", "Gabriel Makhlouf", "Pierre Wunsch"]},
+}
+
+
+def _normalizar_member_key(nombre):
+    return " ".join(str(nombre or "").strip().lower().split())
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def cargar_committee_map_openai(divisa):
+    divisa = str(divisa or "").strip().upper()
+    cfg = COMMITTEE_MAP_CONFIG.get(divisa)
+    if not cfg:
+        return {"ok": False, "members": [], "summary": "", "error": "Divisa no soportada."}
+
+    try:
+        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        members_text = "\n".join(f"- {name}" for name in cfg["members"])
+        prompt = f"""
+Maintain a live monetary-policy committee map for an institutional FX dashboard.
+Central bank: {cfg['bank']}
+Committee: {cfg['committee']}
+Currency: {divisa}
+
+Classify the CURRENT STRUCTURAL POLICY BIAS of every member below using recent reliable web evidence.
+Prioritize official votes/decisions, official speeches/testimony/interviews, minutes/transcripts, then Reuters/Bloomberg/FT.
+
+Members:
+{members_text}
+
+Allowed bias: Hawkish, Lean Hawkish, Neutral, Lean Dovish, Dovish.
+Do not change a structural label because of one isolated sentence if broader voting history points elsewhere.
+If evidence is mixed, prefer Neutral or a Lean label and lower confidence.
+change = More Hawkish / No Change / More Dovish / Unclear relative to the member's recent prior stance.
+expected_vote = Hike / Hold / Cut / Hike or Hold / Hold or Cut / Unclear.
+reason: Spanish, factual, maximum 28 words.
+evidence_date: YYYY-MM-DD if reliable, otherwise null.
+source: source name only. source_url: one raw https URL or empty string.
+Return each listed member exactly once and add no one else.
+Also provide a Spanish committee summary, max 35 words, emphasizing balance and swing members.
+"""
+        response = client.responses.create(
+            model="gpt-5.6-luna",
+            tools=[{"type": "web_search", "search_context_size": "high"}],
+            input=prompt,
+            text={"format": {"type": "json_schema", "name": "committee_policy_map", "strict": True, "schema": {
+                "type": "object",
+                "properties": {
+                    "summary": {"type": "string"},
+                    "members": {"type": "array", "items": {"type": "object", "properties": {
+                        "name": {"type": "string"},
+                        "bias": {"type": "string", "enum": ["Hawkish", "Lean Hawkish", "Neutral", "Lean Dovish", "Dovish"]},
+                        "change": {"type": "string", "enum": ["More Hawkish", "No Change", "More Dovish", "Unclear"]},
+                        "expected_vote": {"type": "string", "enum": ["Hike", "Hold", "Cut", "Hike or Hold", "Hold or Cut", "Unclear"]},
+                        "confidence": {"type": "string", "enum": ["High", "Medium", "Low"]},
+                        "reason": {"type": "string"},
+                        "evidence_date": {"type": ["string", "null"]},
+                        "source": {"type": "string"},
+                        "source_url": {"type": "string"}
+                    }, "required": ["name", "bias", "change", "expected_vote", "confidence", "reason", "evidence_date", "source", "source_url"], "additionalProperties": False}}
+                },
+                "required": ["summary", "members"],
+                "additionalProperties": False
+            }}}
+        )
+        data = json.loads(response.output_text)
+        returned = {_normalizar_member_key(x.get("name")): x for x in data.get("members", [])}
+        ordered = []
+        for official_name in cfg["members"]:
+            item = returned.get(_normalizar_member_key(official_name)) or {
+                "name": official_name, "bias": "Neutral", "change": "Unclear", "expected_vote": "Unclear",
+                "confidence": "Low", "reason": "No hay evidencia reciente suficiente para clasificarlo con confianza.",
+                "evidence_date": None, "source": "", "source_url": ""
+            }
+            item["name"] = official_name
+            ordered.append(item)
+        return {"ok": True, "members": ordered, "summary": str(data.get("summary") or "").strip(), "error": None}
+    except Exception as error:
+        return {"ok": False, "members": [], "summary": "", "error": str(error)}
+
+
+def _committee_bias_badge(bias):
+    styles = {
+        "Hawkish": ("#FEE2E2", "#991B1B", "HAWKISH"),
+        "Lean Hawkish": ("#FFF7ED", "#9A3412", "LEAN HAWKISH"),
+        "Neutral": ("#F3F4F6", "#4B5563", "NEUTRAL"),
+        "Lean Dovish": ("#ECFDF5", "#047857", "LEAN DOVISH"),
+        "Dovish": ("#DCFCE7", "#166534", "DOVISH"),
+    }
+    bg, fg, label = styles.get(bias, styles["Neutral"])
+    return f'<span style="display:inline-block;background:{bg};color:{fg};border-radius:999px;padding:0.19rem 0.48rem;font-size:0.66rem;font-weight:850;letter-spacing:0.035em;vertical-align:middle;">{label}</span>'
+
+
+def render_committee_map(divisa):
+    cfg = COMMITTEE_MAP_CONFIG.get(str(divisa or "").upper())
+    if not cfg:
+        return {}
+    result = cargar_committee_map_openai(divisa)
+    if not result.get("ok"):
+        st.caption("Mapa del comité temporalmente no disponible. Las declaraciones siguen funcionando con normalidad.")
+        return {}
+
+    members = result.get("members", [])
+    member_map = {_normalizar_member_key(x.get("name")): x for x in members}
+    hawks = sum((x.get("bias") in ["Hawkish", "Lean Hawkish"]) for x in members)
+    neutral = sum((x.get("bias") == "Neutral") for x in members)
+    doves = sum((x.get("bias") in ["Dovish", "Lean Dovish"]) for x in members)
+    summary = html.escape(result.get("summary") or "")
+
+    st.markdown(
+        f'''<div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;padding:0.95rem 1.05rem;margin:0.65rem 0 0.75rem 0;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div><div style="color:#9A7A10;font-size:0.70rem;font-weight:850;letter-spacing:0.075em;">COMPOSICIÓN DEL COMITÉ · {html.escape(cfg['bank'])} · {html.escape(cfg['committee'])}</div>
+        <div style="color:#6B7280;font-size:0.78rem;margin-top:0.3rem;line-height:1.45;">{summary}</div></div>
+        <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+        <span style="background:#FEE2E2;color:#991B1B;border-radius:999px;padding:0.30rem 0.62rem;font-size:0.72rem;font-weight:800;">Hawks {hawks}</span>
+        <span style="background:#F3F4F6;color:#4B5563;border-radius:999px;padding:0.30rem 0.62rem;font-size:0.72rem;font-weight:800;">Neutral {neutral}</span>
+        <span style="background:#DCFCE7;color:#166534;border-radius:999px;padding:0.30rem 0.62rem;font-size:0.72rem;font-weight:800;">Doves {doves}</span>
+        </div></div></div>''', unsafe_allow_html=True)
+
+    with st.expander("Ver composición, cambios y postura esperada", expanded=False):
+        for item in members:
+            change_display = {"More Hawkish": "↑ Más hawkish", "No Change": "→ Sin cambio", "More Dovish": "↓ Más dovish", "Unclear": "? Cambio incierto"}.get(item.get("change"), "? Cambio incierto")
+            vote_display = {"Hike": "Subir", "Hold": "Mantener", "Cut": "Recortar", "Hike or Hold": "Subir / Mantener", "Hold or Cut": "Mantener / Recortar", "Unclear": "Incierto"}.get(item.get("expected_vote"), "Incierto")
+            name = html.escape(item.get("name") or "")
+            reason = html.escape(item.get("reason") or "")
+            confidence = html.escape(item.get("confidence") or "Low")
+            evidence_date = html.escape(str(item.get("evidence_date") or ""))
+            source = html.escape(item.get("source") or "")
+            source_url = str(item.get("source_url") or "").strip()
+            source_html = ""
+            if source_url.startswith("https://"):
+                source_html = f' · <a href="{html.escape(source_url, quote=True)}" target="_blank" style="color:#2563EB;text-decoration:none;">{source or "Fuente"} ↗</a>'
+            elif source:
+                source_html = f" · {source}"
+            st.markdown(
+                f'''<div style="border-bottom:1px solid #EEF0F3;padding:0.72rem 0;">
+                <div style="display:flex;justify-content:space-between;gap:0.8rem;align-items:center;flex-wrap:wrap;">
+                <div style="color:#111111;font-size:0.88rem;font-weight:800;">{name} &nbsp; {_committee_bias_badge(item.get('bias') or 'Neutral')}</div>
+                <div style="color:#6B7280;font-size:0.74rem;font-weight:700;">{html.escape(change_display)} · Voto: {html.escape(vote_display)}</div></div>
+                <div style="color:#4B5563;font-size:0.80rem;line-height:1.5;margin-top:0.35rem;">{reason}</div>
+                <div style="color:#9CA3AF;font-size:0.70rem;margin-top:0.28rem;">Confianza: {confidence}{' · ' + evidence_date if evidence_date else ''}{source_html}</div></div>''',
+                unsafe_allow_html=True)
+    return member_map
+
+
 def render_central_bank_drivers(divisa):
+    committee_member_map = render_committee_map(divisa)
+
     resultado = cargar_central_bank_drivers(
         divisa
     )
@@ -2115,9 +2291,19 @@ def render_central_bank_drivers(divisa):
                 )
 
         etiqueta = (
-            f"{divisa} · {bias.upper()} · "
+            f"{divisa} · DECLARACIÓN {bias.upper()} · "
             f"{importance.upper()}"
         )
+
+        member_committee = committee_member_map.get(
+            _normalizar_member_key(driver.get("Member") or "")
+        )
+        member_band_html = ""
+        if member_committee:
+            member_band_html = (
+                " &nbsp; BANDO: "
+                + _committee_bias_badge(member_committee.get("bias") or "Neutral")
+            )
 
         html_driver = (
             f'<div style="background:#FFFFFF;'
@@ -2140,6 +2326,7 @@ def render_central_bank_drivers(divisa):
             f'margin-bottom:0.35rem;">'
             f'{member}'
             f'{" · " + central_bank if central_bank else ""}'
+            f'{member_band_html}'
             f'</div>'
 
             f'<div style="color:#111111;'
