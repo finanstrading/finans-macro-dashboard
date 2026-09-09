@@ -1,4 +1,4 @@
-name: Central Bank Drivers - Manual Test
+name: Central Bank Drivers + Committee
 
 on:
   workflow_dispatch:
