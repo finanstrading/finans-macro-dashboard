@@ -20,92 +20,219 @@ CENTRAL_BANK_DRIVERS_WEBAPP_URL = os.environ.get(
 )
 
 
-CONFIGURACION = {
-
+COMMITTEE_CONFIG = {
     "USD": {
         "banco": "Federal Reserve",
-        "miembros": """
-Kevin Warsh, John Williams, Michael Barr, Michelle Bowman,
-Lisa Cook, Beth Hammack, Philip Jefferson, Neel Kashkari,
-Lorie Logan, Anna Paulson, Jerome Powell, Christopher Waller,
-Austan Goolsbee, Susan Collins, Mary Daly, Thomas Barkin,
-Alberto Musalem, Jeffrey Schmid
-""",
+        "comite": "FOMC",
+        "fallback_voters": [
+            "Kevin Warsh",
+            "John Williams",
+            "Michael Barr",
+            "Michelle Bowman",
+            "Lisa Cook",
+            "Beth Hammack",
+            "Philip Jefferson",
+            "Neel Kashkari",
+            "Lorie Logan",
+            "Anna Paulson",
+            "Jerome Powell",
+            "Christopher Waller",
+        ],
     },
-
     "EUR": {
         "banco": "European Central Bank / Eurosystem",
-        "miembros": """
-Christine Lagarde, Boris Vujcic, Philip Lane, Isabel Schnabel,
-Piero Cipollone, Luis de Guindos, Joachim Nagel, Olli Rehn,
-Martin Kocher, Bostjan Vasle, Primoz Dolenc, Martins Kazaks,
-Klaas Knot, Mario Centeno, Francois Villeroy de Galhau,
-Fabio Panetta, Gabriel Makhlouf, Pierre Wunsch
-""",
+        "comite": "Governing Council",
+        "fallback_voters": [
+            "Christine Lagarde",
+            "Boris Vujcic",
+            "Piero Cipollone",
+            "Frank Elderson",
+            "Philip Lane",
+            "Isabel Schnabel",
+            "Emmanuel Moulin",
+            "Fabio Panetta",
+            "Olaf Sleijpen",
+            "Joachim Nagel",
+            "Pierre Wunsch",
+            "Dimitar Radev",
+            "Ülo Kaasik",
+            "Gabriel Makhlouf",
+            "Gaston Reinesch",
+            "Alexander Demarco",
+            "Martin Kocher",
+            "Álvaro Santos Pereira",
+            "Primož Dolenc",
+            "Peter Kažimír",
+            "Olli Rehn",
+        ],
     },
-
     "GBP": {
         "banco": "Bank of England",
-        "miembros": """
-Andrew Bailey, Sarah Breeden, Swati Dhingra, Megan Greene,
-Clare Lombardelli, Catherine Mann, Huw Pill, Dave Ramsden,
-Alan Taylor
-""",
+        "comite": "MPC",
+        "fallback_voters": [
+            "Andrew Bailey",
+            "Sarah Breeden",
+            "Swati Dhingra",
+            "Megan Greene",
+            "Clare Lombardelli",
+            "Catherine Mann",
+            "Huw Pill",
+            "Dave Ramsden",
+            "Alan Taylor",
+        ],
     },
-
     "JPY": {
         "banco": "Bank of Japan",
-        "miembros": """
-Kazuo Ueda, Shinichi Uchida, Ryozo Himino,
-Hajime Takata, Naoki Tamura, Junko Koeda,
-Kazuyuki Masu, Toichiro Asada, Ayano Sato
-""",
+        "comite": "Policy Board",
+        "fallback_voters": [
+            "Kazuo Ueda",
+            "Shinichi Uchida",
+            "Ryozo Himino",
+            "Hajime Takata",
+            "Naoki Tamura",
+            "Junko Koeda",
+            "Kazuyuki Masu",
+            "Toichiro Asada",
+            "Ayano Sato",
+        ],
     },
-
     "CHF": {
         "banco": "Swiss National Bank",
-        "miembros": """
-Martin Schlegel, Antoine Martin, Petra Tschudin
-""",
+        "comite": "Governing Board",
+        "fallback_voters": [
+            "Martin Schlegel",
+            "Antoine Martin",
+            "Petra Tschudin",
+        ],
     },
-
     "AUD": {
         "banco": "Reserve Bank of Australia",
-        "miembros": """
-Michele Bullock, Andrew Hauser, Marnie Baker,
-Renee Fry-McKibbin, Ian Harper, Carolyn Hewson,
-Iain Ross, Bruce Preston, Jenny Wilkinson
-""",
+        "comite": "Monetary Policy Board",
+        "fallback_voters": [
+            "Michele Bullock",
+            "Andrew Hauser",
+            "Marnie Baker",
+            "Melinda Cilento",
+            "Renee Fry-McKibbin",
+            "Carolyn Hewson",
+            "Bruce Preston",
+            "Iain Ross",
+            "Jenny Wilkinson",
+        ],
     },
-
     "NZD": {
         "banco": "Reserve Bank of New Zealand",
-        "miembros": """
-Anna Breman, Karen Silk, Paul Conway,
-Carl Hansen, Prasanna Gai, Hayley Gourley
-""",
+        "comite": "MPC",
+        "fallback_voters": [
+            "Anna Breman",
+            "Karen Silk",
+            "Paul Conway",
+            "Carl Hansen",
+            "Prasanna Gai",
+            "Hayley Gourley",
+        ],
     },
-
     "CAD": {
         "banco": "Bank of Canada",
-        "miembros": """
-Tiff Macklem, Carolyn Rogers, Toni Gravelle,
-Marc-Andre Gosselin, Nicolas Vincent,
-Michelle Alexopoulos
-""",
+        "comite": "Governing Council",
+        "fallback_voters": [
+            "Tiff Macklem",
+            "Carolyn Rogers",
+            "Toni Gravelle",
+            "Marc-Andre Gosselin",
+            "Nicolas Vincent",
+            "Michelle Alexopoulos",
+        ],
     },
 }
 
 
+VALID_BIASES = [
+    "Hawkish",
+    "Lean Hawkish",
+    "Neutral",
+    "Lean Dovish",
+    "Dovish",
+]
+
+BIAS_SCORE = {
+    "Dovish": -2,
+    "Lean Dovish": -1,
+    "Neutral": 0,
+    "Lean Hawkish": 1,
+    "Hawkish": 2,
+}
+
+
 # ===================================================
-# OPENAI WEB SEARCH
+# WEB APP — ESTADO PREVIO
 # ===================================================
 
-def buscar_bancos_centrales_ia(divisa):
+def _webapp_post(payload, timeout=30):
+    if not CENTRAL_BANK_DRIVERS_WEBAPP_URL:
+        raise ValueError(
+            "Falta CENTRAL_BANK_DRIVERS_WEBAPP_URL."
+        )
+
+    response = requests.post(
+        CENTRAL_BANK_DRIVERS_WEBAPP_URL,
+        json=payload,
+        timeout=timeout,
+    )
+    response.raise_for_status()
+
+    try:
+        data = response.json()
+    except Exception:
+        raise ValueError(
+            "Apps Script no devolvió JSON válido: "
+            + response.text[:500]
+        )
+
+    if not data.get("ok"):
+        raise ValueError(
+            "Apps Script devolvió error: "
+            + str(data.get("error"))
+        )
+
+    return data
+
+
+def cargar_estado_previo_miembros(currency):
+    """
+    Lee CentralBank_Members a través del mismo Web App.
+    Si todavía no existe la hoja/acción, devuelve vacío para permitir
+    la primera ejecución.
+    """
+    try:
+        data = _webapp_post(
+            {
+                "action": "get_central_bank_members",
+                "currency": currency,
+            },
+            timeout=30,
+        )
+        members = data.get("members", [])
+        if isinstance(members, list):
+            return members
+    except Exception as error:
+        print(
+            f"[{currency}] Aviso: no se pudo cargar estado previo "
+            f"de miembros: {error}"
+        )
+
+    return []
+
+
+# ===================================================
+# OPENAI — DECLARACIONES + COMITÉ EN UNA SOLA BÚSQUEDA
+# ===================================================
+
+def buscar_bancos_centrales_ia(divisa, previous_members):
 
     divisa = str(divisa).strip().upper()
 
-    if divisa not in CONFIGURACION:
+    if divisa not in COMMITTEE_CONFIG:
         raise ValueError(
             f"Divisa no soportada: {divisa}"
         )
@@ -119,88 +246,122 @@ def buscar_bancos_centrales_ia(divisa):
         api_key=OPENAI_API_KEY
     )
 
-    datos = CONFIGURACION[divisa]
+    datos = COMMITTEE_CONFIG[divisa]
+
+    prev_json = json.dumps(
+        previous_members,
+        ensure_ascii=False,
+        indent=2,
+    )
+
+    fallback = "\n".join(
+        f"- {name}"
+        for name in datos["fallback_voters"]
+    )
 
     prompt = f"""
+You maintain two connected datasets for an institutional FX dashboard:
+
+A) recent central-bank statements
+B) the CURRENT rate-setting voting committee and each voter's structural policy bias
+
+CENTRAL BANK: {datos["banco"]}
+COMMITTEE: {datos["comite"]}
+CURRENCY: {divisa}
+
+===================================================
+PART A — RECENT STATEMENTS
+===================================================
+
 Search the web for RECENT statements, interviews, speeches,
-media appearances or direct comments made during approximately
-the last 48 hours by members of the {datos["banco"]}.
+testimony, minutes-related comments or direct remarks made during
+approximately the last 48 hours by relevant officials of this central bank.
 
-Currency: {divisa}
-
-Relevant people include:
-{datos["miembros"]}
-
-The objective is NOT to provide general news about the central bank.
-
-I specifically want statements or comments actually made by
-central-bank officials that could matter for monetary policy
-or the {divisa} currency.
-
-Search broadly across:
-- official central-bank websites
-- Reuters
-- Bloomberg when publicly indexed
-- CNBC
-- financial press
-- interviews
-- speeches
-- conference appearances
-- reputable financial news websites
+Only include comments that matter for monetary policy or FX.
 
 Do NOT include:
 - analyst forecasts
 - market expectations without a direct central-bank statement
-- articles that merely mention the central bank
-- generic market commentary
+- generic articles merely mentioning the bank
 
-For each relevant event provide:
+For each event return:
+event_date, datetime, currency, member, central_bank, statement,
+context, bias (Hawkish/Dovish/Neutral), importance, source, source_url.
 
-EVENT DATE:
-DATE/TIME:
-MEMBER:
-CENTRAL BANK:
-STATEMENT:
-CONTEXT:
-MONETARY BIAS: Hawkish / Dovish / Neutral
-IMPORTANCE: High / Medium / Low
-SOURCE:
-SOURCE URL:
+===================================================
+PART B — CURRENT VOTERS
+===================================================
 
-IMPORTANT OUTPUT RULES:
+First verify who CURRENTLY HAS A VOTE on the interest-rate decision
+for the NEXT scheduled policy meeting.
 
-- SOURCE must contain only the publisher or original source name.
-  Example: Reuters, CNBC, Federal Reserve.
+Use OFFICIAL central-bank sources as the primary authority.
 
-- SOURCE URL must contain ONLY one raw absolute URL beginning with https://
-  Do not use Markdown links.
-  Do not use brackets.
-  Do not add citations or source names inside SOURCE URL.
+Rules:
+- Exclude observers, alternates and non-voting participants.
+- Federal Reserve: only current FOMC voters.
+- ECB: apply the official rotation of NCB governors for the NEXT
+  monetary-policy decision; Executive Board members retain voting rights.
+- Other banks: include only formal members who vote on policy.
+- If there has been an appointment, departure, replacement, expiry
+  or rotation, use the new CURRENT voting list.
 
-- DATE/TIME must be ISO 8601 UTC when the exact time is known.
-  Example: 2026-08-28T16:00:00Z
+Fallback voter list from the dashboard; correct it if official sources
+show a change:
+{fallback}
 
-- If the exact time cannot be reliably established, return null for datetime.
-  Do not invent a time.
+Previous saved state from CentralBank_Members:
+{prev_json}
 
-- EVENT DATE must contain the confirmed calendar date of the statement
-  in YYYY-MM-DD format.
-  Example: 2026-08-27
+For EVERY current voter return:
 
-- If the calendar date cannot be reliably established, return null.
+proposed_bias:
+Hawkish / Lean Hawkish / Neutral / Lean Dovish / Dovish
 
-- If the exact time is unknown but the date is known:
-  EVENT DATE must still contain the date,
-  while DATE/TIME must be null.
+latest_signal:
+Hawkish / Lean Hawkish / Neutral / Lean Dovish / Dovish
 
-- Do not invent a time.
+expected_vote:
+Hike / Hold / Cut / Hike or Hold / Hold or Cut / Unclear
 
-If several articles report the same comments, consolidate them
-into one event.
+confidence:
+High / Medium / Low
+
+evidence_type:
+Official vote / Explicit stance change / Multiple consistent statements /
+Single statement / No new evidence
+
+reason:
+Spanish, factual, max 28 words.
+
+evidence_date:
+YYYY-MM-DD or null
+
+source:
+publisher/source name only
+
+source_url:
+one raw https URL or empty string
+
+IMPORTANT STRUCTURAL-BIAS RULE:
+Structural bias is persistent. Do NOT move a member merely because one
+isolated sentence sounds different.
+
+A structural-bias change should be supported by:
+- an official vote clearly inconsistent with the previous stance, OR
+- an explicit stance change, OR
+- multiple consistent recent statements indicating a durable shift.
+
+A single statement can change latest_signal without changing structural bias.
+
+Also return:
+membership_as_of
+next_meeting_date
+membership_source
+membership_source_url
+summary (Spanish, max 35 words)
 
 Prioritize completeness over speed.
-
-If there are no relevant comments, return an empty events array.
 """
 
     response = client.responses.create(
@@ -215,7 +376,7 @@ If there are no relevant comments, return an empty events array.
         text={
             "format": {
                 "type": "json_schema",
-                "name": "central_bank_drivers",
+                "name": "central_bank_update",
                 "strict": True,
                 "schema": {
                     "type": "object",
@@ -226,32 +387,16 @@ If there are no relevant comments, return an empty events array.
                                 "type": "object",
                                 "properties": {
                                     "event_date": {
-                                        "type": [
-                                            "string",
-                                            "null",
-                                        ]
+                                        "type": ["string", "null"]
                                     },
                                     "datetime": {
-                                        "type": [
-                                            "string",
-                                            "null",
-                                        ]
+                                        "type": ["string", "null"]
                                     },
-                                    "currency": {
-                                        "type": "string"
-                                    },
-                                    "member": {
-                                        "type": "string"
-                                    },
-                                    "central_bank": {
-                                        "type": "string"
-                                    },
-                                    "statement": {
-                                        "type": "string"
-                                    },
-                                    "context": {
-                                        "type": "string"
-                                    },
+                                    "currency": {"type": "string"},
+                                    "member": {"type": "string"},
+                                    "central_bank": {"type": "string"},
+                                    "statement": {"type": "string"},
+                                    "context": {"type": "string"},
                                     "bias": {
                                         "type": "string",
                                         "enum": [
@@ -268,12 +413,8 @@ If there are no relevant comments, return an empty events array.
                                             "Low",
                                         ],
                                     },
-                                    "source": {
-                                        "type": "string"
-                                    },
-                                    "source_url": {
-                                        "type": "string"
-                                    },
+                                    "source": {"type": "string"},
+                                    "source_url": {"type": "string"},
                                 },
                                 "required": [
                                     "event_date",
@@ -290,10 +431,113 @@ If there are no relevant comments, return an empty events array.
                                 ],
                                 "additionalProperties": False,
                             },
-                        }
+                        },
+                        "committee": {
+                            "type": "object",
+                            "properties": {
+                                "membership_as_of": {
+                                    "type": ["string", "null"]
+                                },
+                                "next_meeting_date": {
+                                    "type": ["string", "null"]
+                                },
+                                "membership_source": {
+                                    "type": "string"
+                                },
+                                "membership_source_url": {
+                                    "type": "string"
+                                },
+                                "summary": {
+                                    "type": "string"
+                                },
+                                "members": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "proposed_bias": {
+                                                "type": "string",
+                                                "enum": VALID_BIASES,
+                                            },
+                                            "latest_signal": {
+                                                "type": "string",
+                                                "enum": VALID_BIASES,
+                                            },
+                                            "expected_vote": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "Hike",
+                                                    "Hold",
+                                                    "Cut",
+                                                    "Hike or Hold",
+                                                    "Hold or Cut",
+                                                    "Unclear",
+                                                ],
+                                            },
+                                            "confidence": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "High",
+                                                    "Medium",
+                                                    "Low",
+                                                ],
+                                            },
+                                            "evidence_type": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "Official vote",
+                                                    "Explicit stance change",
+                                                    "Multiple consistent statements",
+                                                    "Single statement",
+                                                    "No new evidence",
+                                                ],
+                                            },
+                                            "reason": {
+                                                "type": "string"
+                                            },
+                                            "evidence_date": {
+                                                "type": ["string", "null"]
+                                            },
+                                            "source": {
+                                                "type": "string"
+                                            },
+                                            "source_url": {
+                                                "type": "string"
+                                            },
+                                        },
+                                        "required": [
+                                            "name",
+                                            "proposed_bias",
+                                            "latest_signal",
+                                            "expected_vote",
+                                            "confidence",
+                                            "evidence_type",
+                                            "reason",
+                                            "evidence_date",
+                                            "source",
+                                            "source_url",
+                                        ],
+                                        "additionalProperties": False,
+                                    },
+                                },
+                            },
+                            "required": [
+                                "membership_as_of",
+                                "next_meeting_date",
+                                "membership_source",
+                                "membership_source_url",
+                                "summary",
+                                "members",
+                            ],
+                            "additionalProperties": False,
+                        },
                     },
                     "required": [
-                        "events"
+                        "events",
+                        "committee",
                     ],
                     "additionalProperties": False,
                 },
@@ -305,24 +549,11 @@ If there are no relevant comments, return an empty events array.
 
 
 # ===================================================
-# PREPARAR EVENTOS
+# PREPARAR DECLARACIONES
 # ===================================================
 
-def preparar_central_bank_drivers(resultado_ia):
+def preparar_central_bank_drivers(data):
 
-    if not resultado_ia:
-        return []
-
-    try:
-        data = json.loads(resultado_ia)
-
-    except Exception as error:
-        print("DEBUG JSON INVALIDO:")
-        print(repr(resultado_ia))
-
-        raise ValueError(
-            f"No se pudo interpretar la respuesta de OpenAI como JSON: {error}"
-        )
     eventos = data.get(
         "events",
         []
@@ -413,7 +644,335 @@ def preparar_central_bank_drivers(resultado_ia):
 
 
 # ===================================================
-# GUARDAR EN GOOGLE SHEETS
+# PREPARAR MAPA DEL COMITÉ
+# ===================================================
+
+def _normalizar_nombre(nombre):
+    return " ".join(
+        str(nombre or "")
+        .strip()
+        .lower()
+        .split()
+    )
+
+
+def _indice_previos(previous_members):
+    salida = {}
+
+    for item in previous_members:
+        name = str(
+            item.get("Member")
+            or item.get("name")
+            or ""
+        ).strip()
+
+        if not name:
+            continue
+
+        salida[
+            _normalizar_nombre(name)
+        ] = item
+
+    return salida
+
+
+def _resolver_bias(
+    previous_bias,
+    proposed_bias,
+    confidence,
+    evidence_type,
+):
+    """
+    Regla conservadora:
+    - Primera observación: acepta proposed_bias.
+    - Sin cambio propuesto: conserva.
+    - Cambio estructural: solo con High + evidencia fuerte.
+    """
+    previous_bias = str(
+        previous_bias or ""
+    ).strip()
+
+    proposed_bias = str(
+        proposed_bias or "Neutral"
+    ).strip()
+
+    if proposed_bias not in VALID_BIASES:
+        proposed_bias = "Neutral"
+
+    if previous_bias not in VALID_BIASES:
+        return proposed_bias
+
+    if proposed_bias == previous_bias:
+        return previous_bias
+
+    evidencia_fuerte = evidence_type in {
+        "Official vote",
+        "Explicit stance change",
+        "Multiple consistent statements",
+    }
+
+    if (
+        confidence == "High"
+        and evidencia_fuerte
+    ):
+        return proposed_bias
+
+    return previous_bias
+
+
+def _bias_change(previous_bias, new_bias):
+    if (
+        previous_bias not in BIAS_SCORE
+        or new_bias not in BIAS_SCORE
+    ):
+        return "Initial"
+
+    delta = (
+        BIAS_SCORE[new_bias]
+        - BIAS_SCORE[previous_bias]
+    )
+
+    if delta > 0:
+        return "More Hawkish"
+
+    if delta < 0:
+        return "More Dovish"
+
+    return "No Change"
+
+
+def preparar_central_bank_members(
+    currency,
+    data,
+    previous_members,
+):
+    committee = data.get(
+        "committee",
+        {},
+    )
+
+    ai_members = committee.get(
+        "members",
+        [],
+    )
+
+    if not isinstance(ai_members, list):
+        ai_members = []
+
+    previous_index = _indice_previos(
+        previous_members
+    )
+
+    updated_at = datetime.now(
+        timezone.utc
+    ).isoformat()
+
+    current_rows = []
+    current_keys = set()
+    changes = []
+
+    for item in ai_members:
+
+        name = str(
+            item.get("name")
+            or ""
+        ).strip()
+
+        if not name:
+            continue
+
+        key = _normalizar_nombre(
+            name
+        )
+
+        if key in current_keys:
+            continue
+
+        current_keys.add(key)
+
+        previous = previous_index.get(
+            key,
+            {},
+        )
+
+        previous_bias = str(
+            previous.get("StructuralBias")
+            or previous.get("structural_bias")
+            or ""
+        ).strip()
+
+        proposed_bias = str(
+            item.get("proposed_bias")
+            or "Neutral"
+        ).strip()
+
+        confidence = str(
+            item.get("confidence")
+            or "Low"
+        ).strip()
+
+        evidence_type = str(
+            item.get("evidence_type")
+            or "No new evidence"
+        ).strip()
+
+        structural_bias = _resolver_bias(
+            previous_bias,
+            proposed_bias,
+            confidence,
+            evidence_type,
+        )
+
+        bias_change = _bias_change(
+            previous_bias,
+            structural_bias,
+        )
+
+        row = {
+            "Currency": currency,
+            "Member": name,
+            "Voting": True,
+            "StructuralBias": structural_bias,
+            "PreviousBias": (
+                previous_bias
+                if previous_bias in VALID_BIASES
+                else ""
+            ),
+            "BiasChange": bias_change,
+            "LatestSignal": str(
+                item.get("latest_signal")
+                or structural_bias
+            ).strip(),
+            "ExpectedVote": str(
+                item.get("expected_vote")
+                or "Unclear"
+            ).strip(),
+            "Confidence": confidence,
+            "EvidenceType": evidence_type,
+            "Evidence": str(
+                item.get("reason")
+                or ""
+            ).strip(),
+            "EvidenceDate": item.get(
+                "evidence_date"
+            ),
+            "Source": str(
+                item.get("source")
+                or ""
+            ).strip(),
+            "SourceURL": str(
+                item.get("source_url")
+                or ""
+            ).strip(),
+            "UpdatedAt": updated_at,
+            "MembershipAsOf": committee.get(
+                "membership_as_of"
+            ),
+            "NextMeetingDate": committee.get(
+                "next_meeting_date"
+            ),
+            "MembershipSource": str(
+                committee.get(
+                    "membership_source"
+                )
+                or ""
+            ).strip(),
+            "MembershipSourceURL": str(
+                committee.get(
+                    "membership_source_url"
+                )
+                or ""
+            ).strip(),
+            "CommitteeSummary": str(
+                committee.get(
+                    "summary"
+                )
+                or ""
+            ).strip(),
+        }
+
+        current_rows.append(
+            row
+        )
+
+        if (
+            bias_change
+            in {
+                "More Hawkish",
+                "More Dovish",
+            }
+        ):
+            changes.append({
+                "Currency": currency,
+                "Member": name,
+                "ChangeType": "Bias",
+                "PreviousValue": previous_bias,
+                "NewValue": structural_bias,
+                "DetectedAt": updated_at,
+                "Evidence": row["Evidence"],
+                "Source": row["Source"],
+                "SourceURL": row["SourceURL"],
+            })
+
+        if key not in previous_index:
+            changes.append({
+                "Currency": currency,
+                "Member": name,
+                "ChangeType": "VotingMemberAdded",
+                "PreviousValue": "",
+                "NewValue": "Voting",
+                "DetectedAt": updated_at,
+                "Evidence": (
+                    "Nuevo miembro con derecho de voto "
+                    "detectado en la composición actual."
+                ),
+                "Source": row["MembershipSource"],
+                "SourceURL": row[
+                    "MembershipSourceURL"
+                ],
+            })
+
+    # Miembros que estaban guardados y ya no aparecen entre los votantes
+    for key, previous in previous_index.items():
+        if key in current_keys:
+            continue
+
+        old_name = str(
+            previous.get("Member")
+            or previous.get("name")
+            or ""
+        ).strip()
+
+        changes.append({
+            "Currency": currency,
+            "Member": old_name,
+            "ChangeType": "VotingMemberRemoved",
+            "PreviousValue": "Voting",
+            "NewValue": "Not Voting",
+            "DetectedAt": updated_at,
+            "Evidence": (
+                "Ya no aparece entre los votantes "
+                "actuales verificados."
+            ),
+            "Source": str(
+                committee.get(
+                    "membership_source"
+                )
+                or ""
+            ).strip(),
+            "SourceURL": str(
+                committee.get(
+                    "membership_source_url"
+                )
+                or ""
+            ).strip(),
+        })
+
+    return current_rows, changes
+
+
+# ===================================================
+# GUARDAR
 # ===================================================
 
 def guardar_central_bank_drivers(filas):
@@ -426,33 +985,23 @@ def guardar_central_bank_drivers(filas):
             "duplicates": 0,
         }
 
-    if not CENTRAL_BANK_DRIVERS_WEBAPP_URL:
-        raise ValueError(
-            "Falta CENTRAL_BANK_DRIVERS_WEBAPP_URL."
-        )
-
-    payload = {
+    return _webapp_post({
         "action": "save_central_bank_drivers",
         "events": filas,
-    }
+    })
 
-    response = requests.post(
-        CENTRAL_BANK_DRIVERS_WEBAPP_URL,
-        json=payload,
-        timeout=30,
-    )
 
-    response.raise_for_status()
-
-    data = response.json()
-
-    if not data.get("ok"):
-        raise ValueError(
-            "Apps Script devolvió error: "
-            + str(data.get("error"))
-        )
-
-    return data
+def guardar_central_bank_members(
+    currency,
+    members,
+    changes,
+):
+    return _webapp_post({
+        "action": "save_central_bank_members",
+        "currency": currency,
+        "members": members,
+        "changes": changes,
+    })
 
 
 # ===================================================
@@ -465,22 +1014,70 @@ def actualizar_central_bank_currency(currency):
         currency
     ).strip().upper()
 
-    resultado_ia = buscar_bancos_centrales_ia(
-        currency
+    previous_members = (
+        cargar_estado_previo_miembros(
+            currency
+        )
     )
 
-    eventos = preparar_central_bank_drivers(
-        resultado_ia
+    resultado_texto = (
+        buscar_bancos_centrales_ia(
+            currency,
+            previous_members,
+        )
     )
 
-    resultado_guardado = guardar_central_bank_drivers(
-        eventos
+    try:
+        data = json.loads(
+            resultado_texto
+        )
+    except Exception as error:
+        print("DEBUG JSON INVALIDO:")
+        print(repr(resultado_texto))
+        raise ValueError(
+            "No se pudo interpretar "
+            f"la respuesta de OpenAI: {error}"
+        )
+
+    eventos = (
+        preparar_central_bank_drivers(
+            data
+        )
+    )
+
+    members, changes = (
+        preparar_central_bank_members(
+            currency,
+            data,
+            previous_members,
+        )
+    )
+
+    resultado_drivers = (
+        guardar_central_bank_drivers(
+            eventos
+        )
+    )
+
+    resultado_members = (
+        guardar_central_bank_members(
+            currency,
+            members,
+            changes,
+        )
     )
 
     return {
         "currency": currency,
         "events_found": len(eventos),
-        "save_result": resultado_guardado,
+        "members_found": len(members),
+        "changes_found": len(changes),
+        "drivers_save_result": (
+            resultado_drivers
+        ),
+        "members_save_result": (
+            resultado_members
+        ),
     }
 
 
@@ -519,37 +1116,28 @@ def actualizar_todos_central_bank_drivers():
             try:
 
                 print(
-                    f"[{currency}] Iniciando búsqueda..."
+                    f"[{currency}] Iniciando búsqueda "
+                    "de declaraciones + comité..."
                 )
 
-                resultado = actualizar_central_bank_currency(
-                    currency
+                resultado = (
+                    actualizar_central_bank_currency(
+                        currency
+                    )
                 )
 
                 resultados.append({
                     "currency": currency,
                     "ok": True,
-                    "events_found": resultado[
-                        "events_found"
-                    ],
-                    "save_result": resultado[
-                        "save_result"
-                    ],
+                    **resultado,
                     "error": None,
                 })
 
-                save_result = (
-                    resultado[
-                        "save_result"
-                    ]
-                    or {}
-                )
-
                 print(
                     f"[{currency}] OK · "
-                    f"{resultado['events_found']} encontrados · "
-                    f"{save_result.get('inserted', 0)} nuevos · "
-                    f"{save_result.get('duplicates', 0)} duplicados"
+                    f"{resultado['events_found']} declaraciones · "
+                    f"{resultado['members_found']} votantes · "
+                    f"{resultado['changes_found']} cambios"
                 )
 
                 break
@@ -580,17 +1168,11 @@ def actualizar_todos_central_bank_drivers():
                 resultados.append({
                     "currency": currency,
                     "ok": False,
-                    "events_found": 0,
-                    "save_result": None,
                     "error": (
-                        f"Rate limit: "
-                        f"{str(error)}"
+                        "Rate limit: "
+                        + str(error)
                     ),
                 })
-
-                print(
-                    f"[{currency}] ERROR · Rate limit"
-                )
 
                 break
 
@@ -599,8 +1181,6 @@ def actualizar_todos_central_bank_drivers():
                 resultados.append({
                     "currency": currency,
                     "ok": False,
-                    "events_found": 0,
-                    "save_result": None,
                     "error": str(error),
                 })
 
@@ -621,10 +1201,12 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS UPDATE ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE ==="
     )
 
-    resultados = actualizar_todos_central_bank_drivers()
+    resultados = (
+        actualizar_todos_central_bank_drivers()
+    )
 
     errores = [
         resultado
@@ -640,21 +1222,14 @@ if __name__ == "__main__":
     for resultado in resultados:
 
         if resultado["ok"]:
-
-            save_result = (
-                resultado["save_result"]
-                or {}
-            )
-
             print(
                 f"{resultado['currency']} · OK · "
-                f"{resultado['events_found']} encontrados · "
-                f"{save_result.get('inserted', 0)} nuevos · "
-                f"{save_result.get('duplicates', 0)} duplicados"
+                f"{resultado['events_found']} declaraciones · "
+                f"{resultado['members_found']} votantes · "
+                f"{resultado['changes_found']} cambios"
             )
 
         else:
-
             print(
                 f"{resultado['currency']} · ERROR · "
                 f"{resultado['error']}"
