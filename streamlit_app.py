@@ -2316,9 +2316,9 @@ def _committee_bias_badge_html(bias, compact=False):
             "label": "HALCÓN",
         },
         "Lean Hawkish": {
-            "bg": "#FFEDD5",
-            "border": "#F97316",
-            "text": "#9A3412",
+            "bg": "#FEF9C3",
+            "border": "#EAB308",
+            "text": "#854D0E",
             "label": "LEAN HAWKISH",
         },
         "Neutral": {
@@ -2328,9 +2328,9 @@ def _committee_bias_badge_html(bias, compact=False):
             "label": "NEUTRAL",
         },
         "Lean Dovish": {
-            "bg": "#FFF1F2",
-            "border": "#FDA4AF",
-            "text": "#9F1239",
+            "bg": "#FFEDD5",
+            "border": "#F97316",
+            "text": "#9A3412",
             "label": "LEAN DOVISH",
         },
         "Dovish": {
