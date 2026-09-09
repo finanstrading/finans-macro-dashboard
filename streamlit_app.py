@@ -2109,6 +2109,151 @@ COMMITTEE_MAP_BASELINE = {
     }
 }
 
+# Clasificación estructural inicial para el resto de bancos centrales.
+# Es una referencia visual inmediata; el botón "Actualizar con IA"
+# sustituye esta referencia por una lectura reciente con evidencia web.
+COMMITTEE_BASELINE_BIASES = {
+    "USD": {
+        "Kevin Warsh": "Hawkish",
+        "John Williams": "Neutral",
+        "Michael Barr": "Lean Dovish",
+        "Michelle Bowman": "Hawkish",
+        "Lisa Cook": "Lean Dovish",
+        "Beth Hammack": "Hawkish",
+        "Philip Jefferson": "Neutral",
+        "Neel Kashkari": "Lean Hawkish",
+        "Lorie Logan": "Hawkish",
+        "Anna Paulson": "Neutral",
+        "Jerome Powell": "Neutral",
+        "Christopher Waller": "Lean Dovish",
+        "Austan Goolsbee": "Dovish",
+        "Susan Collins": "Neutral",
+        "Mary Daly": "Lean Dovish",
+        "Thomas Barkin": "Lean Hawkish",
+        "Alberto Musalem": "Hawkish",
+        "Jeffrey Schmid": "Hawkish",
+    },
+    "EUR": {
+        "Christine Lagarde": "Neutral",
+        "Boris Vujcic": "Lean Hawkish",
+        "Philip Lane": "Lean Dovish",
+        "Isabel Schnabel": "Hawkish",
+        "Piero Cipollone": "Dovish",
+        "Luis de Guindos": "Neutral",
+        "Joachim Nagel": "Hawkish",
+        "Olli Rehn": "Neutral",
+        "Martin Kocher": "Lean Hawkish",
+        "Bostjan Vasle": "Lean Hawkish",
+        "Primoz Dolenc": "Neutral",
+        "Martins Kazaks": "Hawkish",
+        "Mario Centeno": "Dovish",
+        "Francois Villeroy de Galhau": "Lean Dovish",
+        "Fabio Panetta": "Dovish",
+        "Gabriel Makhlouf": "Lean Hawkish",
+        "Pierre Wunsch": "Hawkish",
+    },
+    "JPY": {
+        "Kazuo Ueda": "Lean Hawkish",
+        "Shinichi Uchida": "Neutral",
+        "Ryozo Himino": "Hawkish",
+        "Hajime Takata": "Hawkish",
+        "Naoki Tamura": "Hawkish",
+        "Junko Koeda": "Neutral",
+        "Kazuyuki Masu": "Neutral",
+        "Toichiro Asada": "Neutral",
+        "Ayano Sato": "Neutral",
+    },
+    "CHF": {
+        "Martin Schlegel": "Lean Dovish",
+        "Antoine Martin": "Neutral",
+        "Petra Tschudin": "Neutral",
+    },
+    "AUD": {
+        "Michele Bullock": "Hawkish",
+        "Andrew Hauser": "Lean Hawkish",
+        "Marnie Baker": "Neutral",
+        "Renee Fry-McKibbin": "Lean Hawkish",
+        "Ian Harper": "Lean Hawkish",
+        "Carolyn Hewson": "Neutral",
+        "Iain Ross": "Neutral",
+        "Bruce Preston": "Neutral",
+        "Jenny Wilkinson": "Neutral",
+    },
+    "NZD": {
+        "Anna Breman": "Neutral",
+        "Karen Silk": "Neutral",
+        "Paul Conway": "Lean Hawkish",
+        "Carl Hansen": "Neutral",
+        "Prasanna Gai": "Neutral",
+        "Hayley Gourley": "Neutral",
+    },
+    "CAD": {
+        "Tiff Macklem": "Neutral",
+        "Carolyn Rogers": "Lean Hawkish",
+        "Toni Gravelle": "Neutral",
+        "Marc-Andre Gosselin": "Neutral",
+        "Nicolas Vincent": "Lean Dovish",
+        "Michelle Alexopoulos": "Neutral",
+    },
+}
+
+
+def _committee_reference_result(divisa):
+    cfg = COMMITTEE_MAP_CONFIG.get(divisa, {})
+    bias_map = COMMITTEE_BASELINE_BIASES.get(divisa, {})
+
+    members = []
+    for name in cfg.get("members", []):
+        bias = bias_map.get(name, "Neutral")
+        members.append({
+            "name": name,
+            "bias": bias,
+            "change": "Unclear",
+            "expected_vote": "Unclear",
+            "confidence": "Low",
+            "reason": (
+                "Referencia estructural inicial. "
+                "Pulsa Actualizar con IA para refrescar con evidencia reciente."
+            ),
+            "evidence_date": None,
+            "source": "Referencia inicial",
+            "source_url": "",
+        })
+
+    return {
+        "ok": True,
+        "summary": (
+            "Mapa estructural inicial disponible. "
+            "Actualiza con IA para incorporar votos, discursos y cambios recientes."
+        ),
+        "members": members,
+        "error": None,
+    }
+
+
+def _committee_bias_badge_html(bias, compact=False):
+    styles = {
+        "Hawkish": {"bg": "#FEE2E2", "border": "#EF4444", "text": "#991B1B", "label": "HALCÓN"},
+        "Lean Hawkish": {"bg": "#FFEDD5", "border": "#F97316", "text": "#9A3412", "label": "LEAN HAWKISH"},
+        "Neutral": {"bg": "#FFFFFF", "border": "#D1D5DB", "text": "#374151", "label": "NEUTRAL"},
+        "Lean Dovish": {"bg": "#ECFDF5", "border": "#86EFAC", "text": "#166534", "label": "LEAN DOVISH"},
+        "Dovish": {"bg": "#DCFCE7", "border": "#22C55E", "text": "#166534", "label": "DOVISH"},
+        "Pending": {"bg": "#FFFFFF", "border": "#D1D5DB", "text": "#6B7280", "label": "PENDIENTE"},
+    }
+    cfg = styles.get(str(bias), styles["Neutral"])
+    pad = "2px 7px" if compact else "3px 9px"
+    size = "0.67rem" if compact else "0.72rem"
+
+    return (
+        f'<span style="display:inline-block;'
+        f'background:{cfg["bg"]};border:1px solid {cfg["border"]};'
+        f'color:{cfg["text"]};border-radius:999px;padding:{pad};'
+        f'font-size:{size};font-weight:800;letter-spacing:0.03em;'
+        f'line-height:1.25;vertical-align:middle;">'
+        f'{cfg["label"]}</span>'
+    )
+
+
 
 def _normalizar_member_key(nombre):
     return " ".join(str(nombre or "").strip().lower().split())
@@ -2142,7 +2287,7 @@ def _committee_initial_result(divisa):
     baseline = COMMITTEE_MAP_BASELINE.get(divisa)
     if baseline:
         return {"ok": True, "error": None, **baseline}
-    return _committee_empty_result(divisa)
+    return _committee_reference_result(divisa)
 
 
 @st.cache_data(ttl=21600, show_spinner=False)
@@ -2292,6 +2437,18 @@ def render_committee_map(divisa):
             c1.metric("Hawks", hawks)
             c2.metric("Neutral", neutral)
             c3.metric("Doves", doves)
+
+            st.markdown(
+                '<div style="display:flex;flex-wrap:wrap;gap:7px;'
+                'margin:0.15rem 0 0.35rem 0;">'
+                + _committee_bias_badge_html("Hawkish", compact=True)
+                + _committee_bias_badge_html("Lean Hawkish", compact=True)
+                + _committee_bias_badge_html("Neutral", compact=True)
+                + _committee_bias_badge_html("Lean Dovish", compact=True)
+                + _committee_bias_badge_html("Dovish", compact=True)
+                + '</div>',
+                unsafe_allow_html=True,
+            )
         else:
             st.caption("Clasificación pendiente. La actualización solo se ejecuta cuando pulses el botón.")
 
@@ -2302,14 +2459,10 @@ def render_committee_map(divisa):
         with st.expander("Ver composición, cambios y postura esperada", expanded=False):
             for item in members:
                 bias = item.get("bias", "Pending")
-                bias_display = {
-                    "Hawkish": "🔴 Hawkish",
-                    "Lean Hawkish": "🟠 Lean Hawkish",
-                    "Neutral": "⚪ Neutral",
-                    "Lean Dovish": "🟢 Lean Dovish",
-                    "Dovish": "🟢 Dovish",
-                    "Pending": "⚪ Pendiente",
-                }.get(bias, bias)
+                bias_badge = _committee_bias_badge_html(
+                    bias,
+                    compact=False,
+                )
                 change_display = {
                     "More Hawkish": "↑ Más hawkish",
                     "No Change": "→ Sin cambio",
@@ -2325,7 +2478,14 @@ def render_committee_map(divisa):
                     "Unclear": "Incierto",
                 }.get(item.get("expected_vote"), "Incierto")
 
-                st.markdown(f"**{item.get('name', '')} · {bias_display}**")
+                nombre_seguro = html.escape(str(item.get("name", "")))
+                st.markdown(
+                    f'<div style="display:flex;align-items:center;gap:8px;'
+                    f'margin-bottom:0.2rem;">'
+                    f'<strong style="color:#111111;">{nombre_seguro}</strong>'
+                    f'{bias_badge}</div>',
+                    unsafe_allow_html=True,
+                )
                 st.caption(
                     f"{change_display} · Voto esperado: {vote_display} · "
                     f"Confianza: {item.get('confidence', 'Low')}"
@@ -2473,10 +2633,17 @@ def render_central_bank_drivers(divisa, committee_member_map=None):
 
         structural_text = ""
         if structural:
+            structural_bias = str(
+                structural.get("bias") or "Neutral"
+            )
+            structural_badge = _committee_bias_badge_html(
+                structural_bias,
+                compact=True,
+            )
             structural_text = (
-                f' · <span style="color:#6B7280;font-weight:700;">'
-                f'BANDO: {html.escape(str(structural.get("bias") or "Neutral").upper())}'
-                f'</span>'
+                f' · <span style="color:#6B7280;font-weight:700;'
+                f'margin-right:4px;">BANDO</span>'
+                f'{structural_badge}'
             )
 
         html_driver = (
