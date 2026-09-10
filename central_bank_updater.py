@@ -156,6 +156,275 @@ COMMITTEE_CONFIG = {
 }
 
 
+# ===================================================
+# ECB — ROSTER ESTABLE / ROTACIÓN DETERMINISTA
+# ===================================================
+
+ECB_EXECUTIVE_BOARD = [
+    "Christine Lagarde",
+    "Boris Vujcic",
+    "Piero Cipollone",
+    "Frank Elderson",
+    "Philip Lane",
+    "Isabel Schnabel",
+]
+
+# Canonical roster for the 10-Sep-2026 decision.
+# This removes the noisy same-meeting roster flips already observed in History.
+ECB_CANONICAL_MEETING_ROSTERS = {
+    "2026-09-10": COMMITTEE_CONFIG["EUR"]["fallback_voters"],
+}
+
+
+def _clean_date(value):
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    return value[:10]
+
+
+def _previous_meeting_date(previous_members):
+    for item in previous_members or []:
+        value = (
+            item.get("NextMeetingDate")
+            or item.get("next_meeting_date")
+            or ""
+        )
+        value = _clean_date(value)
+        if value:
+            return value
+    return ""
+
+
+def _valid_ecb_roster(ai_members, committee):
+    """Accept a newly discovered ECB roster only when it passes hard checks."""
+    if not isinstance(ai_members, list):
+        return False
+
+    names = []
+    seen = set()
+    for item in ai_members:
+        name = str(item.get("name") or "").strip()
+        key = _normalizar_nombre(name)
+        if name and key not in seen:
+            seen.add(key)
+            names.append(name)
+
+    if len(names) != 21:
+        return False
+
+    keys = {_normalizar_nombre(name) for name in names}
+    required = {_normalizar_nombre(name) for name in ECB_EXECUTIVE_BOARD}
+    if not required.issubset(keys):
+        return False
+
+    source_url = str(
+        committee.get("membership_source_url") or ""
+    ).strip().lower()
+
+    return "ecb.europa.eu" in source_url
+
+
+def _previous_as_ai_item(previous, name):
+    """Convert a saved CentralBank_Members row to the AI member shape."""
+    structural = str(
+        previous.get("StructuralBias")
+        or previous.get("structural_bias")
+        or "Neutral"
+    ).strip()
+
+    return {
+        "name": name,
+        "proposed_bias": structural if structural in VALID_BIASES else "Neutral",
+        "latest_signal": str(
+            previous.get("LatestSignal")
+            or previous.get("latest_signal")
+            or structural
+            or "Neutral"
+        ).strip(),
+        "expected_vote": str(
+            previous.get("ExpectedVote")
+            or previous.get("expected_vote")
+            or "Unclear"
+        ).strip(),
+        "confidence": str(
+            previous.get("Confidence")
+            or previous.get("confidence")
+            or "Low"
+        ).strip(),
+        "evidence_type": str(
+            previous.get("EvidenceType")
+            or previous.get("evidence_type")
+            or "No new evidence"
+        ).strip(),
+        "reason": str(
+            previous.get("Evidence")
+            or previous.get("reason")
+            or ""
+        ).strip(),
+        "evidence_date": (
+            previous.get("EvidenceDate")
+            or previous.get("evidence_date")
+            or None
+        ),
+        "source": str(
+            previous.get("Source")
+            or previous.get("source")
+            or ""
+        ).strip(),
+        "source_url": str(
+            previous.get("SourceURL")
+            or previous.get("source_url")
+            or ""
+        ).strip(),
+    }
+
+
+def _stabilize_ecb_members(ai_members, previous_members, committee):
+    """
+    ECB rules:
+    1) Known canonical meeting roster wins.
+    2) Same meeting => freeze the previously saved 21-voter roster.
+    3) New meeting => accept AI roster only if 21 voters, all 6 Executive
+       Board members are present, and membership source is official ECB.
+    4) If validation fails, keep the previous valid roster.
+    """
+    previous_members = previous_members or []
+    previous_index = _indice_previos(previous_members)
+
+    ai_index = {}
+    for item in ai_members or []:
+        name = str(item.get("name") or "").strip()
+        key = _normalizar_nombre(name)
+        if name and key and key not in ai_index:
+            ai_index[key] = item
+
+    ai_meeting = _clean_date(
+        committee.get("next_meeting_date")
+    )
+    previous_meeting = _previous_meeting_date(
+        previous_members
+    )
+
+    canonical_date = (
+        ai_meeting
+        if ai_meeting in ECB_CANONICAL_MEETING_ROSTERS
+        else previous_meeting
+        if previous_meeting in ECB_CANONICAL_MEETING_ROSTERS
+        else ""
+    )
+
+    if canonical_date:
+        target_names = list(
+            ECB_CANONICAL_MEETING_ROSTERS[canonical_date]
+        )
+        committee["next_meeting_date"] = canonical_date
+        mode = "canonical"
+
+    elif (
+        previous_members
+        and len(previous_index) == 21
+        and ai_meeting
+        and previous_meeting
+        and ai_meeting == previous_meeting
+    ):
+        target_names = [
+            str(
+                item.get("Member")
+                or item.get("name")
+                or ""
+            ).strip()
+            for item in previous_members
+            if str(
+                item.get("Member")
+                or item.get("name")
+                or ""
+            ).strip()
+        ]
+        mode = "frozen_same_meeting"
+
+    elif _valid_ecb_roster(ai_members, committee):
+        target_names = [
+            str(item.get("name") or "").strip()
+            for item in ai_members
+            if str(item.get("name") or "").strip()
+        ]
+        mode = "validated_new_meeting"
+
+    elif previous_members and len(previous_index) == 21:
+        target_names = [
+            str(
+                item.get("Member")
+                or item.get("name")
+                or ""
+            ).strip()
+            for item in previous_members
+            if str(
+                item.get("Member")
+                or item.get("name")
+                or ""
+            ).strip()
+        ]
+        if previous_meeting:
+            committee["next_meeting_date"] = previous_meeting
+        mode = "fallback_previous"
+
+    else:
+        target_names = list(
+            COMMITTEE_CONFIG["EUR"]["fallback_voters"]
+        )
+        mode = "fallback_config"
+
+    stabilized = []
+    used = set()
+
+    for target_name in target_names:
+        key = _normalizar_nombre(target_name)
+        if not key or key in used:
+            continue
+        used.add(key)
+
+        if key in ai_index:
+            item = dict(ai_index[key])
+            item["name"] = target_name
+            stabilized.append(item)
+            continue
+
+        previous = previous_index.get(key)
+        if previous:
+            stabilized.append(
+                _previous_as_ai_item(previous, target_name)
+            )
+            continue
+
+        stabilized.append({
+            "name": target_name,
+            "proposed_bias": "Neutral",
+            "latest_signal": "Neutral",
+            "expected_vote": "Unclear",
+            "confidence": "Low",
+            "evidence_type": "No new evidence",
+            "reason": (
+                "Votante validado por composición oficial; "
+                "sin evidencia individual suficiente en esta ejecución."
+            ),
+            "evidence_date": None,
+            "source": str(
+                committee.get("membership_source") or "European Central Bank"
+            ).strip(),
+            "source_url": str(
+                committee.get("membership_source_url") or ""
+            ).strip(),
+        })
+
+    print(
+        f"[EUR] ECB roster mode={mode} · "
+        f"meeting={_clean_date(committee.get('next_meeting_date')) or 'unknown'} · "
+        f"voters={len(stabilized)}"
+    )
+    return stabilized, mode, previous_meeting
+
+
 VALID_BIASES = [
     "Hawkish",
     "Lean Hawkish",
@@ -925,6 +1194,20 @@ def preparar_central_bank_members(
     if not isinstance(ai_members, list):
         ai_members = []
 
+    ecb_roster_mode = ""
+    previous_meeting = _previous_meeting_date(
+        previous_members
+    )
+
+    if currency == "EUR":
+        ai_members, ecb_roster_mode, previous_meeting = (
+            _stabilize_ecb_members(
+                ai_members,
+                previous_members,
+                committee,
+            )
+        )
+
     previous_index = _indice_previos(
         previous_members
     )
@@ -1091,10 +1374,25 @@ def preparar_central_bank_members(
             })
 
         if previous_index and key not in previous_index:
+            if currency == "EUR":
+                current_meeting = _clean_date(
+                    committee.get("next_meeting_date")
+                )
+                if (
+                    previous_meeting
+                    and current_meeting
+                    and previous_meeting != current_meeting
+                ):
+                    change_type = "VotingRotationAdded"
+                else:
+                    change_type = "VotingRosterCorrectionAdded"
+            else:
+                change_type = "VotingMemberAdded"
+
             changes.append({
                 "Currency": currency,
                 "Member": name,
-                "ChangeType": "VotingMemberAdded",
+                "ChangeType": change_type,
                 "PreviousValue": "",
                 "NewValue": "Voting",
                 "DetectedAt": updated_at,
@@ -1121,10 +1419,25 @@ def preparar_central_bank_members(
             or ""
         ).strip()
 
+        if currency == "EUR":
+            current_meeting = _clean_date(
+                committee.get("next_meeting_date")
+            )
+            if (
+                previous_meeting
+                and current_meeting
+                and previous_meeting != current_meeting
+            ):
+                change_type = "VotingRotationRemoved"
+            else:
+                change_type = "VotingRosterCorrectionRemoved"
+        else:
+            change_type = "VotingMemberRemoved"
+
         changes.append({
             "Currency": currency,
             "Member": old_name,
-            "ChangeType": "VotingMemberRemoved",
+            "ChangeType": change_type,
             "PreviousValue": "Voting",
             "NewValue": "Not Voting",
             "DetectedAt": updated_at,
@@ -1379,7 +1692,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V9 RECALIBRATION + DEDUP ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V10 ECB STABLE ROSTER ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
