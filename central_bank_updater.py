@@ -168,34 +168,64 @@ BIAS_SCORE = {
 # WEB APP — ESTADO PREVIO
 # ===================================================
 
-def _webapp_post(payload, timeout=30):
+def _webapp_post(payload, timeout=90, max_retries=3):
+    """POST robusto a Apps Script con reintentos para fallos transitorios."""
     if not CENTRAL_BANK_DRIVERS_WEBAPP_URL:
-        raise ValueError(
-            "Falta CENTRAL_BANK_DRIVERS_WEBAPP_URL."
-        )
+        raise ValueError("Falta CENTRAL_BANK_DRIVERS_WEBAPP_URL.")
 
-    response = requests.post(
-        CENTRAL_BANK_DRIVERS_WEBAPP_URL,
-        json=payload,
-        timeout=timeout,
+    last_error = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(
+                CENTRAL_BANK_DRIVERS_WEBAPP_URL,
+                json=payload,
+                timeout=timeout,
+            )
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+            except Exception:
+                raise requests.exceptions.RequestException(
+                    "Apps Script no devolvió JSON válido: "
+                    + response.text[:500]
+                )
+
+            if not data.get("ok"):
+                raise ValueError(
+                    "Apps Script devolvió error: "
+                    + str(data.get("error"))
+                )
+
+            return data
+
+        except ValueError:
+            raise
+
+        except (
+            requests.exceptions.Timeout,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.RequestException,
+        ) as error:
+            last_error = error
+
+            if attempt >= max_retries:
+                break
+
+            wait_seconds = 5 * attempt + random.uniform(0, 2)
+            action = str(payload.get("action") or "unknown")
+            print(
+                f"[WebApp:{action}] Error transitorio "
+                f"(intento {attempt}/{max_retries}): {error}. "
+                f"Reintento en {wait_seconds:.1f}s..."
+            )
+            time.sleep(wait_seconds)
+
+    raise RuntimeError(
+        f"Apps Script no respondió correctamente tras "
+        f"{max_retries} intentos: {last_error}"
     )
-    response.raise_for_status()
-
-    try:
-        data = response.json()
-    except Exception:
-        raise ValueError(
-            "Apps Script no devolvió JSON válido: "
-            + response.text[:500]
-        )
-
-    if not data.get("ok"):
-        raise ValueError(
-            "Apps Script devolvió error: "
-            + str(data.get("error"))
-        )
-
-    return data
 
 
 def cargar_estado_previo_miembros(currency):
@@ -209,8 +239,7 @@ def cargar_estado_previo_miembros(currency):
             {
                 "action": "get_central_bank_members",
                 "currency": currency,
-            },
-            timeout=30,
+            }
         )
         members = data.get("members", [])
         if isinstance(members, list):
