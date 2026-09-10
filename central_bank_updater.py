@@ -4,6 +4,8 @@ import time
 import random
 import hashlib
 import requests
+import re
+import unicodedata
 
 from datetime import datetime, timezone
 from openai import OpenAI, RateLimitError
@@ -677,12 +679,43 @@ def preparar_central_bank_drivers(data):
 # ===================================================
 
 def _normalizar_nombre(nombre):
-    return " ".join(
-        str(nombre or "")
-        .strip()
-        .lower()
-        .split()
+    """
+    Clave estable de identidad para miembros del comité.
+
+    Normaliza:
+    - mayúsculas/minúsculas
+    - acentos
+    - guiones y puntuación
+    - iniciales intermedias de una sola letra
+
+    Ejemplos:
+    John C. Williams -> john williams
+    John Williams    -> john williams
+    Marc-André Gosselin -> marc andre gosselin
+    """
+    value = str(nombre or "").strip().lower()
+
+    value = unicodedata.normalize("NFKD", value)
+    value = "".join(
+        ch for ch in value
+        if not unicodedata.combining(ch)
     )
+
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    tokens = [token for token in value.split() if token]
+
+    if len(tokens) >= 3:
+        tokens = [
+            token
+            for i, token in enumerate(tokens)
+            if not (
+                0 < i < len(tokens) - 1
+                and len(token) == 1
+            )
+        ]
+
+    return " ".join(tokens)
+
 
 
 def _indice_previos(previous_members):
@@ -824,6 +857,15 @@ def preparar_central_bank_members(
             {},
         )
 
+        previous_name = str(
+            previous.get("Member")
+            or previous.get("name")
+            or ""
+        ).strip()
+
+        if previous_name:
+            name = previous_name
+
         previous_bias = str(
             previous.get("StructuralBias")
             or previous.get("structural_bias")
@@ -943,7 +985,7 @@ def preparar_central_bank_members(
                 "SourceURL": row["SourceURL"],
             })
 
-        if key not in previous_index:
+        if previous_index and key not in previous_index:
             changes.append({
                 "Currency": currency,
                 "Member": name,
@@ -961,7 +1003,9 @@ def preparar_central_bank_members(
                 ],
             })
 
-    # Miembros que estaban guardados y ya no aparecen entre los votantes
+    # Miembros que estaban guardados y ya no aparecen entre los votantes.
+    # Si no existe snapshot previo, esta ejecución se considera inicialización
+    # y no se generan falsos cambios de composición.
     for key, previous in previous_index.items():
         if key in current_keys:
             continue
@@ -1230,7 +1274,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · IDENTITY STABLE ==="
     )
 
     resultados = (
