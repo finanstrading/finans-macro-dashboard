@@ -21,6 +21,13 @@ CENTRAL_BANK_DRIVERS_WEBAPP_URL = os.environ.get(
     "CENTRAL_BANK_DRIVERS_WEBAPP_URL"
 )
 
+# One-time baseline recalibration. Set this GitHub environment variable to
+# "true" for ONE run only, then remove/disable it.
+RECALIBRATE_BIAS = os.environ.get(
+    "CENTRAL_BANK_RECALIBRATE_BIAS",
+    "false",
+).strip().lower() in {"1", "true", "yes", "on"}
+
 
 COMMITTEE_CONFIG = {
     "USD": {
@@ -344,6 +351,17 @@ show a change:
 Previous saved state from CentralBank_Members:
 {prev_json}
 
+RECALIBRATION MODE FOR THIS RUN: {RECALIBRATE_BIAS}
+
+If RECALIBRATION MODE is True:
+- independently reassess EVERY current voter's StructuralBias from the best
+  available recent evidence, even when a previous bias exists;
+- use the previous state for identity/history comparison, not as an anchor;
+- search beyond the last 48 hours as needed for votes, speeches and minutes
+  that establish the current structural reaction function;
+- use Neutral only when no clear structural hawkish/dovish inclination can
+  be established.
+
 For EVERY current voter return:
 
 proposed_bias:
@@ -641,6 +659,7 @@ def preparar_central_bank_drivers(data):
     ).isoformat()
 
     filas = []
+    seen_event_keys = set()
 
     for evento in eventos:
 
@@ -666,11 +685,47 @@ def preparar_central_bank_drivers(data):
         ):
             continue
 
-        texto_id = (
-            f"{currency}|"
-            f"{member.lower()}|"
-            f"{statement.lower()}"
-        )
+        event_date = str(
+            evento.get("event_date")
+            or ""
+        ).strip()
+
+        source_url = str(
+            evento.get("source_url")
+            or ""
+        ).strip()
+
+        # Same member + day + source URL is treated as one event. This avoids
+        # two paraphrases of the same speech becoming separate driver cards.
+        if source_url:
+            event_key = (
+                currency,
+                _normalizar_nombre(member),
+                event_date,
+                source_url.split("#", 1)[0].rstrip("/"),
+            )
+        else:
+            # Without a URL, use normalized statement as conservative fallback.
+            statement_key = re.sub(
+                r"[^a-z0-9]+",
+                " ",
+                unicodedata.normalize("NFKD", statement.lower())
+                .encode("ascii", "ignore")
+                .decode("ascii"),
+            ).strip()
+            event_key = (
+                currency,
+                _normalizar_nombre(member),
+                event_date,
+                statement_key,
+            )
+
+        if event_key in seen_event_keys:
+            continue
+
+        seen_event_keys.add(event_key)
+
+        texto_id = "|".join(str(x) for x in event_key)
 
         event_id = hashlib.sha256(
             texto_id.encode("utf-8")
@@ -704,10 +759,7 @@ def preparar_central_bank_drivers(data):
                 evento.get("source")
                 or ""
             ).strip(),
-            "SourceURL": str(
-                evento.get("source_url")
-                or ""
-            ).strip(),
+            "SourceURL": source_url,
             "DetectedAt": detected_at,
             "EventDate": evento.get(
                 "event_date"
@@ -786,6 +838,7 @@ def _resolver_bias(
     proposed_bias,
     confidence,
     evidence_type,
+    recalibrate=False,
 ):
     """
     Regla conservadora:
@@ -805,6 +858,9 @@ def _resolver_bias(
         proposed_bias = "Neutral"
 
     if previous_bias not in VALID_BIASES:
+        return proposed_bias
+
+    if recalibrate:
         return proposed_bias
 
     if proposed_bias == previous_bias:
@@ -940,6 +996,7 @@ def preparar_central_bank_members(
             proposed_bias,
             confidence,
             evidence_type,
+            recalibrate=RECALIBRATE_BIAS,
         )
 
         bias_change = _bias_change(
@@ -1322,7 +1379,10 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · IDENTITY STABLE + STRUCTURAL BIAS V8 ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V9 RECALIBRATION + DEDUP ==="
+    )
+    print(
+        f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
     )
 
     resultados = (
