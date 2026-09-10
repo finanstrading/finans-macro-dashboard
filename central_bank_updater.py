@@ -375,15 +375,58 @@ source_url:
 one raw https URL or empty string
 
 IMPORTANT STRUCTURAL-BIAS RULE:
-Structural bias is persistent. Do NOT move a member merely because one
-isolated sentence sounds different.
+Structural bias is a persistent policy orientation. It is NOT the expected
+vote at the next meeting and it is NOT a synonym for Hike / Hold / Cut.
+
+Interpret the five categories as follows:
+- Hawkish: clear, persistent preference for tighter policy / stronger
+  inflation vigilance relative to the committee.
+- Lean Hawkish: discernible hawkish inclination, but less strong or less
+  persistent than Hawkish.
+- Neutral: NO CLEAR STRUCTURAL HAWKISH OR DOVISH BIAS. The member can lean
+  toward either camp depending on incoming data and circumstances.
+  IMPORTANT: Neutral does NOT mean the member favors unchanged rates,
+  does NOT mean "Hold", and does NOT mean centrist voting at the next meeting.
+- Lean Dovish: discernible dovish inclination, but less strong or less
+  persistent than Dovish.
+- Dovish: clear, persistent preference for easier policy / greater concern
+  about activity or employment relative to the committee.
+
+Classify structural bias using the best available evidence over a meaningful
+recent policy window, not merely the last 48 hours. Consider, in order of
+importance:
+1) official policy votes and dissents,
+2) explicit statements about the appropriate policy path,
+3) repeated speeches/interviews showing a consistent reaction function,
+4) minutes and other official evidence,
+5) older evidence only when no newer evidence supersedes it.
+
+Do NOT assign Neutral merely because there is no new statement in the last
+48 hours. Lack of fresh evidence is not evidence of neutrality.
+
+When a valid previous StructuralBias exists:
+- preserve it if there is insufficient evidence of a durable change;
+- "No new evidence" must normally preserve the previous StructuralBias;
+- a single ambiguous/data-dependent statement must not reset the member
+  to Neutral;
+- change StructuralBias only when the evidence supports a genuine durable
+  shift in the member's policy orientation.
 
 A structural-bias change should be supported by:
 - an official vote clearly inconsistent with the previous stance, OR
 - an explicit stance change, OR
 - multiple consistent recent statements indicating a durable shift.
 
-A single statement can change latest_signal without changing structural bias.
+A single statement can change latest_signal without changing StructuralBias.
+
+Keep expected_vote independent from StructuralBias. A Neutral member may
+currently be expected to Hike, Hold or Cut; likewise a Hawkish member can
+vote Hold when the current policy setting already matches their reaction
+function.
+
+For committee composition, Lean Hawkish belongs to the HAWK camp and
+Lean Dovish belongs to the DOVE camp. Keep the five-category value for each
+individual member; the frontend will aggregate the camps.
 
 Also return:
 membership_as_of
@@ -765,6 +808,11 @@ def _resolver_bias(
         return proposed_bias
 
     if proposed_bias == previous_bias:
+        return previous_bias
+
+    # Ausencia de evidencia nueva nunca convierte por sí sola a un miembro
+    # en Neutral ni modifica un bias estructural previamente válido.
+    if evidence_type == "No new evidence":
         return previous_bias
 
     evidencia_fuerte = evidence_type in {
@@ -1274,7 +1322,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · IDENTITY STABLE ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · IDENTITY STABLE + STRUCTURAL BIAS V8 ==="
     )
 
     resultados = (
