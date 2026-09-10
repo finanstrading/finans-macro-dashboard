@@ -157,7 +157,7 @@ COMMITTEE_CONFIG = {
 
 
 # ===================================================
-# ECB — ROSTER ESTABLE / ROTACIÓN DETERMINISTA
+# ECB — ROTACIÓN OFICIAL DETERMINISTA
 # ===================================================
 
 ECB_EXECUTIVE_BOARD = [
@@ -169,18 +169,55 @@ ECB_EXECUTIVE_BOARD = [
     "Isabel Schnabel",
 ]
 
-# Canonical roster for the 10-Sep-2026 decision.
-# This removes the noisy same-meeting roster flips already observed in History.
-ECB_CANONICAL_MEETING_ROSTERS = {
-    "2026-09-10": COMMITTEE_CONFIG["EUR"]["fallback_voters"],
+ECB_NCB_GOVERNORS = {
+    "ES": "José Luis Escrivá",
+    "FR": "Emmanuel Moulin",
+    "IT": "Fabio Panetta",
+    "NL": "Olaf Sleijpen",
+    "DE": "Joachim Nagel",
+    "BE": "Pierre Wunsch",
+    "BG": "Dimitar Radev",
+    "EE": "Ülo Kaasik",
+    "IE": "Gabriel Makhlouf",
+    "GR": "Yannis Stournaras",
+    "HR": "Ante Žigman",
+    "CY": "Christodoulos Patsalides",
+    "LV": "Mārtiņš Kazāks",
+    "LT": "Gediminas Šimkus",
+    "LU": "Gaston Reinesch",
+    "MT": "Alexander Demarco",
+    "AT": "Martin Kocher",
+    "PT": "Álvaro Santos Pereira",
+    "SI": "Primož Dolenc",
+    "SK": "Peter Kažimír",
+    "FI": "Olli Rehn",
 }
+
+# Official ECB 2026 rotation table:
+# https://www.ecb.europa.eu/ecb/decisions/govc/html/votingrights.en.html
+ECB_2026_NCB_VOTERS = {
+    1:  ["ES","FR","NL","DE","BG","EE","IE","GR","HR","CY","LV","LT","LU","MT","AT"],
+    2:  ["ES","FR","IT","DE","GR","HR","CY","LV","LT","LU","MT","AT","PT","SI","SK"],
+    3:  ["ES","FR","IT","NL","BE","BG","LV","LT","LU","MT","AT","PT","SI","SK","FI"],
+    4:  ["FR","IT","NL","DE","BE","BG","EE","IE","GR","MT","AT","PT","SI","SK","FI"],
+    5:  ["ES","IT","NL","DE","BE","BG","EE","IE","GR","HR","CY","LV","SI","SK","FI"],
+    6:  ["ES","FR","NL","DE","BE","BG","EE","IE","GR","HR","CY","LV","LT","LU","MT"],
+    7:  ["ES","FR","IT","NL","DE","IE","GR","HR","CY","LT","LU","MT","AT","PT","SI"],
+    8:  ["ES","FR","IT","NL","BE","CY","LV","LT","LU","MT","AT","PT","SI","SK","FI"],
+    9:  ["FR","IT","NL","DE","BE","BG","EE","IE","LV","LU","MT","PT","SI","SK","FI"],
+    10: ["ES","IT","NL","DE","BE","BG","EE","IE","GR","HR","CY","PT","SI","SK","FI"],
+    11: ["ES","FR","NL","DE","BE","BG","EE","IE","GR","HR","CY","LV","LT","LU","FI"],
+    12: ["ES","FR","IT","DE","EE","IE","GR","HR","CY","LV","LT","LU","MT","AT","PT"],
+}
+
+ECB_VOTING_RIGHTS_SOURCE = (
+    "https://www.ecb.europa.eu/ecb/decisions/govc/html/votingrights.en.html"
+)
 
 
 def _clean_date(value):
     value = str(value or "").strip()
-    if not value:
-        return ""
-    return value[:10]
+    return value[:10] if value else ""
 
 
 def _previous_meeting_date(previous_members):
@@ -196,8 +233,36 @@ def _previous_meeting_date(previous_members):
     return ""
 
 
+def _ecb_official_roster_for_date(date_value):
+    date_value = _clean_date(date_value)
+    if not date_value:
+        return None
+
+    try:
+        year, month, _ = [int(x) for x in date_value.split("-")]
+    except Exception:
+        return None
+
+    if year != 2026 or month not in ECB_2026_NCB_VOTERS:
+        return None
+
+    ncb_names = [
+        ECB_NCB_GOVERNORS[code]
+        for code in ECB_2026_NCB_VOTERS[month]
+    ]
+
+    roster = list(ECB_EXECUTIVE_BOARD) + ncb_names
+
+    if len(roster) != 21:
+        raise ValueError(
+            f"ECB official roster inválido para {year}-{month:02d}: "
+            f"{len(roster)} miembros, se esperaban 21."
+        )
+
+    return roster
+
+
 def _valid_ecb_roster(ai_members, committee):
-    """Accept a newly discovered ECB roster only when it passes hard checks."""
     if not isinstance(ai_members, list):
         return False
 
@@ -226,7 +291,6 @@ def _valid_ecb_roster(ai_members, committee):
 
 
 def _previous_as_ai_item(previous, name):
-    """Convert a saved CentralBank_Members row to the AI member shape."""
     structural = str(
         previous.get("StructuralBias")
         or previous.get("structural_bias")
@@ -281,14 +345,6 @@ def _previous_as_ai_item(previous, name):
 
 
 def _stabilize_ecb_members(ai_members, previous_members, committee):
-    """
-    ECB rules:
-    1) Known canonical meeting roster wins.
-    2) Same meeting => freeze the previously saved 21-voter roster.
-    3) New meeting => accept AI roster only if 21 voters, all 6 Executive
-       Board members are present, and membership source is official ECB.
-    4) If validation fails, keep the previous valid roster.
-    """
     previous_members = previous_members or []
     previous_index = _indice_previos(previous_members)
 
@@ -299,49 +355,23 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
         if name and key and key not in ai_index:
             ai_index[key] = item
 
-    ai_meeting = _clean_date(
+    meeting_date = _clean_date(
         committee.get("next_meeting_date")
     )
     previous_meeting = _previous_meeting_date(
         previous_members
     )
 
-    canonical_date = (
-        ai_meeting
-        if ai_meeting in ECB_CANONICAL_MEETING_ROSTERS
-        else previous_meeting
-        if previous_meeting in ECB_CANONICAL_MEETING_ROSTERS
-        else ""
+    target_names = _ecb_official_roster_for_date(
+        meeting_date
     )
 
-    if canonical_date:
-        target_names = list(
-            ECB_CANONICAL_MEETING_ROSTERS[canonical_date]
+    if target_names:
+        mode = "official_2026_rotation"
+        committee["membership_source"] = (
+            "European Central Bank — Rotation of voting rights"
         )
-        committee["next_meeting_date"] = canonical_date
-        mode = "canonical"
-
-    elif (
-        previous_members
-        and len(previous_index) == 21
-        and ai_meeting
-        and previous_meeting
-        and ai_meeting == previous_meeting
-    ):
-        target_names = [
-            str(
-                item.get("Member")
-                or item.get("name")
-                or ""
-            ).strip()
-            for item in previous_members
-            if str(
-                item.get("Member")
-                or item.get("name")
-                or ""
-            ).strip()
-        ]
-        mode = "frozen_same_meeting"
+        committee["membership_source_url"] = ECB_VOTING_RIGHTS_SOURCE
 
     elif _valid_ecb_roster(ai_members, committee):
         target_names = [
@@ -349,7 +379,7 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
             for item in ai_members
             if str(item.get("name") or "").strip()
         ]
-        mode = "validated_new_meeting"
+        mode = "validated_official_fallback"
 
     elif previous_members and len(previous_index) == 21:
         target_names = [
@@ -365,15 +395,12 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
                 or ""
             ).strip()
         ]
-        if previous_meeting:
-            committee["next_meeting_date"] = previous_meeting
         mode = "fallback_previous"
 
     else:
-        target_names = list(
-            COMMITTEE_CONFIG["EUR"]["fallback_voters"]
+        raise ValueError(
+            "No se pudo determinar de forma segura el roster ECB."
         )
-        mode = "fallback_config"
 
     stabilized = []
     used = set()
@@ -405,25 +432,26 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
             "confidence": "Low",
             "evidence_type": "No new evidence",
             "reason": (
-                "Votante validado por composición oficial; "
+                "Votante determinado por la rotación oficial del BCE; "
                 "sin evidencia individual suficiente en esta ejecución."
             ),
             "evidence_date": None,
-            "source": str(
-                committee.get("membership_source") or "European Central Bank"
-            ).strip(),
-            "source_url": str(
-                committee.get("membership_source_url") or ""
-            ).strip(),
+            "source": "European Central Bank",
+            "source_url": ECB_VOTING_RIGHTS_SOURCE,
         })
+
+    if len(stabilized) != 21:
+        raise ValueError(
+            f"ECB roster final inválido: {len(stabilized)} miembros."
+        )
 
     print(
         f"[EUR] ECB roster mode={mode} · "
-        f"meeting={_clean_date(committee.get('next_meeting_date')) or 'unknown'} · "
+        f"meeting={meeting_date or 'unknown'} · "
         f"voters={len(stabilized)}"
     )
-    return stabilized, mode, previous_meeting
 
+    return stabilized, mode, previous_meeting
 
 VALID_BIASES = [
     "Hawkish",
@@ -1692,7 +1720,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V10 ECB STABLE ROSTER ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V11 ECB OFFICIAL ROTATION ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
