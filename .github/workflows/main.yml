@@ -21,6 +21,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install openai requests
 
+      - name: Test Central Bank Web App
+        env:
+          CENTRAL_BANK_DRIVERS_WEBAPP_URL: ${{ secrets.CENTRAL_BANK_DRIVERS_WEBAPP_URL }}
+        run: |
+          python - <<'PY'
+          import os, requests
+          url = os.environ["CENTRAL_BANK_DRIVERS_WEBAPP_URL"]
+          r = requests.post(url, json={"action": "ping"}, timeout=30)
+          print("STATUS:", r.status_code)
+          print("RESPONSE:", r.text[:500])
+          PY
+
       - name: Run Central Bank updater
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
