@@ -3622,8 +3622,9 @@ def filtrar_drivers_por_releases(
             "non farm payrolls",
         ],
 
-        "consumer confidence cb": [
-            "cb consumer confidence",
+        "confianza uom": [
+            "michigan consumer sentiment",
+            "university of michigan consumer sentiment",
         ],
 
         "ism services": [
@@ -3639,7 +3640,7 @@ def filtrar_drivers_por_releases(
             "adp employment change",
             "adp employment",
         ],
-        
+
         "ppi mom": [
             "ppi",
             "producer price index",
