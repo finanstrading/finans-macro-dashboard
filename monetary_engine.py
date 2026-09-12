@@ -938,7 +938,7 @@ def analizar_indicador(fechas, valores, indicador, divisa):
         print("ULTIMO:", ultimo)
         print("ANTERIOR:", anterior)
         print("=============================================\n")
-        
+
     percentil = calcular_percentil(ultimo, serie)
 
     resultado = {
@@ -1120,6 +1120,21 @@ def analizar_indicador(fechas, valores, indicador, divisa):
             score_base_anterior,
             relevancia,
         )
+
+        if (
+            str(divisa).strip().upper() == "USD"
+            and str(indicador).strip() == "Core CPI YoY"
+        ):
+            print("\n========== DEBUG GUARDRAIL CORE CPI ==========")
+            print("ULTIMO:", ultimo)
+            print("ANTERIOR:", anterior)
+            print("SCORE BASE ACTUAL:", score_base)
+            print("SCORE AJUSTADO ACTUAL ANTES GUARDRAIL:", score_ajustado)
+            print("SCORE BASE ANTERIOR:", score_base_anterior)
+            print("SCORE AJUSTADO ANTERIOR:", score_ajustado_anterior)
+            print("COMPONENTES ACTUALES:", componentes)
+            print("COMPONENTES ANTERIORES:", componentes_anteriores)
+            print("==============================================\n")
 
         # Cambio directo del componente principal de inflación.
         mandato_actual = componentes.get(
