@@ -661,6 +661,16 @@ def motor_empleo(serie, resultado, indicador, objetivo):
                 zscore_nfp_reciente / 1.5
             )
         )
+
+    if str(resultado.get("divisa", "")).strip().upper() == "USD":
+        print("\n========== DEBUG NIVEL NFP RECIENTE ==========")
+        print("ULTIMO:", ultimo)
+        print("MEDIA 24:", round(media_nfp_reciente, 2))
+        print("VOL 24:", round(volatilidad_nfp_reciente, 2))
+        print("ZSCORE 24:", round(zscore_nfp_reciente, 2))
+        print("NIVEL NFP:", round(nivel_nfp, 2))
+        print("==============================================\n")
+        
         componentes = {
             "Nivel del mercado laboral":
                 nivel_nfp,
