@@ -5911,6 +5911,34 @@ def calcular_drivers_historicos_currency_score(
 
     macro_releases = cargar_macro_releases()
 
+    if str(currency).strip().upper() == "USD":
+        print("\n========== CORE CPI EN MACRO_RELEASES ==========")
+
+        debug_core_releases = macro_releases[
+            macro_releases["Indicator"]
+            .astype(str)
+            .str.lower()
+            .str.contains("core|inflation", na=False)
+        ]
+
+        print(
+            debug_core_releases[
+                [
+                    "ReleaseDate",
+                    "Indicator",
+                    "Comparison",
+                    "Actual",
+                    "Previous",
+                    "Estimate",
+                    "Period",
+                ]
+            ]
+            .tail(20)
+            .to_string(index=False)
+        )
+
+        print("===============================================\n")
+
     cambios_historicos = []
 
     # ===================================================
