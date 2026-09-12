@@ -3621,19 +3621,33 @@ def filtrar_drivers_por_releases(
         "non farm payrolls": [
             "non farm payrolls",
         ],
+
         "consumer confidence cb": [
             "cb consumer confidence",
         ],
+
         "ism services": [
             "ism services",
             "ism services pmi",
         ],
+
         "unemployment rate": [
             "unemployment rate",
         ],
+
         "adp employment": [
             "adp employment change",
             "adp employment",
+        ],
+
+        "manufacturing pmi": [
+            "manufacturing pmi",
+            "business nz pmi",
+        ],
+
+        "services pmi": [
+            "services pmi",
+            "services nz psi",
         ],
     }
 
