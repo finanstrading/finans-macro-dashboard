@@ -618,6 +618,22 @@ def motor_crecimiento(serie, resultado, indicador, objetivo):
         "Posición histórica": score_historico(resultado),
     }
 
+    if (
+        str(resultado.get("divisa", "")).strip().upper() == "USD"
+        and str(indicador).strip() == "Unemployment Rate"
+    ):
+        print("\n========== DEBUG COMPONENTES USD UNEMPLOYMENT ==========")
+        print("SERIE:", _serie(serie).tail(6).tolist())
+        print("ULTIMO:", resultado.get("ultimo_valor"))
+        print("ANTERIOR:", resultado.get("valor_anterior"))
+        print("ZSCORE:", resultado.get("zscore"))
+        print("PERCENTIL:", resultado.get("percentil"))
+        print("TENDENCIA 12:", resultado.get("tendencia_12"))
+        print("MOMENTUM:", resultado.get("momentum_3"))
+        print("MEDIA:", resultado.get("media_historica"))
+        print("COMPONENTES:", componentes)
+        print("=========================================================\n")
+
     pesos = {
         "Ritmo de crecimiento": 0.35,
         "Tendencia": 0.25,
