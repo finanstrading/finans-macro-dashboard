@@ -6012,6 +6012,30 @@ def calcular_drivers_historicos_currency_score(
             print("=======================================================\n")
 
 
+            print("\nCLAVES RESULTADOS ANTES:")
+            print(list(resultados_anteriores.keys()))
+
+            print("\nCLAVES RESULTADOS DESPUÉS:")
+            print(list(resultados_actuales.keys()))
+
+            print("\nVALOR RELEASE ANTES:")
+            serie_ie = series_release.get("Inflation Expectations")
+
+            if serie_ie is not None:
+                print(
+                    serie_ie[
+                        serie_ie["Fecha"] <= fecha_anterior
+                    ].tail(3).to_string(index=False)
+                )
+
+            print("\nVALOR RELEASE DESPUÉS:")
+            if serie_ie is not None:
+                print(
+                    serie_ie[
+                        serie_ie["Fecha"] <= fecha_actual
+                    ].tail(3).to_string(index=False)
+                )
+
         if (
             str(currency).strip().upper() == "USD"
             and fecha_anterior.strftime("%Y-%m-%d") == "2026-09-06"
