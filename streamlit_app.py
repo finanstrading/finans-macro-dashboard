@@ -3639,6 +3639,11 @@ def filtrar_drivers_por_releases(
             "adp employment change",
             "adp employment",
         ],
+        
+        "ppi mom": [
+            "ppi",
+            "producer price index",
+        ],
 
         "manufacturing pmi": [
             "manufacturing pmi",
