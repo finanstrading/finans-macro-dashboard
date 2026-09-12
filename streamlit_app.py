@@ -5965,6 +5965,23 @@ def calcular_drivers_historicos_currency_score(
                 fecha_actual,
             )
 
+        else:
+
+            resultados_anteriores = analizar_divisa_completa(
+                df_currency,
+                currency,
+                indicadores_currency,
+                fecha_corte=fecha_anterior,
+            )
+
+            resultados_actuales = analizar_divisa_completa(
+                df_currency,
+                currency,
+                indicadores_currency,
+                fecha_corte=fecha_actual,
+            )
+
+
         if str(currency).strip().upper() == "NZD":
             print("\n========== DEBUG NZD INFLATION EXPECTATIONS ==========")
 
@@ -5994,6 +6011,7 @@ def calcular_drivers_historicos_currency_score(
 
             print("=======================================================\n")
 
+
         if (
             str(currency).strip().upper() == "USD"
             and fecha_anterior.strftime("%Y-%m-%d") == "2026-09-06"
@@ -6022,23 +6040,6 @@ def calcular_drivers_historicos_currency_score(
                     )
 
             print("====================================\n")
-
-        else:
-
-            resultados_anteriores = analizar_divisa_completa(
-                df_currency,
-                currency,
-                indicadores_currency,
-                fecha_corte=fecha_anterior,
-            )
-
-            resultados_actuales = analizar_divisa_completa(
-                df_currency,
-                currency,
-                indicadores_currency,
-                fecha_corte=fecha_actual,
-            )
-
         # ===================================================
         # CURRENCY SCORE DE AMBOS ESTADOS
         # ===================================================
