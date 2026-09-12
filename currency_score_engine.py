@@ -48,7 +48,8 @@ CURRENCY_WEIGHTS = {
             },
 
             "sentimiento": {
-                "Consumer Confidence CB": 1.00,
+                "Consumer Confidence CB": 0.60,
+                "Confianza UoM": 0.40,
             },
         },
     },
