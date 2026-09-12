@@ -5940,6 +5940,39 @@ def calcular_drivers_historicos_currency_score(
             )
 
         if (
+            str(currency).strip().upper() == "NZD"
+            and fecha_anterior.strftime("%Y-%m-%d") == "2026-08-09"
+            and fecha_actual.strftime("%Y-%m-%d") == "2026-08-16"
+        ):
+            print("\n========== DEBUG NZD INFLATION EXPECTATIONS ==========")
+
+            print("\nSERIE RELEASE:")
+            serie_debug = series_release.get("Inflation Expectations")
+
+            if serie_debug is None:
+                print("NO EXISTE EN series_release")
+            else:
+                print(
+                    serie_debug.tail(10).to_string(index=False)
+                )
+
+            print("\nRESULTADO ANTES:")
+            print(
+                resultados_anteriores.get(
+                    "Inflation Expectations"
+                )
+            )
+
+            print("\nRESULTADO DESPUÉS:")
+            print(
+                resultados_actuales.get(
+                    "Inflation Expectations"
+                )
+            )
+
+            print("=======================================================\n")
+
+        if (
             str(currency).strip().upper() == "USD"
             and fecha_anterior.strftime("%Y-%m-%d") == "2026-09-06"
             and fecha_actual.strftime("%Y-%m-%d") == "2026-09-11"
