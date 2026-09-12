@@ -928,6 +928,17 @@ def analizar_indicador(fechas, valores, indicador, divisa):
 
     ultimo = float(serie.iloc[-1])
     anterior = float(serie.iloc[-2])
+
+    if (
+        str(divisa).strip().upper() == "USD"
+        and str(indicador).strip() == "Core CPI YoY"
+    ):
+        print("\n========== DEBUG MONETARY CORE CPI ==========")
+        print("Últimos valores serie:", serie.tail(6).tolist())
+        print("ULTIMO:", ultimo)
+        print("ANTERIOR:", anterior)
+        print("=============================================\n")
+        
     percentil = calcular_percentil(ultimo, serie)
 
     resultado = {
