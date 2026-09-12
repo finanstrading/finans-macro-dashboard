@@ -284,8 +284,9 @@ CURRENCY_WEIGHTS = {
 
         "indicators": {
             "inflacion": {
-                "Core CPI YoY": 0.60,
-                "CPI YoY": 0.40,
+                "Core CPI YoY": 0.45,
+                "CPI YoY": 0.30,
+                "Inflation Expectations": 0.25,
             },
 
             "empleo": {
