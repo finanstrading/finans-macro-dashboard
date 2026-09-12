@@ -5939,6 +5939,35 @@ def calcular_drivers_historicos_currency_score(
                 fecha_actual,
             )
 
+        if (
+            str(currency).strip().upper() == "USD"
+            and fecha_anterior.strftime("%Y-%m-%d") == "2026-09-06"
+            and fecha_actual.strftime("%Y-%m-%d") == "2026-09-11"
+        ):
+            print("\n========== DEBUG CORE CPI ==========")
+
+            for etiqueta, resultados_debug in [
+                ("ANTES", resultados_anteriores),
+                ("DESPUÉS", resultados_actuales),
+            ]:
+                print(f"\n{etiqueta}:")
+
+                for nombre in [
+                    "Core CPI YoY",
+                    "CPI YoY",
+                    "PPI MoM",
+                    "Core PPI MoM",
+                ]:
+                    dato = resultados_debug.get(nombre)
+
+                    print(
+                        nombre,
+                        "=>",
+                        dato,
+                    )
+
+            print("====================================\n")
+
         else:
 
             resultados_anteriores = analizar_divisa_completa(
