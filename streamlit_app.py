@@ -4205,7 +4205,11 @@ def construir_df_currency_por_release(
             },
 
             "Core CPI YoY": {
-                "names": ["Core CPI"],
+                "names": [
+                    "Core CPI",
+                    "Core Inflation Rate",
+                    "Core Inflation Rate YoY",
+                ],
                 "comparison": "yoy",
             },
 
