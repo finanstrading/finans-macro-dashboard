@@ -9655,7 +9655,7 @@ try:
 
             function prepararIndicadorMovil() {
 
-                if (window.parent.innerWidth > 1400) {
+                if (window.parent.innerWidth > 640) {
                     return;
                 }
 
