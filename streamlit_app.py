@@ -4125,6 +4125,34 @@ def construir_df_currency_por_release(
 
     df_releases = cargar_macro_releases()
 
+    if str(currency).strip().upper() == "USD":
+        print("\n========== CORE CPI EN MACRO_RELEASES ==========")
+
+        debug_core_releases = releases[
+            releases["Indicator"]
+            .astype(str)
+            .str.lower()
+            .str.contains("core|inflation", na=False)
+        ]
+
+        print(
+            debug_core_releases[
+                [
+                    "ReleaseDate",
+                    "Indicator",
+                    "Comparison",
+                    "Actual",
+                    "Previous",
+                    "Estimate",
+                    "Period",
+                ]
+            ]
+            .tail(20)
+            .to_string(index=False)
+        )
+
+        print("===============================================\n")
+
     df_releases = df_releases[
         df_releases["Currency"].eq(currency)
     ].copy()
