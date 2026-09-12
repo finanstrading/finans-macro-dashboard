@@ -716,7 +716,15 @@ Interpret the five categories as follows:
   inflation vigilance relative to the committee.
 - Lean Hawkish: discernible hawkish inclination, but less strong or less
   persistent than Hawkish.
-- Neutral: NO CLEAR STRUCTURAL HAWKISH OR DOVISH BIAS. The member can lean
+- Neutral: NO CLEAR STRUCTURAL HAWKISH OR DOVISH BIAS. 
+    Use Lean Hawkish or Lean Dovish whenever there is a consistent but moderate
+    directional inclination, even if the evidence is not strong enough to justify
+    a full Hawkish or Dovish classification.
+
+    Do not overuse Neutral. If the balance of recent votes, speeches and reaction
+    function consistently tilts in one direction, prefer the corresponding Lean
+    category over Neutral.
+The member can lean
   toward either camp depending on incoming data and circumstances.
   IMPORTANT: Neutral does NOT mean the member favors unchanged rates,
   does NOT mean "Hold", and does NOT mean centrist voting at the next meeting.
