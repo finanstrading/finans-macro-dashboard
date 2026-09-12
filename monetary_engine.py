@@ -947,6 +947,16 @@ def analizar_indicador(fechas, valores, indicador, divisa):
 
     if (
         str(divisa).strip().upper() == "USD"
+        and str(indicador).strip() == "Non Farm Payrolls"
+    ):
+        print("\n========== DEBUG USD NFP ==========")
+        print("Últimos valores serie:", serie.tail(8).tolist())
+        print("ULTIMO:", ultimo)
+        print("ANTERIOR:", anterior)
+        print("===================================\n")
+
+    if (
+        str(divisa).strip().upper() == "USD"
         and str(indicador).strip() == "Unemployment Rate"
     ):
         print("\n========== DEBUG USD UNEMPLOYMENT ==========")
