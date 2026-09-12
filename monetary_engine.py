@@ -636,9 +636,34 @@ def motor_empleo(serie, resultado, indicador, objetivo):
     # Tratamiento específico del Non Farm Payrolls.
     if es_nfp(indicador):
 
+        serie_nfp_reciente = _serie(serie).tail(24)
+
+        if len(serie_nfp_reciente) >= 6:
+            media_nfp_reciente = float(serie_nfp_reciente.mean())
+            volatilidad_nfp_reciente = float(serie_nfp_reciente.std())
+        else:
+            media_nfp_reciente = float(_serie(serie).mean())
+            volatilidad_nfp_reciente = float(_serie(serie).std())
+
+        volatilidad_nfp_reciente = max(
+            volatilidad_nfp_reciente,
+            30000.0,
+        )
+
+        zscore_nfp_reciente = (
+            (ultimo - media_nfp_reciente)
+            / volatilidad_nfp_reciente
+        )
+
+        nivel_nfp = _limitar(
+            50.0
+            + 22.0 * np.tanh(
+                zscore_nfp_reciente / 1.5
+            )
+        )
         componentes = {
             "Nivel del mercado laboral":
-                score_nivel_relativo(resultado),
+                nivel_nfp,
 
             "Tendencia":
                 score_tendencia(resultado),
