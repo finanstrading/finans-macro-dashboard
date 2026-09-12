@@ -265,7 +265,7 @@ def clasificar_indicador(indicador):
 
     if any(p in nombre for p in (
         "consumer confidence", "business confidence", "economic sentiment",
-        "zew", "ifo", "business climate", "confidence"
+        "zew", "ifo", "business climate", "confidence", "confianza"
     )):
         return "confianza"
 
@@ -670,7 +670,7 @@ def motor_empleo(serie, resultado, indicador, objetivo):
         print("ZSCORE 24:", round(zscore_nfp_reciente, 2))
         print("NIVEL NFP:", round(nivel_nfp, 2))
         print("==============================================\n")
-        
+
         componentes = {
             "Nivel del mercado laboral":
                 nivel_nfp,
