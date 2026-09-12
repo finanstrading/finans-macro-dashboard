@@ -6007,6 +6007,40 @@ def calcular_drivers_historicos_currency_score(
         # CONSERVAR SOLO INDICADORES REALMENTE PUBLICADOS
         # ===================================================
 
+        print("\n================ DEBUG DRIVERS ================")
+        print("INTERVALO:", fecha_anterior, "->", fecha_actual)
+
+        print("\nDRIVERS ANTES DEL FILTRO:")
+        for d in drivers:
+            print(
+                d.get("Indicador"),
+                "|",
+                d.get("Score anterior"),
+                "->",
+                d.get("Score actual"),
+                "| impacto:",
+                d.get("Impacto estimado"),
+            )
+
+        print("\nRELEASES DEL INTERVALO:")
+        if releases_intervalo is not None and not releases_intervalo.empty:
+            print(
+                releases_intervalo[
+                    [
+                        "ReleaseDate",
+                        "Indicator",
+                        "Comparison",
+                        "Actual",
+                        "Previous",
+                        "Estimate",
+                    ]
+                ].to_string(index=False)
+            )
+        else:
+            print("SIN RELEASES")
+
+        print("================================================\n")
+
         drivers = filtrar_drivers_por_releases(
             drivers,
             releases_intervalo,
