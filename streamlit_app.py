@@ -6057,6 +6057,17 @@ def calcular_drivers_historicos_currency_score(
         ):
             print("\n========== DEBUG CORE CPI ==========")
 
+            serie_core = series_release.get("Core CPI YoY")
+
+            print("\nSERIE CORE CPI RELEASE-AWARE:")
+
+            if serie_core is None:
+                print("NO EXISTE Core CPI YoY EN series_release")
+            else:
+                print(
+                    serie_core.tail(6).to_string(index=False)
+                )
+
             for etiqueta, resultados_debug in [
                 ("ANTES", resultados_anteriores),
                 ("DESPUÉS", resultados_actuales),
