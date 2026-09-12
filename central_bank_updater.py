@@ -610,7 +610,22 @@ PART A — RECENT STATEMENTS
 
 Search the web for RECENT statements, interviews, speeches,
 testimony, minutes-related comments or direct remarks made during
-approximately the last 48 hours by relevant officials of this central bank.
+approximately the last 72 hours by relevant officials of this central bank.
+
+MANDATORY COVERAGE PROCEDURE:
+- Search EACH current/fallback voter's full name together with the central-bank
+  name or acronym; do not rely only on a general central-bank news search.
+- For Part A, search both official sources and reputable financial-news/wire
+  sources, including Reuters, Bloomberg, MNI/Market News, Newsquawk and other
+  outlets that report direct central-bank remarks.
+- An interview or direct quotation remains eligible when the original article
+  is paywalled, provided an accessible reputable result accurately reports the
+  remark. Use the best accessible reporting URL as source_url.
+- If recent evidence found while researching Part B contains a direct,
+  monetary-policy-relevant statement by a voter, it MUST also be returned in
+  Part A as an event. Do not leave it only inside that member's reason field.
+- Before returning an empty events array, explicitly verify every listed
+  current/fallback voter for the search window.
 
 Only include comments that matter for monetary policy or FX.
 
@@ -630,7 +645,10 @@ PART B — CURRENT VOTERS
 First verify who CURRENTLY HAS A VOTE on the interest-rate decision
 for the NEXT scheduled policy meeting.
 
-Use OFFICIAL central-bank sources as the primary authority.
+Use OFFICIAL central-bank sources as the primary authority for committee
+membership. This official-source preference does NOT restrict Part A:
+reputable interviews, wires and financial-news reports are valid statement
+sources.
 
 Rules:
 - Exclude observers, alternates and non-voting participants.
