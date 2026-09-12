@@ -660,6 +660,23 @@ def motor_empleo(serie, resultado, indicador, objetivo):
 
     if (
         str(resultado.get("divisa", "")).strip().upper() == "USD"
+        and str(indicador).strip() == "Non Farm Payrolls"
+    ):
+        print("\n========== DEBUG COMPONENTES USD NFP ==========")
+        print("SERIE:", _serie(serie).tail(8).tolist())
+        print("ULTIMO:", resultado.get("ultimo_valor"))
+        print("ANTERIOR:", resultado.get("valor_anterior"))
+        print("MEDIA:", resultado.get("media_historica"))
+        print("VOLATILIDAD:", resultado.get("volatilidad"))
+        print("ZSCORE:", resultado.get("zscore"))
+        print("PERCENTIL:", resultado.get("percentil"))
+        print("TENDENCIA 12:", resultado.get("tendencia_12"))
+        print("MOMENTUM:", resultado.get("momentum_3"))
+        print("COMPONENTES:", componentes)
+        print("================================================\n")
+
+    if (
+        str(resultado.get("divisa", "")).strip().upper() == "USD"
         and str(indicador).strip() == "Unemployment Rate"
     ):
         print("\n========== DEBUG COMPONENTES USD UNEMPLOYMENT ==========")
