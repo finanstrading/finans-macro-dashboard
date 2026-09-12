@@ -1121,6 +1121,111 @@ def analizar_indicador(fechas, valores, indicador, divisa):
             relevancia,
         )
 
+# Aplicamos también al estado anterior el guardrail correspondiente
+# a su propio último movimiento.
+
+        if len(serie_anterior) >= 3:
+
+            serie_previa = serie_anterior.iloc[:-1].copy()
+
+            ultimo_previo = float(serie_previa.iloc[-1])
+            penultimo_previo = float(serie_previa.iloc[-2])
+
+            percentil_previo = calcular_percentil(
+                ultimo_previo,
+                serie_previa,
+            )
+
+            resultado_previo = {
+                "divisa": divisa,
+                "indicador": indicador,
+                "ultimo_valor": round(ultimo_previo, 2),
+                "valor_anterior": round(penultimo_previo, 2),
+                "variacion": round(ultimo_previo - penultimo_previo, 2),
+                "media_historica": round(float(serie_previa.mean()), 2),
+                "maximo_historico": round(float(serie_previa.max()), 2),
+                "minimo_historico": round(float(serie_previa.min()), 2),
+                "percentil": percentil_previo,
+                "categoria_percentil": clasificar_percentil(percentil_previo),
+                "zscore": calcular_zscore(ultimo_previo, serie_previa),
+                "volatilidad": calcular_volatilidad(serie_previa),
+                "momentum_3": calcular_momentum(serie_previa, 3),
+                "momentum_6": calcular_momentum(serie_previa, 6),
+                "momentum_12": calcular_momentum(serie_previa, 12),
+                "distancia_maximo": round(
+                    float(serie_previa.max() - ultimo_previo),
+                    2,
+                ),
+                "distancia_minimo": round(
+                    float(ultimo_previo - serie_previa.min()),
+                    2,
+                ),
+                "tendencia_3": calcular_tendencia(serie_previa, 3),
+                "tendencia_6": calcular_tendencia(serie_previa, 6),
+                "tendencia_12": calcular_tendencia(serie_previa, 12),
+            }
+
+            componentes_previos, pesos_previos, _ = motor(
+                serie_previa,
+                resultado_previo,
+                indicador,
+                float(config_banco["objetivo_inflacion"]),
+            )
+
+            score_base_previo = calcular_score(
+                componentes_previos,
+                pesos_previos,
+            )
+
+            score_ajustado_previo = ajustar_por_relevancia(
+                score_base_previo,
+                relevancia,
+            )
+
+            mandato_anterior_tmp = componentes_anteriores.get(
+                "Mandato de estabilidad de precios"
+            )
+
+            mandato_previo_tmp = componentes_previos.get(
+                "Mandato de estabilidad de precios"
+            )
+
+            if (
+                mandato_anterior_tmp is not None
+                and mandato_previo_tmp is not None
+            ):
+                cambio_directo_anterior = (
+                    mandato_anterior_tmp - mandato_previo_tmp
+                ) * pesos_anteriores.get(
+                    "Mandato de estabilidad de precios",
+                    0.45,
+                ) * relevancia
+            else:
+                cambio_directo_anterior = 0.0
+
+            if (
+                ultimo_anterior < penultimo_anterior
+                and score_ajustado_anterior >= score_ajustado_previo
+            ):
+                score_ajustado_anterior = (
+                    score_ajustado_previo
+                    + min(cambio_directo_anterior, -0.1)
+                )
+
+            elif (
+                ultimo_anterior > penultimo_anterior
+                and score_ajustado_anterior <= score_ajustado_previo
+            ):
+                score_ajustado_anterior = (
+                    score_ajustado_previo
+                    + max(cambio_directo_anterior, 0.1)
+                )
+
+            score_ajustado_anterior = round(
+                _limitar(score_ajustado_anterior),
+                1,
+            )
+
         if (
             str(divisa).strip().upper() == "USD"
             and str(indicador).strip() == "Core CPI YoY"
