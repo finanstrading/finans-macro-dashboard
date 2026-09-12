@@ -673,7 +673,7 @@ def motor_empleo(serie, resultado, indicador, objetivo):
         print("MEDIA:", resultado.get("media_historica"))
         print("COMPONENTES:", componentes)
         print("=========================================================\n")
-        
+
         pesos = {
             "Nivel del mercado laboral": 0.25,
             "Tendencia": 0.15,
@@ -1323,6 +1323,121 @@ def analizar_indicador(fechas, valores, indicador, divisa):
             _limitar(score_ajustado),
             1,
         )
+
+        # ============================================================
+        # DATO LABORAL SIN CAMBIO
+        #
+        # Si una nueva publicación laboral mantiene exactamente
+        # el mismo valor que la anterior, conservamos el score
+        # del estado anterior para evitar un driver artificial.
+        # ============================================================
+
+        if (
+            tipo == "empleo"
+            and len(serie) >= 3
+            and ultimo == anterior
+        ):
+
+            serie_anterior = serie.iloc[:-1].copy()
+
+            ultimo_anterior = float(serie_anterior.iloc[-1])
+            penultimo_anterior = float(serie_anterior.iloc[-2])
+
+            percentil_anterior = calcular_percentil(
+                ultimo_anterior,
+                serie_anterior,
+            )
+
+            resultado_anterior = {
+                "divisa": divisa,
+                "indicador": indicador,
+                "ultimo_valor": round(ultimo_anterior, 2),
+                "valor_anterior": round(penultimo_anterior, 2),
+                "variacion": round(
+                    ultimo_anterior - penultimo_anterior,
+                    2,
+                ),
+                "media_historica": round(
+                    float(serie_anterior.mean()),
+                    2,
+                ),
+                "maximo_historico": round(
+                    float(serie_anterior.max()),
+                    2,
+                ),
+                "minimo_historico": round(
+                    float(serie_anterior.min()),
+                    2,
+                ),
+                "percentil": percentil_anterior,
+                "categoria_percentil": clasificar_percentil(
+                    percentil_anterior
+                ),
+                "zscore": calcular_zscore(
+                    ultimo_anterior,
+                    serie_anterior,
+                ),
+                "volatilidad": calcular_volatilidad(
+                    serie_anterior
+                ),
+                "momentum_3": calcular_momentum(
+                    serie_anterior,
+                    3,
+                ),
+                "momentum_6": calcular_momentum(
+                    serie_anterior,
+                    6,
+                ),
+                "momentum_12": calcular_momentum(
+                    serie_anterior,
+                    12,
+                ),
+                "distancia_maximo": round(
+                    float(
+                        serie_anterior.max()
+                        - ultimo_anterior
+                    ),
+                    2,
+                ),
+                "distancia_minimo": round(
+                    float(
+                        ultimo_anterior
+                        - serie_anterior.min()
+                    ),
+                    2,
+                ),
+                "tendencia_3": calcular_tendencia(
+                    serie_anterior,
+                    3,
+                ),
+                "tendencia_6": calcular_tendencia(
+                    serie_anterior,
+                    6,
+                ),
+                "tendencia_12": calcular_tendencia(
+                    serie_anterior,
+                    12,
+                ),
+            }
+
+            componentes_anteriores, pesos_anteriores, _ = motor(
+                serie_anterior,
+                resultado_anterior,
+                indicador,
+                float(config_banco["objetivo_inflacion"]),
+            )
+
+            score_base_anterior = calcular_score(
+                componentes_anteriores,
+                pesos_anteriores,
+            )
+
+            score_ajustado_anterior = ajustar_por_relevancia(
+                score_base_anterior,
+                relevancia,
+            )
+
+            score_ajustado = score_ajustado_anterior
 
     resultado.update({
         "macro_score": score_ajustado,
