@@ -5939,11 +5939,7 @@ def calcular_drivers_historicos_currency_score(
                 fecha_actual,
             )
 
-        if (
-            str(currency).strip().upper() == "NZD"
-            and fecha_anterior.strftime("%Y-%m-%d") == "2026-08-09"
-            and fecha_actual.strftime("%Y-%m-%d") == "2026-08-16"
-        ):
+        if str(currency).strip().upper() == "NZD":
             print("\n========== DEBUG NZD INFLATION EXPECTATIONS ==========")
 
             print("\nSERIE RELEASE:")
