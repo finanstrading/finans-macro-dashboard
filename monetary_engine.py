@@ -931,6 +931,16 @@ def analizar_indicador(fechas, valores, indicador, divisa):
 
     if (
         str(divisa).strip().upper() == "USD"
+        and str(indicador).strip() == "Unemployment Rate"
+    ):
+        print("\n========== DEBUG USD UNEMPLOYMENT ==========")
+        print("Últimos valores serie:", serie.tail(6).tolist())
+        print("ULTIMO:", ultimo)
+        print("ANTERIOR:", anterior)
+        print("============================================\n")
+
+    if (
+        str(divisa).strip().upper() == "USD"
         and str(indicador).strip() == "Core CPI YoY"
     ):
         print("\n========== DEBUG MONETARY CORE CPI ==========")
