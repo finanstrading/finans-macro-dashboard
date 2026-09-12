@@ -5124,6 +5124,23 @@ def construir_df_currency_por_release(
             # Se considera correspondiente al mes de publicación.
             # ===================================================
 
+            # NZD Inflation Expectations:
+            # el Dashboard identifica la observación por trimestre
+            # (Mar / Jun / Sep / Dec), aunque se publique antes
+            if (
+                currency == "NZD"
+                and nombre_score == "Inflation Expectations"
+            ):
+                mes_trimestre = (
+                    ((release_date.month - 1) // 3 + 1) * 3
+                )
+
+                return pd.Period(
+                    year=release_date.year,
+                    month=mes_trimestre,
+                    freq="M",
+                )
+
             if (
                 not periodo_texto
                 or periodo_texto.lower() == "nan"
