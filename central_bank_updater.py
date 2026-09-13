@@ -33,6 +33,12 @@ RECALIBRATE_BIAS = os.environ.get(
 AUTO_BIAS_EVOLUTION = True
 MAX_AUTO_BIAS_STEP = 1
 
+# V13.2 stability guards. Roster membership is authoritative and independent
+# from the AI research result; AI may enrich members, but cannot invent/remove
+# voters. Structural bias also gets one-run hysteresis against immediate reversal.
+OFFICIAL_ROSTER_GUARD = True
+BIAS_HYSTERESIS = True
+
 
 COMMITTEE_CONFIG = {
     "USD": {
@@ -159,6 +165,21 @@ COMMITTEE_CONFIG = {
         ],
     },
 }
+
+
+# Official committee-roster sources. The exact roster used by the updater is the
+# `fallback_voters` list above (plus deterministic ECB rotation below). This
+# prevents a web-search hallucination or a retired member from entering Sheets.
+OFFICIAL_ROSTER_SOURCES = {
+    "USD": ("Federal Reserve — FOMC", "https://www.federalreserve.gov/monetarypolicy/fomc.htm"),
+    "GBP": ("Bank of England — Monetary Policy Committee", "https://www.bankofengland.co.uk/about/people/monetary-policy-committee"),
+    "JPY": ("Bank of Japan — Policy Board", "https://www.boj.or.jp/en/about/organization/policyboard/index.htm"),
+    "CHF": ("Swiss National Bank — Governing Board", "https://www.snb.ch/en/the-snb/organisation/supervisory-management-bodies/board"),
+    "AUD": ("Reserve Bank of Australia — Monetary Policy Board", "https://www.rba.gov.au/about-rba/boards/mpb.html"),
+    "NZD": ("Reserve Bank of New Zealand — Monetary Policy Committee", "https://www.rbnz.govt.nz/about-us/organisation-and-governance/monetary-policy-committee"),
+    "CAD": ("Bank of Canada — Governing Council", "https://www.bankofcanada.ca/about/governing-council/"),
+}
+
 
 
 # ===================================================
@@ -347,6 +368,84 @@ def _previous_as_ai_item(previous, name):
             or ""
         ).strip(),
     }
+
+
+def _stabilize_official_roster(currency, ai_members, previous_members, committee):
+    """
+    Lock non-ECB committees to the verified roster in COMMITTEE_CONFIG.
+
+    AI is allowed to research bias/evidence for those names, but it cannot add a
+    retired/non-voting person or silently remove an official voter. Missing AI
+    research falls back to the prior snapshot, then to a neutral placeholder.
+    """
+    if not OFFICIAL_ROSTER_GUARD or currency == "EUR":
+        return ai_members
+
+    target_names = list(COMMITTEE_CONFIG[currency]["fallback_voters"])
+    previous_index = _indice_previos(previous_members or [])
+
+    ai_index = {}
+    for item in ai_members or []:
+        name = str(item.get("name") or "").strip()
+        key = _normalizar_nombre(name)
+        if name and key and key not in ai_index:
+            ai_index[key] = item
+
+    source_name, source_url = OFFICIAL_ROSTER_SOURCES.get(
+        currency,
+        (COMMITTEE_CONFIG[currency]["banco"], ""),
+    )
+    committee["membership_source"] = source_name
+    committee["membership_source_url"] = source_url
+
+    stabilized = []
+    for target_name in target_names:
+        key = _normalizar_nombre(target_name)
+
+        if key in ai_index:
+            item = dict(ai_index[key])
+            item["name"] = target_name
+            stabilized.append(item)
+            continue
+
+        previous = previous_index.get(key)
+        if previous:
+            stabilized.append(_previous_as_ai_item(previous, target_name))
+            continue
+
+        stabilized.append({
+            "name": target_name,
+            "structural_bias_candidate": "Neutral",
+            "latest_signal": "Neutral",
+            "expected_vote": "Unclear",
+            "confidence": "Low",
+            "evidence_type": "No new evidence",
+            "reason": (
+                "Votante incluido por el roster oficial protegido; "
+                "sin evidencia individual suficiente en esta ejecución."
+            ),
+            "evidence_date": None,
+            "source": source_name,
+            "source_url": source_url,
+        })
+
+    ignored = []
+    allowed = {_normalizar_nombre(x) for x in target_names}
+    for item in ai_members or []:
+        name = str(item.get("name") or "").strip()
+        if name and _normalizar_nombre(name) not in allowed:
+            ignored.append(name)
+
+    if ignored:
+        print(
+            f"[{currency}] ROSTER GUARD · ignored non-roster AI members: "
+            + ", ".join(ignored)
+        )
+
+    print(
+        f"[{currency}] ROSTER GUARD · official voters={len(stabilized)}"
+    )
+    return stabilized
 
 
 def _stabilize_ecb_members(ai_members, previous_members, committee):
@@ -1196,12 +1295,55 @@ def _indice_previos(previous_members):
     return salida
 
 
+def _hysteresis_blocks_reversal(
+    previous_bias,
+    previous_previous_bias,
+    previous_change,
+    structural_bias_candidate,
+    confidence,
+    evidence_type,
+    recalibrate=False,
+):
+    """Block an immediate reversal on the run right after a structural change.
+
+    The saved row already contains StructuralBias, PreviousBias and BiasChange.
+    If the last run moved the member and today's candidate points back in the
+    opposite direction, require a second confirming run. Only an explicit,
+    high-confidence stance change can override the cooldown immediately.
+    """
+    if recalibrate or not BIAS_HYSTERESIS:
+        return False
+    if previous_bias not in BIAS_SCORE or previous_previous_bias not in BIAS_SCORE:
+        return False
+    if structural_bias_candidate not in BIAS_SCORE:
+        return False
+    if previous_change not in {"More Hawkish", "More Dovish"}:
+        return False
+
+    last_delta = BIAS_SCORE[previous_bias] - BIAS_SCORE[previous_previous_bias]
+    new_delta = BIAS_SCORE[structural_bias_candidate] - BIAS_SCORE[previous_bias]
+    if last_delta == 0 or new_delta == 0:
+        return False
+
+    is_reversal = (last_delta > 0 and new_delta < 0) or (last_delta < 0 and new_delta > 0)
+    if not is_reversal:
+        return False
+
+    exceptional_override = (
+        evidence_type == "Explicit stance change"
+        and confidence == "High"
+    )
+    return not exceptional_override
+
+
 def _resolver_bias(
     previous_bias,
     structural_bias_candidate,
     latest_signal,
     confidence,
     evidence_type,
+    previous_previous_bias="",
+    previous_change="",
     recalibrate=False,
 ):
     """
@@ -1233,6 +1375,17 @@ def _resolver_bias(
     if structural_bias_candidate == previous_bias:
         return previous_bias
     if evidence_type == "No new evidence":
+        return previous_bias
+
+    if _hysteresis_blocks_reversal(
+        previous_bias,
+        previous_previous_bias,
+        previous_change,
+        structural_bias_candidate,
+        confidence,
+        evidence_type,
+        recalibrate=recalibrate,
+    ):
         return previous_bias
 
     prev_score = BIAS_SCORE[previous_bias]
@@ -1316,6 +1469,13 @@ def preparar_central_bank_members(
                 committee,
             )
         )
+    else:
+        ai_members = _stabilize_official_roster(
+            currency,
+            ai_members,
+            previous_members,
+            committee,
+        )
 
     previous_index = _indice_previos(
         previous_members
@@ -1368,6 +1528,17 @@ def preparar_central_bank_members(
             or ""
         ).strip()
 
+        previous_previous_bias = str(
+            previous.get("PreviousBias")
+            or previous.get("previous_bias")
+            or ""
+        ).strip()
+        previous_change = str(
+            previous.get("BiasChange")
+            or previous.get("bias_change")
+            or ""
+        ).strip()
+
         structural_bias_candidate = str(
             item.get("structural_bias_candidate")
             or "Neutral"
@@ -1388,12 +1559,24 @@ def preparar_central_bank_members(
             or structural_bias_candidate
         ).strip()
 
+        hysteresis_blocked = _hysteresis_blocks_reversal(
+            previous_bias,
+            previous_previous_bias,
+            previous_change,
+            structural_bias_candidate,
+            confidence,
+            evidence_type,
+            recalibrate=RECALIBRATE_BIAS,
+        )
+
         structural_bias = _resolver_bias(
             previous_bias,
             structural_bias_candidate,
             latest_signal,
             confidence,
             evidence_type,
+            previous_previous_bias=previous_previous_bias,
+            previous_change=previous_change,
             recalibrate=RECALIBRATE_BIAS,
         )
 
@@ -1407,6 +1590,8 @@ def preparar_central_bank_members(
         if previous_bias in VALID_BIASES:
             if structural_bias != previous_bias:
                 decision = f"CHANGE -> {structural_bias}"
+            elif hysteresis_blocked:
+                decision = f"HYSTERESIS HOLD {structural_bias}"
             else:
                 decision = f"KEEP {structural_bias}"
         else:
@@ -1866,7 +2051,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V13.1 BACKEND FAILSAFE ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V13.2 ROSTER GUARD + HYSTERESIS ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
