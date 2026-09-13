@@ -541,9 +541,12 @@ def _webapp_post(payload, timeout=90, max_retries=3):
 
 def cargar_estado_previo_miembros(currency):
     """
-    Lee CentralBank_Members a través del mismo Web App.
-    Si todavía no existe la hoja/acción, devuelve vacío para permitir
-    la primera ejecución.
+    Lee CentralBank_Members a través del Web App y distingue dos estados:
+
+    - (members, True): la lectura del backend fue válida. `members` puede ser []
+      en una inicialización real.
+    - ([], False): el backend falló. Este caso NUNCA debe interpretarse como
+      una primera ejecución, porque podría sobrescribir el snapshot histórico.
     """
     try:
         data = _webapp_post(
@@ -554,14 +557,22 @@ def cargar_estado_previo_miembros(currency):
         )
         members = data.get("members", [])
         if isinstance(members, list):
-            return members
-    except Exception as error:
-        print(
-            f"[{currency}] Aviso: no se pudo cargar estado previo "
-            f"de miembros: {error}"
+            return members, True
+
+        raise ValueError(
+            "get_central_bank_members devolvió un campo members no válido."
         )
 
-    return []
+    except Exception as error:
+        print(
+            f"[{currency}] FAILSAFE · no se pudo cargar el snapshot previo: "
+            f"{error}"
+        )
+        print(
+            f"[{currency}] FAILSAFE · se conservará CentralBank_Members sin cambios "
+            "para evitar una falsa inicialización."
+        )
+        return [], False
 
 
 # ===================================================
@@ -1626,16 +1637,19 @@ def actualizar_central_bank_currency(currency):
         currency
     ).strip().upper()
 
-    previous_members = (
+    previous_members, previous_state_ok = (
         cargar_estado_previo_miembros(
             currency
         )
     )
 
+    # La búsqueda de declaraciones puede seguir ejecutándose aunque falle la
+    # lectura del snapshot. Sin embargo, la composición/bias NO se persistirá
+    # en ese caso: el estado histórico existente en Sheets es más seguro.
     resultado_texto = (
         buscar_bancos_centrales_ia(
             currency,
-            previous_members,
+            previous_members if previous_state_ok else [],
         )
     )
 
@@ -1657,33 +1671,71 @@ def actualizar_central_bank_currency(currency):
         )
     )
 
-    members, changes = (
-        preparar_central_bank_members(
-            currency,
-            data,
-            previous_members,
-        )
-    )
-
     resultado_drivers = (
         guardar_central_bank_drivers(
             eventos
         )
     )
 
-    resultado_members = (
-        guardar_central_bank_members(
-            currency,
-            members,
-            changes,
+    committee_skipped = not previous_state_ok
+
+    if committee_skipped:
+        # CRITICAL FAILSAFE:
+        # Si no conocemos el estado anterior, no calculamos ni guardamos un nuevo
+        # snapshot. Así `current=None` nunca puede convertirse en INITIAL por un
+        # fallo temporal de Apps Script.
+        members = []
+        changes = []
+        resultado_members = {
+            "ok": True,
+            "skipped": True,
+            "reason": "previous_snapshot_unavailable",
+        }
+        print(
+            f"[{currency}] COMMITTEE SKIPPED · snapshot previo no disponible; "
+            "se conserva el estado existente en Sheets."
         )
-    )
+    else:
+        members, changes = (
+            preparar_central_bank_members(
+                currency,
+                data,
+                previous_members,
+            )
+        )
+
+        try:
+            resultado_members = (
+                guardar_central_bank_members(
+                    currency,
+                    members,
+                    changes,
+                )
+            )
+        except Exception as error:
+            # Guardar el comité es una sustitución del snapshot. Si falla, el
+            # snapshot anterior permanece intacto. Registramos el fallo como skip
+            # seguro para no convertir un problema transitorio en corrupción de datos.
+            committee_skipped = True
+            print(
+                f"[{currency}] COMMITTEE SAVE FAILED · {error}"
+            )
+            print(
+                f"[{currency}] FAILSAFE · se conserva el snapshot anterior en Sheets."
+            )
+            resultado_members = {
+                "ok": False,
+                "skipped": True,
+                "reason": "committee_save_failed",
+                "error": str(error),
+            }
 
     return {
         "currency": currency,
         "events_found": len(eventos),
         "members_found": len(members),
         "changes_found": len(changes),
+        "committee_skipped": committee_skipped,
         "drivers_save_result": (
             resultado_drivers
         ),
@@ -1750,6 +1802,7 @@ def actualizar_todos_central_bank_drivers():
                     f"{resultado['events_found']} declaraciones · "
                     f"{resultado['members_found']} votantes · "
                     f"{resultado['changes_found']} cambios"
+                    + (" · COMMITTEE SKIPPED" if resultado.get("committee_skipped") else "")
                 )
 
                 break
@@ -1813,7 +1866,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V13 STRUCTURAL CANDIDATE ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V13.1 BACKEND FAILSAFE ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
