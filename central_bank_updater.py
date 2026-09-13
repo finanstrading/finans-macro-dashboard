@@ -57,6 +57,11 @@ V14_DRY_RUN = os.environ.get(
 
 V14_REQUIRE_CONFIRMATION_FOR_EXTREMES = True
 
+# V14.3: component-level evidence audit.
+# OpenAI proposes V/P/R scores, but Python accepts them only when the
+# corresponding evidence payload satisfies deterministic validation rules.
+V14_COMPONENT_EVIDENCE_AUDIT = True
+
 
 COMMITTEE_CONFIG = {
     "USD": {
@@ -639,6 +644,134 @@ def _evidence_quality_weight(evidence_type, confidence):
     return type_weight * conf_weight
 
 
+def _valid_https_url(value):
+    value = str(value or "").strip()
+    return value.startswith("https://")
+
+
+def _valid_iso_date(value):
+    value = str(value or "").strip()
+    if not value:
+        return False
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+        return True
+    except Exception:
+        return False
+
+
+def _component_payload_ok(item, prefix):
+    evidence = str(item.get(f"{prefix}_evidence") or "").strip()
+    source = str(item.get(f"{prefix}_source") or "").strip()
+    source_url = str(item.get(f"{prefix}_source_url") or "").strip()
+    date_value = item.get(f"{prefix}_date")
+    return (
+        bool(evidence)
+        and bool(source)
+        and _valid_https_url(source_url)
+        and _valid_iso_date(date_value)
+    )
+
+
+def _audit_component_scores(item):
+    """
+    V14.3 deterministic evidence audit.
+
+    OpenAI can propose vote/path/risk scores, but Python is authoritative.
+    A component is zeroed when its component-specific evidence is insufficient.
+
+    vote_score:
+      - non-zero requires a dated source + explicit formal vote/proposal evidence
+        and vote_verified_official=True.
+      - |2| additionally requires vote_differentiated=True.
+
+    path_score:
+      - non-zero requires a dated source + explicit relative policy-path evidence
+        and path_explicit_relative=True.
+      - |2| additionally requires High confidence.
+
+    risk_score:
+      - non-zero requires a dated source + reaction-function evidence.
+      - |2| additionally requires risk_persistent=True and High confidence.
+    """
+    if not V14_COMPONENT_EVIDENCE_AUDIT:
+        return {
+            "vote_score": _clamp(item.get("vote_score", 0)),
+            "path_score": _clamp(item.get("path_score", 0)),
+            "risk_score": _clamp(item.get("risk_score", 0)),
+            "vote_audit": "audit_disabled",
+            "path_audit": "audit_disabled",
+            "risk_audit": "audit_disabled",
+        }
+
+    def proposed(key):
+        try:
+            return _clamp(item.get(key, 0))
+        except Exception:
+            return 0.0
+
+    confidence = str(item.get("confidence") or "Low").strip()
+
+    vote = proposed("vote_score")
+    path = proposed("path_score")
+    risk = proposed("risk_score")
+
+    vote_audit = "accepted_zero"
+    path_audit = "accepted_zero"
+    risk_audit = "accepted_zero"
+
+    # ---- Vote ----
+    if vote != 0:
+        if not _component_payload_ok(item, "vote"):
+            vote = 0.0
+            vote_audit = "zeroed_missing_component_evidence"
+        elif item.get("vote_verified_official") is not True:
+            vote = 0.0
+            vote_audit = "zeroed_not_verified_official"
+        elif abs(vote) >= 1.5 and item.get("vote_differentiated") is not True:
+            vote = 0.0
+            vote_audit = "zeroed_extreme_not_differentiated"
+        else:
+            vote_audit = "accepted"
+
+    # ---- Path ----
+    if path != 0:
+        if not _component_payload_ok(item, "path"):
+            path = 0.0
+            path_audit = "zeroed_missing_component_evidence"
+        elif item.get("path_explicit_relative") is not True:
+            path = 0.0
+            path_audit = "zeroed_not_explicit_relative"
+        elif abs(path) >= 1.5 and confidence != "High":
+            # Preserve direction but cap an insufficiently confirmed extreme at ±1.
+            path = 1.0 if path > 0 else -1.0
+            path_audit = "capped_extreme_without_high_confidence"
+        else:
+            path_audit = "accepted"
+
+    # ---- Risk ----
+    if risk != 0:
+        if not _component_payload_ok(item, "risk"):
+            risk = 0.0
+            risk_audit = "zeroed_missing_component_evidence"
+        elif abs(risk) >= 1.5 and not (
+            item.get("risk_persistent") is True and confidence == "High"
+        ):
+            risk = 1.0 if risk > 0 else -1.0
+            risk_audit = "capped_extreme_without_persistence"
+        else:
+            risk_audit = "accepted"
+
+    return {
+        "vote_score": float(vote),
+        "path_score": float(path),
+        "risk_score": float(risk),
+        "vote_audit": vote_audit,
+        "path_audit": path_audit,
+        "risk_audit": risk_audit,
+    }
+
+
 def _raw_evidence_score(item):
     """
     OpenAI supplies evidence dimensions only. Python combines them.
@@ -647,15 +780,10 @@ def _raw_evidence_score(item):
       path_score: explicit preferred rate path / speed
       risk_score: durable inflation-vs-activity reaction-function emphasis
     """
-    def num(key):
-        try:
-            return _clamp(item.get(key, 0))
-        except Exception:
-            return 0.0
-
-    vote = num("vote_score")
-    path = num("path_score")
-    risk = num("risk_score")
+    audited = _audit_component_scores(item)
+    vote = audited["vote_score"]
+    path = audited["path_score"]
+    risk = audited["risk_score"]
 
     # Votes and explicit policy-path preferences dominate rhetoric.
     # V14.2 gives slightly more weight to explicit path guidance.
@@ -721,18 +849,15 @@ def _has_differentiated_relative_evidence(item, direction):
 
 def _prepare_v14_scores(ai_members, previous_members):
     """
-    V14.2:
-    StructuralScore is calculated ONLY from current/recent evidence extracted
-    by OpenAI. Stored StructuralBias is NOT blended into the score.
-
-    Historical state is applied later by _resolver_bias / hysteresis:
-      EvidenceScore = independent reality estimate
-      StructuralBias = persistent dashboard state
+    V14.3:
+    StructuralScore is evidence-only. Before scoring, each V/P/R component is
+    audited deterministically against its own evidence payload.
     """
     previous_index = _indice_previos(previous_members or [])
 
     raw = {}
     item_index = {}
+    audit_index = {}
 
     for item in ai_members or []:
         name = str(item.get("name") or "").strip()
@@ -740,8 +865,15 @@ def _prepare_v14_scores(ai_members, previous_members):
         if not key:
             continue
 
-        item_index[key] = item
-        raw[key] = _raw_evidence_score(item)
+        audited = _audit_component_scores(item)
+        audited_item = dict(item)
+        audited_item["vote_score"] = audited["vote_score"]
+        audited_item["path_score"] = audited["path_score"]
+        audited_item["risk_score"] = audited["risk_score"]
+
+        item_index[key] = audited_item
+        audit_index[key] = audited
+        raw[key] = _raw_evidence_score(audited_item)
 
     values = sorted(raw.values())
     if values:
@@ -762,6 +894,7 @@ def _prepare_v14_scores(ai_members, previous_members):
         candidate = _score_to_bias(relative_score)
 
         item = item_index.get(key, {})
+        audited = audit_index.get(key, {})
         prev = previous_index.get(key, {})
         prev_bias = str(
             prev.get("StructuralBias") or prev.get("structural_bias") or ""
@@ -769,7 +902,6 @@ def _prepare_v14_scores(ai_members, previous_members):
 
         guard_status = "not_needed"
 
-        # Generic consensus language cannot create a new structural lean.
         if candidate in {"Lean Hawkish", "Lean Dovish"} and prev_bias in {"", "Neutral"}:
             direction = 1 if candidate == "Lean Hawkish" else -1
             if not _has_differentiated_relative_evidence(item, direction):
@@ -784,9 +916,13 @@ def _prepare_v14_scores(ai_members, previous_members):
             "structural_score": round(relative_score, 3),
             "candidate": candidate,
             "guard": guard_status,
-            "vote_score": item.get("vote_score", 0),
-            "path_score": item.get("path_score", 0),
-            "risk_score": item.get("risk_score", 0),
+            "vote_score": audited.get("vote_score", 0),
+            "path_score": audited.get("path_score", 0),
+            "risk_score": audited.get("risk_score", 0),
+            "vote_audit": audited.get("vote_audit", ""),
+            "path_audit": audited.get("path_audit", ""),
+            "risk_audit": audited.get("risk_audit", ""),
+            "audited_item": item,
         }
 
     return scored
@@ -1008,7 +1144,7 @@ show a change:
 Previous saved ROSTER from CentralBank_Members (bias fields intentionally omitted):
 {prev_json}
 
-CRITICAL — V14 EVIDENCE EXTRACTION:
+CRITICAL — V14.3 AUDITABLE EVIDENCE EXTRACTION:
 For EVERY current voter, extract objective monetary-policy evidence. Python,
 not you, owns the final StructuralBias classification. You are intentionally
 NOT shown the stored StructuralBias.
@@ -1032,14 +1168,43 @@ number from -2 to +2. Use +2 for a clearly hawkish dissent/proposal relative
 to the majority, -2 for a clearly dovish dissent/proposal, and 0 when voting
 with the committee provides no relative information.
 
+vote_evidence / vote_date / vote_source / vote_source_url:
+component-specific evidence supporting vote_score. If vote_score is 0, use an
+empty evidence/source/url and null date when no useful voting evidence exists.
+vote_verified_official:
+true ONLY when the score is grounded in a formal central-bank vote, minutes,
+decision record, or clearly documented formal policy proposal.
+vote_differentiated:
+true ONLY when that vote/proposal differs materially from the committee
+majority/baseline. A routine vote with consensus is false.
+
 path_score:
 number from -2 to +2 measuring explicit preference for a tighter/faster (+)
-or easier/slower (-) policy path RELATIVE TO THE committee baseline.
+or easier/slower (-) policy path RELATIVE TO the committee baseline.
+
+path_evidence / path_date / path_source / path_source_url:
+component-specific evidence supporting path_score.
+path_explicit_relative:
+true ONLY when the source explicitly shows a tighter/faster or easier/slower
+preference relative to the committee baseline. Generic support for the current
+institutional path is false. For |path_score|=2, the evidence must be unusually
+clear and differentiated.
 
 risk_score:
 number from -2 to +2 for a durable reaction-function emphasis: upside
 inflation/tightening risks (+), downside activity/employment/easing risks (-).
 Do not use generic inflation concern as +1 if it simply repeats consensus.
+
+risk_evidence / risk_date / risk_source / risk_source_url:
+component-specific evidence supporting risk_score.
+risk_persistent:
+true ONLY when the directional reaction-function emphasis is repeated,
+persistent, or especially explicit. One generic remark is false.
+
+CRITICAL V14.3 AUDIT RULE:
+Do not invent a component score merely to make the final stance look plausible.
+Each non-zero component must stand on its OWN cited evidence. Python will zero
+or cap unsupported components automatically.
 
 latest_signal:
 Hawkish / Lean Hawkish / Neutral / Lean Dovish / Dovish
@@ -1241,15 +1406,63 @@ Prioritize completeness over speed.
                                                 "minimum": -2,
                                                 "maximum": 2,
                                             },
+                                            "vote_evidence": {
+                                                "type": "string"
+                                            },
+                                            "vote_date": {
+                                                "type": ["string", "null"]
+                                            },
+                                            "vote_source": {
+                                                "type": "string"
+                                            },
+                                            "vote_source_url": {
+                                                "type": "string"
+                                            },
+                                            "vote_verified_official": {
+                                                "type": "boolean"
+                                            },
+                                            "vote_differentiated": {
+                                                "type": "boolean"
+                                            },
                                             "path_score": {
                                                 "type": "number",
                                                 "minimum": -2,
                                                 "maximum": 2,
                                             },
+                                            "path_evidence": {
+                                                "type": "string"
+                                            },
+                                            "path_date": {
+                                                "type": ["string", "null"]
+                                            },
+                                            "path_source": {
+                                                "type": "string"
+                                            },
+                                            "path_source_url": {
+                                                "type": "string"
+                                            },
+                                            "path_explicit_relative": {
+                                                "type": "boolean"
+                                            },
                                             "risk_score": {
                                                 "type": "number",
                                                 "minimum": -2,
                                                 "maximum": 2,
+                                            },
+                                            "risk_evidence": {
+                                                "type": "string"
+                                            },
+                                            "risk_date": {
+                                                "type": ["string", "null"]
+                                            },
+                                            "risk_source": {
+                                                "type": "string"
+                                            },
+                                            "risk_source_url": {
+                                                "type": "string"
+                                            },
+                                            "risk_persistent": {
+                                                "type": "boolean"
                                             },
                                             "latest_signal": {
                                                 "type": "string",
@@ -1300,8 +1513,24 @@ Prioritize completeness over speed.
                                         "required": [
                                             "name",
                                             "vote_score",
+                                            "vote_evidence",
+                                            "vote_date",
+                                            "vote_source",
+                                            "vote_source_url",
+                                            "vote_verified_official",
+                                            "vote_differentiated",
                                             "path_score",
+                                            "path_evidence",
+                                            "path_date",
+                                            "path_source",
+                                            "path_source_url",
+                                            "path_explicit_relative",
                                             "risk_score",
+                                            "risk_evidence",
+                                            "risk_date",
+                                            "risk_source",
+                                            "risk_source_url",
+                                            "risk_persistent",
                                             "latest_signal",
                                             "expected_vote",
                                             "confidence",
@@ -1856,12 +2085,14 @@ def preparar_central_bank_members(
             recalibrate=RECALIBRATE_BIAS,
         )
 
+        audited_item = v14_score.get("audited_item", item)
+
         transition_blocked, transition_reason = _v14_transition_guard(
             previous_bias,
             structural_bias_candidate,
             evidence_type,
             confidence,
-            item,
+            audited_item,
             recalibrate=RECALIBRATE_BIAS,
         )
 
@@ -1910,6 +2141,9 @@ def preparar_central_bank_members(
             f"evidence_score={v14_score['structural_score']:+.3f} "
             f"(raw={v14_score['absolute_score']:+.3f}, center={v14_score['committee_center']:+.3f}) | "
             f"components=V{v14_score.get('vote_score', 0)}/P{v14_score.get('path_score', 0)}/R{v14_score.get('risk_score', 0)} | "
+            f"audit=V[{v14_score.get('vote_audit', '')}]"
+            f"/P[{v14_score.get('path_audit', '')}]"
+            f"/R[{v14_score.get('risk_audit', '')}] | "
             f"guard={v14_score.get('guard', 'n/a')} | "
             f"candidate={structural_bias_candidate} | "
             f"latest={latest_signal} | "
@@ -2205,10 +2439,10 @@ def actualizar_central_bank_currency(currency):
                 resultado_members = {
                     "ok": True,
                     "skipped": True,
-                    "reason": "v14_2_independent_score_dry_run",
+                    "reason": "v14_3_evidence_audit_dry_run",
                 }
                 print(
-                    f"[{currency}] V14.2 DRY RUN · committee NOT saved to Sheets · "
+                    f"[{currency}] V14.3 DRY RUN · committee NOT saved to Sheets · "
                     f"{len(members)} voters · {len(changes)} proposed changes"
                 )
             else:
@@ -2373,7 +2607,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.2 INDEPENDENT SCORE + PERSISTENT BIAS ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3 EVIDENCE AUDIT ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
