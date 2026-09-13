@@ -11075,7 +11075,7 @@ try:
     )
 
     if interpretacion_ia is None:
-        st.warning("Todavía no existe una interpretación IA para este indicador.")
+        st.warning("Todavía no existe una interpretación para este indicador.")
 
     else:
 
