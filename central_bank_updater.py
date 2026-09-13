@@ -304,7 +304,7 @@ def _previous_as_ai_item(previous, name):
 
     return {
         "name": name,
-        "proposed_bias": structural if structural in VALID_BIASES else "Neutral",
+        "structural_bias_candidate": structural if structural in VALID_BIASES else "Neutral",
         "latest_signal": str(
             previous.get("LatestSignal")
             or previous.get("latest_signal")
@@ -431,7 +431,7 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
 
         stabilized.append({
             "name": target_name,
-            "proposed_bias": "Neutral",
+            "structural_bias_candidate": "Neutral",
             "latest_signal": "Neutral",
             "expected_vote": "Unclear",
             "confidence": "Low",
@@ -588,8 +588,22 @@ def buscar_bancos_centrales_ia(divisa, previous_members):
 
     datos = COMMITTEE_CONFIG[divisa]
 
+    # Give the model the previous roster for identity/membership continuity,
+    # but deliberately REMOVE prior bias/signal fields. The model must build an
+    # independent StructuralBiasCandidate from current/recent evidence rather
+    # than echoing the stored classification. Python compares the candidate
+    # with the real previous StructuralBias afterwards.
+    previous_members_for_model = []
+    for previous in previous_members or []:
+        previous_members_for_model.append({
+            "Member": previous.get("Member") or previous.get("name") or "",
+            "Voting": previous.get("Voting", True),
+            "MembershipAsOf": previous.get("MembershipAsOf"),
+            "NextMeetingDate": previous.get("NextMeetingDate"),
+        })
+
     prev_json = json.dumps(
-        previous_members,
+        previous_members_for_model,
         ensure_ascii=False,
         indent=2,
     )
@@ -668,23 +682,29 @@ Fallback voter list from the dashboard; correct it if official sources
 show a change:
 {fallback}
 
-Previous saved state from CentralBank_Members:
+Previous saved ROSTER from CentralBank_Members (bias fields intentionally omitted):
 {prev_json}
 
-RECALIBRATION MODE FOR THIS RUN: {RECALIBRATE_BIAS}
+CRITICAL — INDEPENDENT STRUCTURAL CANDIDATE:
+For EVERY current voter, independently determine a StructuralBiasCandidate from
+the best available evidence. You are NOT being shown the stored StructuralBias
+on purpose. Do not infer or preserve an old classification. Search beyond the
+last 48 hours as needed and assess a meaningful recent policy window.
 
-If RECALIBRATION MODE is True:
-- independently reassess EVERY current voter's StructuralBias from the best
-  available recent evidence, even when a previous bias exists;
-- use the previous state for identity/history comparison, not as an anchor;
-- search beyond the last 48 hours as needed for votes, speeches and minutes
-  that establish the current structural reaction function;
-- use Neutral only when no clear structural hawkish/dovish inclination can
-  be established.
+The candidate must answer: "What structural camp best describes this voter
+TODAY, based on votes + repeated policy communication?" It must NOT answer
+"what did the database previously call this person?"
+
+Use Neutral only when the evidence is genuinely balanced/unclear. A consistent
+moderate tilt should be Lean Hawkish or Lean Dovish.
+
+RECALIBRATION MODE FOR THIS RUN: {RECALIBRATE_BIAS}
+When True, Python may accept the independent candidate directly. When False,
+Python applies controlled one-step evolution rules after receiving the candidate.
 
 For EVERY current voter return:
 
-proposed_bias:
+structural_bias_candidate:
 Hawkish / Lean Hawkish / Neutral / Lean Dovish / Dovish
 
 latest_signal:
@@ -750,18 +770,13 @@ importance:
 Do NOT assign Neutral merely because there is no new statement in the last
 48 hours. Lack of fresh evidence is not evidence of neutrality.
 
-When a valid previous StructuralBias exists:
-- preserve it if there is insufficient evidence of a durable change;
-- "No new evidence" must normally preserve the previous StructuralBias;
-- a single ambiguous/data-dependent statement must not reset the member
-  to Neutral;
-- change StructuralBias only when the evidence supports a genuine durable
-  shift in the member's policy orientation.
+Your StructuralBiasCandidate must be based on the member's evidence, not on
+database inertia. Python — not you — will compare it with the stored bias.
 
-A structural-bias change should be supported by:
-- an official vote clearly inconsistent with the previous stance, OR
-- an explicit stance change, OR
-- multiple consistent recent statements indicating a durable shift.
+Evidence strong enough to support a structural candidate should preferably be:
+- official policy votes/dissents, OR
+- an explicit policy-path/stance statement, OR
+- multiple consistent recent statements showing a durable reaction function.
 
 IMPORTANT: do not label evidence_type as "Single statement" merely because only
 one new article appeared in the last 72 hours. If that fresh statement confirms
@@ -770,7 +785,9 @@ combined evidence as "Multiple consistent statements" and propose the bias that
 best represents the member TODAY. This is especially important when an old
 Neutral classification has become stale.
 
-A genuinely isolated statement can change latest_signal without changing StructuralBias.
+A genuinely isolated statement can make latest_signal directional while the
+StructuralBiasCandidate remains Neutral or less directional. "No new evidence"
+refers to the evidence update, not to a requirement that the candidate be Neutral.
 
 Keep expected_vote independent from StructuralBias. A Neutral member may
 currently be expected to Hike, Hold or Cut; likewise a Hawkish member can
@@ -885,7 +902,7 @@ Prioritize completeness over speed.
                                             "name": {
                                                 "type": "string"
                                             },
-                                            "proposed_bias": {
+                                            "structural_bias_candidate": {
                                                 "type": "string",
                                                 "enum": VALID_BIASES,
                                             },
@@ -937,7 +954,7 @@ Prioritize completeness over speed.
                                         },
                                         "required": [
                                             "name",
-                                            "proposed_bias",
+                                            "structural_bias_candidate",
                                             "latest_signal",
                                             "expected_vote",
                                             "confidence",
@@ -1170,45 +1187,45 @@ def _indice_previos(previous_members):
 
 def _resolver_bias(
     previous_bias,
-    proposed_bias,
+    structural_bias_candidate,
     latest_signal,
     confidence,
     evidence_type,
     recalibrate=False,
 ):
     """
-    Structural bias should be stable, but not sticky forever.
+    Structural bias is stable, while an independent candidate prevents stale anchoring.
 
     Normal runs:
     - preserve on no evidence / weak contradictory evidence;
     - accept an adjacent one-step move with strong evidence and Medium/High confidence;
     - accept an adjacent one-step move with a fresh Single statement only when
-      proposed_bias and latest_signal agree and confidence is High;
+      structural_bias_candidate and latest_signal agree and confidence is High;
     - never jump more than one category automatically. Large reclassifications
       require a later confirming run or explicit one-time recalibration.
     """
     previous_bias = str(previous_bias or "").strip()
-    proposed_bias = str(proposed_bias or "Neutral").strip()
-    latest_signal = str(latest_signal or proposed_bias or "Neutral").strip()
+    structural_bias_candidate = str(structural_bias_candidate or "Neutral").strip()
+    latest_signal = str(latest_signal or structural_bias_candidate or "Neutral").strip()
     confidence = str(confidence or "Low").strip()
     evidence_type = str(evidence_type or "No new evidence").strip()
 
-    if proposed_bias not in VALID_BIASES:
-        proposed_bias = "Neutral"
+    if structural_bias_candidate not in VALID_BIASES:
+        structural_bias_candidate = "Neutral"
     if latest_signal not in VALID_BIASES:
-        latest_signal = proposed_bias
+        latest_signal = structural_bias_candidate
 
     if previous_bias not in VALID_BIASES:
-        return proposed_bias
+        return structural_bias_candidate
     if recalibrate:
-        return proposed_bias
-    if proposed_bias == previous_bias:
+        return structural_bias_candidate
+    if structural_bias_candidate == previous_bias:
         return previous_bias
     if evidence_type == "No new evidence":
         return previous_bias
 
     prev_score = BIAS_SCORE[previous_bias]
-    prop_score = BIAS_SCORE[proposed_bias]
+    prop_score = BIAS_SCORE[structural_bias_candidate]
     delta = prop_score - prev_score
     direction = 1 if delta > 0 else -1
 
@@ -1220,12 +1237,12 @@ def _resolver_bias(
     strong_enough = strong_evidence and confidence in {"Medium", "High"}
 
     # A high-confidence fresh statement may establish a moderate lean when the
-    # model's structural assessment and latest signal point the same way.
+    # model's independent structural candidate and latest signal point the same way.
     signal_confirms = (
         evidence_type == "Single statement"
         and confidence == "High"
         and BIAS_SCORE[latest_signal] * direction > BIAS_SCORE[previous_bias] * direction
-        and BIAS_SCORE[proposed_bias] * direction > BIAS_SCORE[previous_bias] * direction
+        and BIAS_SCORE[structural_bias_candidate] * direction > BIAS_SCORE[previous_bias] * direction
     )
 
     if not AUTO_BIAS_EVOLUTION or not (strong_enough or signal_confirms):
@@ -1340,8 +1357,8 @@ def preparar_central_bank_members(
             or ""
         ).strip()
 
-        proposed_bias = str(
-            item.get("proposed_bias")
+        structural_bias_candidate = str(
+            item.get("structural_bias_candidate")
             or "Neutral"
         ).strip()
 
@@ -1357,12 +1374,12 @@ def preparar_central_bank_members(
 
         latest_signal = str(
             item.get("latest_signal")
-            or proposed_bias
+            or structural_bias_candidate
         ).strip()
 
         structural_bias = _resolver_bias(
             previous_bias,
-            proposed_bias,
+            structural_bias_candidate,
             latest_signal,
             confidence,
             evidence_type,
@@ -1372,6 +1389,26 @@ def preparar_central_bank_members(
         bias_change = _bias_change(
             previous_bias,
             structural_bias,
+        )
+
+        # Transparent audit trail: every voter shows stored bias, independent
+        # candidate, latest signal, evidence strength and the Python decision.
+        if previous_bias in VALID_BIASES:
+            if structural_bias != previous_bias:
+                decision = f"CHANGE -> {structural_bias}"
+            else:
+                decision = f"KEEP {structural_bias}"
+        else:
+            decision = f"INITIAL -> {structural_bias}"
+
+        print(
+            f"[{currency}][BIAS] {name} | "
+            f"current={previous_bias or 'None'} | "
+            f"candidate={structural_bias_candidate} | "
+            f"latest={latest_signal} | "
+            f"evidence={evidence_type} | "
+            f"confidence={confidence} | "
+            f"decision={decision}"
         )
 
         row = {
@@ -1776,7 +1813,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V12 AUTO BIAS EVOLUTION ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V13 STRUCTURAL CANDIDATE ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
