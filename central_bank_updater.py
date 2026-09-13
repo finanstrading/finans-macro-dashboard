@@ -43,8 +43,18 @@ BIAS_HYSTERESIS = True
 # structural classification. Scores are intentionally conservative and relative
 # to the committee so "supports the bank's current path" is not automatically hawkish.
 V14_EVIDENCE_SCORING = True
-V14_RELATIVE_WEIGHT = 0.35
-V14_PRIOR_WEIGHT = 0.35
+
+# V14.1 calibration:
+# - narrower Neutral zone;
+# - less committee-centre subtraction;
+# - less dependence on the stored prior when fresh evidence exists;
+# - DRY RUN is ON by default so calibration cannot overwrite Sheets accidentally.
+V14_RELATIVE_WEIGHT = 0.25
+V14_PRIOR_WEIGHT = 0.25
+V14_DRY_RUN = os.environ.get(
+    "CENTRAL_BANK_V14_DRY_RUN",
+    "true",
+).strip().lower() in {"1", "true", "yes", "on"}
 
 
 COMMITTEE_CONFIG = {
@@ -594,35 +604,36 @@ def _clamp(value, low=-2.0, high=2.0):
 
 
 def _date_decay(date_value):
-    """Time weight for structural evidence: <30d 1.0, 30-90d .8,
-    90-180d .5, older .2. Missing/invalid dates get a conservative .5."""
+    """Structural evidence decays more slowly than a latest-signal headline.
+    <30d 1.0, 30-90d .9, 90-180d .7, older .4.
+    Missing/invalid dates get a conservative .6."""
     value = _clean_date(date_value)
     if not value:
-        return 0.5
+        return 0.6
     try:
         evidence_dt = datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         days = max(0, (datetime.now(timezone.utc) - evidence_dt).days)
     except Exception:
-        return 0.5
+        return 0.6
     if days < 30:
         return 1.0
     if days < 90:
-        return 0.8
+        return 0.9
     if days < 180:
-        return 0.5
-    return 0.2
+        return 0.7
+    return 0.4
 
 
 def _evidence_quality_weight(evidence_type, confidence):
     type_weight = {
         "Official vote": 1.00,
         "Explicit stance change": 1.00,
-        "Multiple consistent statements": 0.80,
-        "Single statement": 0.50,
-        "No new evidence": 0.25,
+        "Multiple consistent statements": 0.90,
+        "Single statement": 0.45,
+        "No new evidence": 0.20,
     }.get(str(evidence_type or ""), 0.40)
-    conf_weight = {"High": 1.00, "Medium": 0.80, "Low": 0.55}.get(
-        str(confidence or ""), 0.55
+    conf_weight = {"High": 1.00, "Medium": 0.90, "Low": 0.60}.get(
+        str(confidence or ""), 0.60
     )
     return type_weight * conf_weight
 
@@ -646,7 +657,7 @@ def _raw_evidence_score(item):
     risk = num("risk_score")
 
     # Votes and explicit policy-path preferences dominate rhetoric.
-    base = 0.45 * vote + 0.40 * path + 0.15 * risk
+    base = 0.50 * vote + 0.35 * path + 0.15 * risk
     quality = _evidence_quality_weight(
         item.get("evidence_type"), item.get("confidence")
     )
@@ -655,17 +666,55 @@ def _raw_evidence_score(item):
 
 
 def _score_to_bias(score):
-    # Five transparent bands. Relative normalization happens before this mapping.
+    """V14.1 calibrated five-band mapping.
+
+    The Neutral zone is deliberately narrower. A persistent, differentiated tilt
+    should show as Lean Hawkish/Dovish, while full Hawkish/Dovish requires a
+    clearly strong relative reaction function.
+    """
     score = float(score)
-    if score >= 1.35:
+    if score >= 0.80:
         return "Hawkish"
-    if score >= 0.45:
+    if score >= 0.30:
         return "Lean Hawkish"
-    if score > -0.45:
+    if score > -0.30:
         return "Neutral"
-    if score > -1.35:
+    if score > -0.80:
         return "Lean Dovish"
     return "Dovish"
+
+
+def _has_differentiated_relative_evidence(item, direction):
+    """Require something stronger than generic committee-consensus language.
+
+    This does NOT choose the bias. It only checks whether extracted evidence
+    contains a genuinely differentiated relative stance.
+    """
+    try:
+        vote = float(item.get("vote_score", 0) or 0)
+        path = float(item.get("path_score", 0) or 0)
+        risk = float(item.get("risk_score", 0) or 0)
+    except Exception:
+        return False
+
+    evidence_type = str(item.get("evidence_type") or "")
+    confidence = str(item.get("confidence") or "Low")
+
+    signed_vote = vote * direction
+    signed_path = path * direction
+    signed_risk = risk * direction
+
+    if signed_vote >= 1.0:
+        return True
+    if signed_path >= 0.75:
+        return True
+    if (
+        signed_risk >= 1.5
+        and evidence_type in {"Explicit stance change", "Multiple consistent statements"}
+        and confidence == "High"
+    ):
+        return True
+    return False
 
 
 def _prepare_v14_scores(ai_members, previous_members):
@@ -712,16 +761,43 @@ def _prepare_v14_scores(ai_members, previous_members):
     else:
         committee_center = 0.0
 
+    item_index = {
+        _normalizar_nombre(str(item.get("name") or "").strip()): item
+        for item in (ai_members or [])
+        if str(item.get("name") or "").strip()
+    }
+
     scored = {}
     for key, absolute_score in raw.items():
         relative_score = _clamp(
             absolute_score - V14_RELATIVE_WEIGHT * committee_center
         )
+        candidate = _score_to_bias(relative_score)
+
+        item = item_index.get(key, {})
+        prev = previous_index.get(key, {})
+        prev_bias = str(
+            prev.get("StructuralBias") or prev.get("structural_bias") or ""
+        ).strip()
+
+        guard_status = "not_needed"
+        if candidate in {"Lean Hawkish", "Lean Dovish"} and prev_bias in {"", "Neutral"}:
+            direction = 1 if candidate == "Lean Hawkish" else -1
+            if not _has_differentiated_relative_evidence(item, direction):
+                candidate = "Neutral"
+                guard_status = "blocked_generic_consensus"
+            else:
+                guard_status = "passed"
+
         scored[key] = {
             "absolute_score": round(absolute_score, 3),
             "committee_center": round(committee_center, 3),
             "structural_score": round(relative_score, 3),
-            "candidate": _score_to_bias(relative_score),
+            "candidate": candidate,
+            "guard": guard_status,
+            "vote_score": item.get("vote_score", 0),
+            "path_score": item.get("path_score", 0),
+            "risk_score": item.get("risk_score", 0),
         }
     return scored
 
@@ -1783,6 +1859,8 @@ def preparar_central_bank_members(
             f"current={previous_bias or 'None'} | "
             f"score={v14_score['structural_score']:+.3f} "
             f"(abs={v14_score['absolute_score']:+.3f}, center={v14_score['committee_center']:+.3f}) | "
+            f"components=V{v14_score.get('vote_score', 0)}/P{v14_score.get('path_score', 0)}/R{v14_score.get('risk_score', 0)} | "
+            f"guard={v14_score.get('guard', 'n/a')} | "
             f"candidate={structural_bias_candidate} | "
             f"latest={latest_signal} | "
             f"evidence={evidence_type} | "
@@ -2073,13 +2151,24 @@ def actualizar_central_bank_currency(currency):
         )
 
         try:
-            resultado_members = (
-                guardar_central_bank_members(
-                    currency,
-                    members,
-                    changes,
+            if V14_DRY_RUN:
+                resultado_members = {
+                    "ok": True,
+                    "skipped": True,
+                    "reason": "v14_1_calibration_dry_run",
+                }
+                print(
+                    f"[{currency}] V14.1 DRY RUN · committee NOT saved to Sheets · "
+                    f"{len(members)} voters · {len(changes)} proposed changes"
                 )
-            )
+            else:
+                resultado_members = (
+                    guardar_central_bank_members(
+                        currency,
+                        members,
+                        changes,
+                    )
+                )
         except Exception as error:
             # Guardar el comité es una sustitución del snapshot. Si falla, el
             # snapshot anterior permanece intacto. Registramos el fallo como skip
@@ -2234,10 +2323,13 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14 EVIDENCE SCORING + RELATIVE COMMITTEE ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.1 CALIBRATED EVIDENCE SCORING ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
+    )
+    print(
+        f"V14_DRY_RUN={V14_DRY_RUN}"
     )
 
     resultados = (
