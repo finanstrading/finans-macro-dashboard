@@ -44,17 +44,18 @@ BIAS_HYSTERESIS = True
 # to the committee so "supports the bank's current path" is not automatically hawkish.
 V14_EVIDENCE_SCORING = True
 
-# V14.1 calibration:
-# - narrower Neutral zone;
-# - less committee-centre subtraction;
-# - less dependence on the stored prior when fresh evidence exists;
-# - DRY RUN is ON by default so calibration cannot overwrite Sheets accidentally.
+# V14.2:
+# - StructuralScore is 100% evidence-derived and independent from stored bias.
+# - Stored StructuralBias only affects persistence/hysteresis AFTER scoring.
+# - Committee-relative normalization remains modest.
+# - DRY RUN stays ON by default until validation is complete.
 V14_RELATIVE_WEIGHT = 0.25
-V14_PRIOR_WEIGHT = 0.25
 V14_DRY_RUN = os.environ.get(
     "CENTRAL_BANK_V14_DRY_RUN",
     "true",
 ).strip().lower() in {"1", "true", "yes", "on"}
+
+V14_REQUIRE_CONFIRMATION_FOR_EXTREMES = True
 
 
 COMMITTEE_CONFIG = {
@@ -657,7 +658,8 @@ def _raw_evidence_score(item):
     risk = num("risk_score")
 
     # Votes and explicit policy-path preferences dominate rhetoric.
-    base = 0.50 * vote + 0.35 * path + 0.15 * risk
+    # V14.2 gives slightly more weight to explicit path guidance.
+    base = 0.48 * vote + 0.38 * path + 0.14 * risk
     quality = _evidence_quality_weight(
         item.get("evidence_type"), item.get("confidence")
     )
@@ -719,13 +721,18 @@ def _has_differentiated_relative_evidence(item, direction):
 
 def _prepare_v14_scores(ai_members, previous_members):
     """
-    Produce deterministic structural candidates for the full committee.
-    A modest prior stabilizes sparse-evidence members; a committee-median
-    adjustment makes the classification relative rather than simply labelling
-    the whole committee hawkish when it follows an institution-wide tightening path.
+    V14.2:
+    StructuralScore is calculated ONLY from current/recent evidence extracted
+    by OpenAI. Stored StructuralBias is NOT blended into the score.
+
+    Historical state is applied later by _resolver_bias / hysteresis:
+      EvidenceScore = independent reality estimate
+      StructuralBias = persistent dashboard state
     """
     previous_index = _indice_previos(previous_members or [])
+
     raw = {}
+    item_index = {}
 
     for item in ai_members or []:
         name = str(item.get("name") or "").strip()
@@ -733,39 +740,19 @@ def _prepare_v14_scores(ai_members, previous_members):
         if not key:
             continue
 
-        evidence_score = _raw_evidence_score(item)
-        prev = previous_index.get(key, {})
-        prev_bias = str(
-            prev.get("StructuralBias") or prev.get("structural_bias") or ""
-        ).strip()
-        prior_score = BIAS_SCORE.get(prev_bias, 0)
-
-        # If there is genuinely no new evidence, retain more of the prior instead
-        # of manufacturing neutrality from absence of information.
-        if str(item.get("evidence_type") or "") == "No new evidence":
-            combined = 0.80 * prior_score + 0.20 * evidence_score
-        else:
-            combined = (
-                (1.0 - V14_PRIOR_WEIGHT) * evidence_score
-                + V14_PRIOR_WEIGHT * prior_score
-            )
-        raw[key] = _clamp(combined)
+        item_index[key] = item
+        raw[key] = _raw_evidence_score(item)
 
     values = sorted(raw.values())
     if values:
         n = len(values)
         committee_center = (
-            values[n // 2] if n % 2
+            values[n // 2]
+            if n % 2
             else (values[n // 2 - 1] + values[n // 2]) / 2.0
         )
     else:
         committee_center = 0.0
-
-    item_index = {
-        _normalizar_nombre(str(item.get("name") or "").strip()): item
-        for item in (ai_members or [])
-        if str(item.get("name") or "").strip()
-    }
 
     scored = {}
     for key, absolute_score in raw.items():
@@ -781,6 +768,8 @@ def _prepare_v14_scores(ai_members, previous_members):
         ).strip()
 
         guard_status = "not_needed"
+
+        # Generic consensus language cannot create a new structural lean.
         if candidate in {"Lean Hawkish", "Lean Dovish"} and prev_bias in {"", "Neutral"}:
             direction = 1 if candidate == "Lean Hawkish" else -1
             if not _has_differentiated_relative_evidence(item, direction):
@@ -799,12 +788,8 @@ def _prepare_v14_scores(ai_members, previous_members):
             "path_score": item.get("path_score", 0),
             "risk_score": item.get("risk_score", 0),
         }
+
     return scored
-
-
-# ===================================================
-# WEB APP — ESTADO PREVIO
-# ===================================================
 
 def _webapp_post(payload, timeout=90, max_retries=3):
     """POST robusto a Apps Script con reintentos para fallos transitorios."""
@@ -1588,6 +1573,51 @@ def _hysteresis_blocks_reversal(
     return not exceptional_override
 
 
+def _v14_transition_guard(
+    previous_bias,
+    candidate_bias,
+    evidence_type,
+    confidence,
+    item,
+    recalibrate=False,
+):
+    """
+    State-transition safety only. It does NOT alter EvidenceScore.
+    """
+    if recalibrate or not V14_REQUIRE_CONFIRMATION_FOR_EXTREMES:
+        return False, ""
+
+    previous_bias = str(previous_bias or "").strip()
+    candidate_bias = str(candidate_bias or "").strip()
+    evidence_type = str(evidence_type or "").strip()
+    confidence = str(confidence or "Low").strip()
+
+    if previous_bias not in BIAS_SCORE or candidate_bias not in BIAS_SCORE:
+        return False, ""
+
+    prev_score = BIAS_SCORE[previous_bias]
+    cand_score = BIAS_SCORE[candidate_bias]
+    delta = cand_score - prev_score
+
+    # Persistent state never jumps more than one category per normal run.
+    if abs(delta) > 1:
+        return True, "block_multi_rung"
+
+    # Entering a full extreme requires High-confidence differentiated evidence.
+    if candidate_bias in {"Hawkish", "Dovish"} and previous_bias not in {"Hawkish", "Dovish"}:
+        direction = 1 if candidate_bias == "Hawkish" else -1
+        strong_relative = _has_differentiated_relative_evidence(item, direction)
+        strong_type = evidence_type in {
+            "Official vote",
+            "Explicit stance change",
+            "Multiple consistent statements",
+        }
+        if not (strong_relative and strong_type and confidence == "High"):
+            return True, "block_extreme_without_high_confirmation"
+
+    return False, ""
+
+
 def _resolver_bias(
     previous_bias,
     structural_bias_candidate,
@@ -1826,9 +1856,24 @@ def preparar_central_bank_members(
             recalibrate=RECALIBRATE_BIAS,
         )
 
-        structural_bias = _resolver_bias(
+        transition_blocked, transition_reason = _v14_transition_guard(
             previous_bias,
             structural_bias_candidate,
+            evidence_type,
+            confidence,
+            item,
+            recalibrate=RECALIBRATE_BIAS,
+        )
+
+        candidate_for_state = (
+            previous_bias
+            if transition_blocked and previous_bias in VALID_BIASES
+            else structural_bias_candidate
+        )
+
+        structural_bias = _resolver_bias(
+            previous_bias,
+            candidate_for_state,
             latest_signal,
             confidence,
             evidence_type,
@@ -1847,6 +1892,11 @@ def preparar_central_bank_members(
         if previous_bias in VALID_BIASES:
             if structural_bias != previous_bias:
                 decision = f"CHANGE -> {structural_bias}"
+            elif transition_blocked:
+                decision = (
+                    f"TRANSITION HOLD {structural_bias} "
+                    f"({transition_reason})"
+                )
             elif hysteresis_blocked:
                 decision = f"HYSTERESIS HOLD {structural_bias}"
             else:
@@ -1857,8 +1907,8 @@ def preparar_central_bank_members(
         print(
             f"[{currency}][BIAS] {name} | "
             f"current={previous_bias or 'None'} | "
-            f"score={v14_score['structural_score']:+.3f} "
-            f"(abs={v14_score['absolute_score']:+.3f}, center={v14_score['committee_center']:+.3f}) | "
+            f"evidence_score={v14_score['structural_score']:+.3f} "
+            f"(raw={v14_score['absolute_score']:+.3f}, center={v14_score['committee_center']:+.3f}) | "
             f"components=V{v14_score.get('vote_score', 0)}/P{v14_score.get('path_score', 0)}/R{v14_score.get('risk_score', 0)} | "
             f"guard={v14_score.get('guard', 'n/a')} | "
             f"candidate={structural_bias_candidate} | "
@@ -2155,10 +2205,10 @@ def actualizar_central_bank_currency(currency):
                 resultado_members = {
                     "ok": True,
                     "skipped": True,
-                    "reason": "v14_1_calibration_dry_run",
+                    "reason": "v14_2_independent_score_dry_run",
                 }
                 print(
-                    f"[{currency}] V14.1 DRY RUN · committee NOT saved to Sheets · "
+                    f"[{currency}] V14.2 DRY RUN · committee NOT saved to Sheets · "
                     f"{len(members)} voters · {len(changes)} proposed changes"
                 )
             else:
@@ -2323,7 +2373,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.1 CALIBRATED EVIDENCE SCORING ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.2 INDEPENDENT SCORE + PERSISTENT BIAS ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
