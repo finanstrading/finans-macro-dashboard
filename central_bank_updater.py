@@ -28,6 +28,11 @@ RECALIBRATE_BIAS = os.environ.get(
     "false",
 ).strip().lower() in {"1", "true", "yes", "on"}
 
+# Automatic structural-bias evolution. A member is allowed to move one step
+# when fresh evidence consistently points in the same direction.
+AUTO_BIAS_EVOLUTION = True
+MAX_AUTO_BIAS_STEP = 1
+
 
 COMMITTEE_CONFIG = {
     "USD": {
@@ -758,7 +763,14 @@ A structural-bias change should be supported by:
 - an explicit stance change, OR
 - multiple consistent recent statements indicating a durable shift.
 
-A single statement can change latest_signal without changing StructuralBias.
+IMPORTANT: do not label evidence_type as "Single statement" merely because only
+one new article appeared in the last 72 hours. If that fresh statement confirms
+older votes/speeches that establish the same structural direction, classify the
+combined evidence as "Multiple consistent statements" and propose the bias that
+best represents the member TODAY. This is especially important when an old
+Neutral classification has become stale.
+
+A genuinely isolated statement can change latest_signal without changing StructuralBias.
 
 Keep expected_vote independent from StructuralBias. A Neutral member may
 currently be expected to Hike, Hold or Cut; likewise a Hawkish member can
@@ -1159,55 +1171,70 @@ def _indice_previos(previous_members):
 def _resolver_bias(
     previous_bias,
     proposed_bias,
+    latest_signal,
     confidence,
     evidence_type,
     recalibrate=False,
 ):
     """
-    Regla conservadora:
-    - Primera observación: acepta proposed_bias.
-    - Sin cambio propuesto: conserva.
-    - Cambio estructural: solo con High + evidencia fuerte.
-    """
-    previous_bias = str(
-        previous_bias or ""
-    ).strip()
+    Structural bias should be stable, but not sticky forever.
 
-    proposed_bias = str(
-        proposed_bias or "Neutral"
-    ).strip()
+    Normal runs:
+    - preserve on no evidence / weak contradictory evidence;
+    - accept an adjacent one-step move with strong evidence and Medium/High confidence;
+    - accept an adjacent one-step move with a fresh Single statement only when
+      proposed_bias and latest_signal agree and confidence is High;
+    - never jump more than one category automatically. Large reclassifications
+      require a later confirming run or explicit one-time recalibration.
+    """
+    previous_bias = str(previous_bias or "").strip()
+    proposed_bias = str(proposed_bias or "Neutral").strip()
+    latest_signal = str(latest_signal or proposed_bias or "Neutral").strip()
+    confidence = str(confidence or "Low").strip()
+    evidence_type = str(evidence_type or "No new evidence").strip()
 
     if proposed_bias not in VALID_BIASES:
         proposed_bias = "Neutral"
+    if latest_signal not in VALID_BIASES:
+        latest_signal = proposed_bias
 
     if previous_bias not in VALID_BIASES:
         return proposed_bias
-
     if recalibrate:
         return proposed_bias
-
     if proposed_bias == previous_bias:
         return previous_bias
-
-    # Ausencia de evidencia nueva nunca convierte por sí sola a un miembro
-    # en Neutral ni modifica un bias estructural previamente válido.
     if evidence_type == "No new evidence":
         return previous_bias
 
-    evidencia_fuerte = evidence_type in {
+    prev_score = BIAS_SCORE[previous_bias]
+    prop_score = BIAS_SCORE[proposed_bias]
+    delta = prop_score - prev_score
+    direction = 1 if delta > 0 else -1
+
+    strong_evidence = evidence_type in {
         "Official vote",
         "Explicit stance change",
         "Multiple consistent statements",
     }
+    strong_enough = strong_evidence and confidence in {"Medium", "High"}
 
-    if (
-        confidence == "High"
-        and evidencia_fuerte
-    ):
-        return proposed_bias
+    # A high-confidence fresh statement may establish a moderate lean when the
+    # model's structural assessment and latest signal point the same way.
+    signal_confirms = (
+        evidence_type == "Single statement"
+        and confidence == "High"
+        and BIAS_SCORE[latest_signal] * direction > BIAS_SCORE[previous_bias] * direction
+        and BIAS_SCORE[proposed_bias] * direction > BIAS_SCORE[previous_bias] * direction
+    )
 
-    return previous_bias
+    if not AUTO_BIAS_EVOLUTION or not (strong_enough or signal_confirms):
+        return previous_bias
 
+    # Move only one rung per run. This fixes stale Neutral classifications while
+    # preventing one search result from flipping Neutral straight to Hawkish/Dovish.
+    target_score = prev_score + direction * min(abs(delta), MAX_AUTO_BIAS_STEP)
+    return next(bias for bias, score in BIAS_SCORE.items() if score == target_score)
 
 def _bias_change(previous_bias, new_bias):
     if (
@@ -1328,9 +1355,15 @@ def preparar_central_bank_members(
             or "No new evidence"
         ).strip()
 
+        latest_signal = str(
+            item.get("latest_signal")
+            or proposed_bias
+        ).strip()
+
         structural_bias = _resolver_bias(
             previous_bias,
             proposed_bias,
+            latest_signal,
             confidence,
             evidence_type,
             recalibrate=RECALIBRATE_BIAS,
@@ -1352,10 +1385,7 @@ def preparar_central_bank_members(
                 else ""
             ),
             "BiasChange": bias_change,
-            "LatestSignal": str(
-                item.get("latest_signal")
-                or structural_bias
-            ).strip(),
+            "LatestSignal": latest_signal,
             "ExpectedVote": str(
                 item.get("expected_vote")
                 or "Unclear"
@@ -1746,7 +1776,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V11 ECB OFFICIAL ROTATION ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V12 AUTO BIAS EVOLUTION ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
