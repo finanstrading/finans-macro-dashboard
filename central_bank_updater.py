@@ -39,6 +39,13 @@ MAX_AUTO_BIAS_STEP = 1
 OFFICIAL_ROSTER_GUARD = True
 BIAS_HYSTERESIS = True
 
+# V14: OpenAI extracts structured monetary-policy evidence; Python owns the
+# structural classification. Scores are intentionally conservative and relative
+# to the committee so "supports the bank's current path" is not automatically hawkish.
+V14_EVIDENCE_SCORING = True
+V14_RELATIVE_WEIGHT = 0.35
+V14_PRIOR_WEIGHT = 0.35
+
 
 COMMITTEE_CONFIG = {
     "USD": {
@@ -415,7 +422,9 @@ def _stabilize_official_roster(currency, ai_members, previous_members, committee
 
         stabilized.append({
             "name": target_name,
-            "structural_bias_candidate": "Neutral",
+            "vote_score": 0,
+            "path_score": 0,
+            "risk_score": 0,
             "latest_signal": "Neutral",
             "expected_vote": "Unclear",
             "confidence": "Low",
@@ -530,7 +539,9 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
 
         stabilized.append({
             "name": target_name,
-            "structural_bias_candidate": "Neutral",
+            "vote_score": 0,
+            "path_score": 0,
+            "risk_score": 0,
             "latest_signal": "Neutral",
             "expected_vote": "Unclear",
             "confidence": "Low",
@@ -572,6 +583,147 @@ BIAS_SCORE = {
     "Lean Hawkish": 1,
     "Hawkish": 2,
 }
+
+
+# ===================================================
+# V14 — DETERMINISTIC EVIDENCE SCORING
+# ===================================================
+
+def _clamp(value, low=-2.0, high=2.0):
+    return max(low, min(high, float(value)))
+
+
+def _date_decay(date_value):
+    """Time weight for structural evidence: <30d 1.0, 30-90d .8,
+    90-180d .5, older .2. Missing/invalid dates get a conservative .5."""
+    value = _clean_date(date_value)
+    if not value:
+        return 0.5
+    try:
+        evidence_dt = datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        days = max(0, (datetime.now(timezone.utc) - evidence_dt).days)
+    except Exception:
+        return 0.5
+    if days < 30:
+        return 1.0
+    if days < 90:
+        return 0.8
+    if days < 180:
+        return 0.5
+    return 0.2
+
+
+def _evidence_quality_weight(evidence_type, confidence):
+    type_weight = {
+        "Official vote": 1.00,
+        "Explicit stance change": 1.00,
+        "Multiple consistent statements": 0.80,
+        "Single statement": 0.50,
+        "No new evidence": 0.25,
+    }.get(str(evidence_type or ""), 0.40)
+    conf_weight = {"High": 1.00, "Medium": 0.80, "Low": 0.55}.get(
+        str(confidence or ""), 0.55
+    )
+    return type_weight * conf_weight
+
+
+def _raw_evidence_score(item):
+    """
+    OpenAI supplies evidence dimensions only. Python combines them.
+    Each dimension is bounded to [-2,+2]:
+      vote_score: dissent/official voting evidence
+      path_score: explicit preferred rate path / speed
+      risk_score: durable inflation-vs-activity reaction-function emphasis
+    """
+    def num(key):
+        try:
+            return _clamp(item.get(key, 0))
+        except Exception:
+            return 0.0
+
+    vote = num("vote_score")
+    path = num("path_score")
+    risk = num("risk_score")
+
+    # Votes and explicit policy-path preferences dominate rhetoric.
+    base = 0.45 * vote + 0.40 * path + 0.15 * risk
+    quality = _evidence_quality_weight(
+        item.get("evidence_type"), item.get("confidence")
+    )
+    decay = _date_decay(item.get("evidence_date"))
+    return _clamp(base * quality * decay)
+
+
+def _score_to_bias(score):
+    # Five transparent bands. Relative normalization happens before this mapping.
+    score = float(score)
+    if score >= 1.35:
+        return "Hawkish"
+    if score >= 0.45:
+        return "Lean Hawkish"
+    if score > -0.45:
+        return "Neutral"
+    if score > -1.35:
+        return "Lean Dovish"
+    return "Dovish"
+
+
+def _prepare_v14_scores(ai_members, previous_members):
+    """
+    Produce deterministic structural candidates for the full committee.
+    A modest prior stabilizes sparse-evidence members; a committee-median
+    adjustment makes the classification relative rather than simply labelling
+    the whole committee hawkish when it follows an institution-wide tightening path.
+    """
+    previous_index = _indice_previos(previous_members or [])
+    raw = {}
+
+    for item in ai_members or []:
+        name = str(item.get("name") or "").strip()
+        key = _normalizar_nombre(name)
+        if not key:
+            continue
+
+        evidence_score = _raw_evidence_score(item)
+        prev = previous_index.get(key, {})
+        prev_bias = str(
+            prev.get("StructuralBias") or prev.get("structural_bias") or ""
+        ).strip()
+        prior_score = BIAS_SCORE.get(prev_bias, 0)
+
+        # If there is genuinely no new evidence, retain more of the prior instead
+        # of manufacturing neutrality from absence of information.
+        if str(item.get("evidence_type") or "") == "No new evidence":
+            combined = 0.80 * prior_score + 0.20 * evidence_score
+        else:
+            combined = (
+                (1.0 - V14_PRIOR_WEIGHT) * evidence_score
+                + V14_PRIOR_WEIGHT * prior_score
+            )
+        raw[key] = _clamp(combined)
+
+    values = sorted(raw.values())
+    if values:
+        n = len(values)
+        committee_center = (
+            values[n // 2] if n % 2
+            else (values[n // 2 - 1] + values[n // 2]) / 2.0
+        )
+    else:
+        committee_center = 0.0
+
+    scored = {}
+    for key, absolute_score in raw.items():
+        relative_score = _clamp(
+            absolute_score - V14_RELATIVE_WEIGHT * committee_center
+        )
+        scored[key] = {
+            "absolute_score": round(absolute_score, 3),
+            "committee_center": round(committee_center, 3),
+            "structural_score": round(relative_score, 3),
+            "candidate": _score_to_bias(relative_score),
+        }
+    return scored
 
 
 # ===================================================
@@ -795,15 +947,15 @@ show a change:
 Previous saved ROSTER from CentralBank_Members (bias fields intentionally omitted):
 {prev_json}
 
-CRITICAL — INDEPENDENT STRUCTURAL CANDIDATE:
-For EVERY current voter, independently determine a StructuralBiasCandidate from
-the best available evidence. You are NOT being shown the stored StructuralBias
-on purpose. Do not infer or preserve an old classification. Search beyond the
-last 48 hours as needed and assess a meaningful recent policy window.
+CRITICAL — V14 EVIDENCE EXTRACTION:
+For EVERY current voter, extract objective monetary-policy evidence. Python,
+not you, owns the final StructuralBias classification. You are intentionally
+NOT shown the stored StructuralBias.
 
-The candidate must answer: "What structural camp best describes this voter
-TODAY, based on votes + repeated policy communication?" It must NOT answer
-"what did the database previously call this person?"
+Assess a meaningful recent policy window and distinguish a member's stance
+RELATIVE TO THEIR COMMITTEE from merely supporting the institution's current
+policy path. Do not infer "hawkish" just because a member supports a hike that
+is already the committee consensus.
 
 Use Neutral only when the evidence is genuinely balanced/unclear. A consistent
 moderate tilt should be Lean Hawkish or Lean Dovish.
@@ -814,8 +966,19 @@ Python applies controlled one-step evolution rules after receiving the candidate
 
 For EVERY current voter return:
 
-structural_bias_candidate:
-Hawkish / Lean Hawkish / Neutral / Lean Dovish / Dovish
+vote_score:
+number from -2 to +2. Use +2 for a clearly hawkish dissent/proposal relative
+to the majority, -2 for a clearly dovish dissent/proposal, and 0 when voting
+with the committee provides no relative information.
+
+path_score:
+number from -2 to +2 measuring explicit preference for a tighter/faster (+)
+or easier/slower (-) policy path RELATIVE TO THE committee baseline.
+
+risk_score:
+number from -2 to +2 for a durable reaction-function emphasis: upside
+inflation/tightening risks (+), downside activity/employment/easing risks (-).
+Do not use generic inflation concern as +1 if it simply repeats consensus.
 
 latest_signal:
 Hawkish / Lean Hawkish / Neutral / Lean Dovish / Dovish
@@ -1012,9 +1175,20 @@ Prioritize completeness over speed.
                                             "name": {
                                                 "type": "string"
                                             },
-                                            "structural_bias_candidate": {
-                                                "type": "string",
-                                                "enum": VALID_BIASES,
+                                            "vote_score": {
+                                                "type": "number",
+                                                "minimum": -2,
+                                                "maximum": 2,
+                                            },
+                                            "path_score": {
+                                                "type": "number",
+                                                "minimum": -2,
+                                                "maximum": 2,
+                                            },
+                                            "risk_score": {
+                                                "type": "number",
+                                                "minimum": -2,
+                                                "maximum": 2,
                                             },
                                             "latest_signal": {
                                                 "type": "string",
@@ -1064,7 +1238,9 @@ Prioritize completeness over speed.
                                         },
                                         "required": [
                                             "name",
-                                            "structural_bias_candidate",
+                                            "vote_score",
+                                            "path_score",
+                                            "risk_score",
                                             "latest_signal",
                                             "expected_vote",
                                             "confidence",
@@ -1489,6 +1665,8 @@ def preparar_central_bank_members(
     current_keys = set()
     changes = []
 
+    v14_scores = _prepare_v14_scores(ai_members, previous_members)
+
     for item in ai_members:
 
         name = str(
@@ -1539,10 +1717,13 @@ def preparar_central_bank_members(
             or ""
         ).strip()
 
-        structural_bias_candidate = str(
-            item.get("structural_bias_candidate")
-            or "Neutral"
-        ).strip()
+        v14_score = v14_scores.get(key, {
+            "absolute_score": 0.0,
+            "committee_center": 0.0,
+            "structural_score": 0.0,
+            "candidate": "Neutral",
+        })
+        structural_bias_candidate = v14_score["candidate"]
 
         confidence = str(
             item.get("confidence")
@@ -1600,6 +1781,8 @@ def preparar_central_bank_members(
         print(
             f"[{currency}][BIAS] {name} | "
             f"current={previous_bias or 'None'} | "
+            f"score={v14_score['structural_score']:+.3f} "
+            f"(abs={v14_score['absolute_score']:+.3f}, center={v14_score['committee_center']:+.3f}) | "
             f"candidate={structural_bias_candidate} | "
             f"latest={latest_signal} | "
             f"evidence={evidence_type} | "
@@ -2051,7 +2234,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V13.2 ROSTER GUARD + HYSTERESIS ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14 EVIDENCE SCORING + RELATIVE COMMITTEE ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
