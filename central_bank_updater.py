@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from openai import OpenAI, RateLimitError
 
 
-# =================================================== 
+# ===================================================
 # CONFIGURACIÓN
 # ===================================================
 
@@ -95,6 +95,9 @@ COMMITTEE_CONFIG = {
     "EUR": {
         "banco": "European Central Bank / Eurosystem",
         "comite": "Governing Council",
+        # For EUR we track the FULL Governing Council permanently (27 members).
+        # Voting rights for the next policy meeting are assigned deterministically
+        # from the official ECB rotation table below.
         "fallback_voters": [
             "Christine Lagarde",
             "Boris Vujcic",
@@ -102,6 +105,7 @@ COMMITTEE_CONFIG = {
             "Frank Elderson",
             "Philip Lane",
             "Isabel Schnabel",
+            "José Luis Escrivá",
             "Emmanuel Moulin",
             "Fabio Panetta",
             "Olaf Sleijpen",
@@ -110,6 +114,11 @@ COMMITTEE_CONFIG = {
             "Dimitar Radev",
             "Ülo Kaasik",
             "Gabriel Makhlouf",
+            "Yannis Stournaras",
+            "Ante Žigman",
+            "Christodoulos Patsalides",
+            "Mārtiņš Kazāks",
+            "Gediminas Šimkus",
             "Gaston Reinesch",
             "Alexander Demarco",
             "Martin Kocher",
@@ -252,6 +261,14 @@ ECB_NCB_GOVERNORS = {
     "FI": "Olli Rehn",
 }
 
+# Full Governing Council universe tracked in Sheets/Streamlit.
+# 6 Executive Board members + 21 euro-area NCB governors = 27 members.
+ECB_GOVERNING_COUNCIL = (
+    list(ECB_EXECUTIVE_BOARD)
+    + list(ECB_NCB_GOVERNORS.values())
+)
+
+
 # Official ECB 2026 rotation table:
 # https://www.ecb.europa.eu/ecb/decisions/govc/html/votingrights.en.html
 ECB_2026_NCB_VOTERS = {
@@ -292,7 +309,7 @@ def _previous_meeting_date(previous_members):
     return ""
 
 
-def _ecb_official_roster_for_date(date_value):
+def _ecb_official_voters_for_date(date_value):
     date_value = _clean_date(date_value)
     if not date_value:
         return None
@@ -334,12 +351,12 @@ def _valid_ecb_roster(ai_members, committee):
             seen.add(key)
             names.append(name)
 
-    if len(names) != 21:
+    if len(names) != 27:
         return False
 
     keys = {_normalizar_nombre(name) for name in names}
-    required = {_normalizar_nombre(name) for name in ECB_EXECUTIVE_BOARD}
-    if not required.issubset(keys):
+    required = {_normalizar_nombre(name) for name in ECB_GOVERNING_COUNCIL}
+    if keys != required:
         return False
 
     source_url = str(
@@ -484,6 +501,14 @@ def _stabilize_official_roster(currency, ai_members, previous_members, committee
 
 
 def _stabilize_ecb_members(ai_members, previous_members, committee):
+    """
+    Track the FULL ECB Governing Council (27 members) permanently, while assigning
+    Voting=True/False for the NEXT policy meeting from the official rotation table.
+
+    This prevents relevant non-voting governors (for example Kazāks in Oct-2026)
+    from disappearing from the analytical universe merely because their country
+    does not vote at that particular meeting.
+    """
     previous_members = previous_members or []
     previous_index = _indice_previos(previous_members)
 
@@ -501,45 +526,64 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
         previous_members
     )
 
-    target_names = _ecb_official_roster_for_date(
+    voting_names = _ecb_official_voters_for_date(
         meeting_date
     )
 
-    if target_names:
-        mode = "official_2026_rotation"
+    # Membership universe is the full Governing Council. For 2026 the names are
+    # protected by our official verified baseline; AI can enrich evidence but
+    # cannot add/remove members.
+    target_names = list(ECB_GOVERNING_COUNCIL)
+    mode = "official_full_council_2026_rotation"
+
+    if voting_names:
+        voting_keys = {
+            _normalizar_nombre(name)
+            for name in voting_names
+        }
         committee["membership_source"] = (
-            "European Central Bank — Rotation of voting rights"
+            "European Central Bank — Governing Council + rotation of voting rights"
         )
         committee["membership_source_url"] = ECB_VOTING_RIGHTS_SOURCE
-
-    elif _valid_ecb_roster(ai_members, committee):
-        target_names = [
-            str(item.get("name") or "").strip()
-            for item in ai_members
-            if str(item.get("name") or "").strip()
-        ]
-        mode = "validated_official_fallback"
-
-    elif previous_members and len(previous_index) == 21:
-        target_names = [
-            str(
-                item.get("Member")
-                or item.get("name")
-                or ""
-            ).strip()
-            for item in previous_members
-            if str(
-                item.get("Member")
-                or item.get("name")
-                or ""
-            ).strip()
-        ]
-        mode = "fallback_previous"
-
     else:
-        raise ValueError(
-            "No se pudo determinar de forma segura el roster ECB."
-        )
+        # Outside the deterministic 2026 rotation table, retain the full council
+        # only when the model returned a validated official 27-member roster.
+        if _valid_ecb_roster(ai_members, committee):
+            target_names = [
+                str(item.get("name") or "").strip()
+                for item in ai_members
+                if str(item.get("name") or "").strip()
+            ]
+            mode = "validated_official_full_council_fallback"
+        elif previous_members and len(previous_index) == 27:
+            target_names = [
+                str(
+                    item.get("Member")
+                    or item.get("name")
+                    or ""
+                ).strip()
+                for item in previous_members
+                if str(
+                    item.get("Member")
+                    or item.get("name")
+                    or ""
+                ).strip()
+            ]
+            mode = "fallback_previous_full_council"
+        else:
+            raise ValueError(
+                "No se pudo determinar de forma segura el Governing Council ECB completo."
+            )
+
+        # Without a deterministic rotation table we preserve any Voting flags
+        # returned from the prior snapshot rather than inventing them.
+        voting_keys = {
+            _normalizar_nombre(
+                str(item.get("Member") or item.get("name") or "").strip()
+            )
+            for item in previous_members
+            if bool(item.get("Voting", False))
+        }
 
     stabilized = []
     used = set()
@@ -553,43 +597,53 @@ def _stabilize_ecb_members(ai_members, previous_members, committee):
         if key in ai_index:
             item = dict(ai_index[key])
             item["name"] = target_name
-            stabilized.append(item)
-            continue
+        else:
+            previous = previous_index.get(key)
+            if previous:
+                item = _previous_as_ai_item(previous, target_name)
+            else:
+                item = {
+                    "name": target_name,
+                    "vote_score": 0,
+                    "path_score": 0,
+                    "risk_score": 0,
+                    "latest_signal": "Neutral",
+                    "expected_vote": "Unclear",
+                    "confidence": "Low",
+                    "evidence_type": "No new evidence",
+                    "reason": (
+                        "Miembro incluido por el Governing Council oficial protegido; "
+                        "sin evidencia individual suficiente en esta ejecución."
+                    ),
+                    "evidence_date": None,
+                    "source": "European Central Bank",
+                    "source_url": ECB_VOTING_RIGHTS_SOURCE,
+                }
 
-        previous = previous_index.get(key)
-        if previous:
-            stabilized.append(
-                _previous_as_ai_item(previous, target_name)
-            )
-            continue
+        # Internal deterministic flag consumed when rows are built.
+        item["_voting_next_meeting"] = key in voting_keys
+        stabilized.append(item)
 
-        stabilized.append({
-            "name": target_name,
-            "vote_score": 0,
-            "path_score": 0,
-            "risk_score": 0,
-            "latest_signal": "Neutral",
-            "expected_vote": "Unclear",
-            "confidence": "Low",
-            "evidence_type": "No new evidence",
-            "reason": (
-                "Votante determinado por la rotación oficial del BCE; "
-                "sin evidencia individual suficiente en esta ejecución."
-            ),
-            "evidence_date": None,
-            "source": "European Central Bank",
-            "source_url": ECB_VOTING_RIGHTS_SOURCE,
-        })
-
-    if len(stabilized) != 21:
+    if len(stabilized) != 27:
         raise ValueError(
-            f"ECB roster final inválido: {len(stabilized)} miembros."
+            f"ECB Governing Council final inválido: {len(stabilized)} miembros."
+        )
+
+    voters_count = sum(
+        1 for item in stabilized
+        if item.get("_voting_next_meeting") is True
+    )
+
+    if voting_names and voters_count != 21:
+        raise ValueError(
+            f"ECB voting roster inválido para {meeting_date}: "
+            f"{voters_count} votantes, se esperaban 21."
         )
 
     print(
         f"[EUR] ECB roster mode={mode} · "
         f"meeting={meeting_date or 'unknown'} · "
-        f"voters={len(stabilized)}"
+        f"members={len(stabilized)} · voters={voters_count}"
     )
 
     return stabilized, mode, previous_meeting
@@ -1183,7 +1237,7 @@ def buscar_bancos_centrales_ia(divisa, previous_members):
 You maintain two connected datasets for an institutional FX dashboard:
 
 A) recent central-bank statements
-B) the CURRENT rate-setting voting committee and each voter's structural policy bias
+B) the CURRENT rate-setting committee and each member's structural policy bias
 
 CENTRAL BANK: {datos["banco"]}
 COMMITTEE: {datos["comite"]}
@@ -1198,7 +1252,7 @@ testimony, minutes-related comments or direct remarks made during
 approximately the last 72 hours by relevant officials of this central bank.
 
 MANDATORY COVERAGE PROCEDURE:
-- Search EACH current/fallback voter's full name together with the central-bank
+- Search EACH current/fallback member's full name together with the central-bank
   name or acronym; do not rely only on a general central-bank news search.
 - For Part A, search both official sources and reputable financial-news/wire
   sources, including Reuters, Bloomberg, MNI/Market News, Newsquawk and other
@@ -1207,10 +1261,10 @@ MANDATORY COVERAGE PROCEDURE:
   is paywalled, provided an accessible reputable result accurately reports the
   remark. Use the best accessible reporting URL as source_url.
 - If recent evidence found while researching Part B contains a direct,
-  monetary-policy-relevant statement by a voter, it MUST also be returned in
+  monetary-policy-relevant statement by a committee member, it MUST also be returned in
   Part A as an event. Do not leave it only inside that member's reason field.
 - Before returning an empty events array, explicitly verify every listed
-  current/fallback voter for the search window.
+  current/fallback member for the search window.
 
 Only include comments that matter for monetary policy or FX.
 
@@ -1224,11 +1278,19 @@ event_date, datetime, currency, member, central_bank, statement,
 context, bias (Hawkish/Dovish/Neutral), importance, source, source_url.
 
 ===================================================
-PART B — CURRENT VOTERS
+PART B — CURRENT POLICY COMMITTEE
 ===================================================
 
-First verify who CURRENTLY HAS A VOTE on the interest-rate decision
-for the NEXT scheduled policy meeting.
+First verify the CURRENT rate-setting committee.
+
+SPECIAL ECB RULE:
+- Return ALL 27 current Governing Council members, not only the 21 who vote at
+  the next meeting.
+- Python will assign the next-meeting Voting=True/False flag deterministically
+  from the official ECB rotation table.
+- Do not omit a governor merely because that governor lacks a vote next month.
+
+For non-ECB central banks, return only the formal members who vote on policy.
 
 Use OFFICIAL central-bank sources as the primary authority for committee
 membership. This official-source preference does NOT restrict Part A:
@@ -1238,13 +1300,13 @@ sources.
 Rules:
 - Exclude observers, alternates and non-voting participants.
 - Federal Reserve: only current FOMC voters.
-- ECB: apply the official rotation of NCB governors for the NEXT
-  monetary-policy decision; Executive Board members retain voting rights.
+- ECB: include the full Governing Council (6 Executive Board + 21 NCB
+  governors). Do NOT filter the research universe by the monthly voting rotation.
 - Other banks: include only formal members who vote on policy.
 - If there has been an appointment, departure, replacement, expiry
   or rotation, use the new CURRENT voting list.
 
-Fallback voter list from the dashboard; correct it if official sources
+Fallback committee list from the dashboard; correct it if official sources
 show a change:
 {fallback}
 
@@ -1252,7 +1314,7 @@ Previous saved ROSTER from CentralBank_Members (bias fields intentionally omitte
 {prev_json}
 
 CRITICAL — V14.3 AUDITABLE EVIDENCE EXTRACTION:
-For EVERY current voter, extract objective monetary-policy evidence. Python,
+For EVERY current committee member, extract objective monetary-policy evidence. Python,
 not you, owns the final StructuralBias classification. You are intentionally
 NOT shown the stored StructuralBias.
 
@@ -1268,7 +1330,7 @@ RECALIBRATION MODE FOR THIS RUN: {RECALIBRATE_BIAS}
 When True, Python may accept the independent candidate directly. When False,
 Python applies controlled one-step evolution rules after receiving the candidate.
 
-For EVERY current voter return:
+For EVERY current committee member return:
 
 vote_score:
 number from -2 to +2. Use +2 for a clearly hawkish dissent/proposal relative
@@ -2107,6 +2169,15 @@ def preparar_central_bank_members(
     current_keys = set()
     changes = []
 
+    # Migration guard: before this version EUR stored only the 21 next-meeting
+    # voters. Expanding that snapshot to all 27 Governing Council members must
+    # not create six fake "new member" history events.
+    legacy_ecb_voter_snapshot = (
+        currency == "EUR"
+        and bool(previous_index)
+        and len(previous_index) == 21
+    )
+
     v14_scores = _prepare_v14_scores(ai_members, previous_members)
 
     for item in ai_members:
@@ -2295,7 +2366,11 @@ def preparar_central_bank_members(
         row = {
             "Currency": currency,
             "Member": name,
-            "Voting": True,
+            "Voting": (
+                bool(item.get("_voting_next_meeting"))
+                if currency == "EUR"
+                else True
+            ),
             "StructuralBias": structural_bias,
             "PreviousBias": (
                 previous_bias
@@ -2376,41 +2451,65 @@ def preparar_central_bank_members(
             })
 
         if previous_index and key not in previous_index:
-            if currency == "EUR":
-                current_meeting = _clean_date(
-                    committee.get("next_meeting_date")
-                )
-                if (
-                    previous_meeting
-                    and current_meeting
-                    and previous_meeting != current_meeting
-                ):
-                    change_type = "VotingRotationAdded"
+            # During the one-time EUR migration 21 -> 27, the six newly tracked
+            # non-voters already belonged to the Governing Council. Do not log
+            # them as fresh appointments or voting additions.
+            if not (legacy_ecb_voter_snapshot and currency == "EUR"):
+                if currency == "EUR":
+                    change_type = "GoverningCouncilMemberAdded"
                 else:
-                    change_type = "VotingRosterCorrectionAdded"
-            else:
-                change_type = "VotingMemberAdded"
+                    change_type = "VotingMemberAdded"
 
-            changes.append({
-                "Currency": currency,
-                "Member": name,
-                "ChangeType": change_type,
-                "PreviousValue": "",
-                "NewValue": "Voting",
-                "DetectedAt": updated_at,
-                "Evidence": (
-                    "Nuevo miembro con derecho de voto "
-                    "detectado en la composición actual."
-                ),
-                "Source": row["MembershipSource"],
-                "SourceURL": row[
-                    "MembershipSourceURL"
-                ],
-            })
+                changes.append({
+                    "Currency": currency,
+                    "Member": name,
+                    "ChangeType": change_type,
+                    "PreviousValue": "",
+                    "NewValue": (
+                        "Voting" if row["Voting"] else "Not Voting"
+                    ),
+                    "DetectedAt": updated_at,
+                    "Evidence": (
+                        "Nuevo miembro detectado en la composición oficial actual."
+                        if currency == "EUR"
+                        else "Nuevo miembro con derecho de voto detectado en la composición actual."
+                    ),
+                    "Source": row["MembershipSource"],
+                    "SourceURL": row["MembershipSourceURL"],
+                })
 
-    # Miembros que estaban guardados y ya no aparecen entre los votantes.
-    # Si no existe snapshot previo, esta ejecución se considera inicialización
-    # y no se generan falsos cambios de composición.
+        elif previous:
+            previous_voting = bool(previous.get("Voting", True))
+            current_voting = bool(row["Voting"])
+
+            if previous_voting != current_voting:
+                changes.append({
+                    "Currency": currency,
+                    "Member": name,
+                    "ChangeType": (
+                        "VotingRotationAdded"
+                        if current_voting
+                        else "VotingRotationRemoved"
+                    ),
+                    "PreviousValue": (
+                        "Voting" if previous_voting else "Not Voting"
+                    ),
+                    "NewValue": (
+                        "Voting" if current_voting else "Not Voting"
+                    ),
+                    "DetectedAt": updated_at,
+                    "Evidence": (
+                        "Cambio de derecho de voto para la próxima reunión "
+                        "según la rotación oficial del BCE."
+                    ),
+                    "Source": row["MembershipSource"],
+                    "SourceURL": row["MembershipSourceURL"],
+                })
+
+    # Miembros guardados que ya no aparecen en el universo oficial.
+    # For EUR, monthly voting rotation no longer removes a member from the
+    # snapshot; disappearance now means an actual Governing Council membership
+    # change (appointment/departure), not simply loss of a vote.
     for key, previous in previous_index.items():
         if key in current_keys:
             continue
@@ -2422,17 +2521,7 @@ def preparar_central_bank_members(
         ).strip()
 
         if currency == "EUR":
-            current_meeting = _clean_date(
-                committee.get("next_meeting_date")
-            )
-            if (
-                previous_meeting
-                and current_meeting
-                and previous_meeting != current_meeting
-            ):
-                change_type = "VotingRotationRemoved"
-            else:
-                change_type = "VotingRosterCorrectionRemoved"
+            change_type = "GoverningCouncilMemberRemoved"
         else:
             change_type = "VotingMemberRemoved"
 
@@ -2440,12 +2529,15 @@ def preparar_central_bank_members(
             "Currency": currency,
             "Member": old_name,
             "ChangeType": change_type,
-            "PreviousValue": "Voting",
-            "NewValue": "Not Voting",
+            "PreviousValue": (
+                "Voting" if bool(previous.get("Voting", True)) else "Not Voting"
+            ),
+            "NewValue": "Removed",
             "DetectedAt": updated_at,
             "Evidence": (
-                "Ya no aparece entre los votantes "
-                "actuales verificados."
+                "Ya no aparece en la composición oficial actual."
+                if currency == "EUR"
+                else "Ya no aparece entre los votantes actuales verificados."
             ),
             "Source": str(
                 committee.get(
@@ -2583,7 +2675,9 @@ def actualizar_central_bank_currency(currency):
                 }
                 print(
                     f"[{currency}] V14.3.2 DRY RUN · committee NOT saved to Sheets · "
-                    f"{len(members)} voters · {len(changes)} proposed changes"
+                    f"{len(members)} members · "
+                    f"{sum(1 for member in members if bool(member.get('Voting', False)))} voters · "
+                    f"{len(changes)} proposed changes"
                 )
             else:
                 resultado_members = (
@@ -2615,6 +2709,10 @@ def actualizar_central_bank_currency(currency):
         "currency": currency,
         "events_found": len(eventos),
         "members_found": len(members),
+        "voters_found": sum(
+            1 for member in members
+            if bool(member.get("Voting", False))
+        ),
         "changes_found": len(changes),
         "committee_skipped": committee_skipped,
         "drivers_save_result": (
@@ -2681,7 +2779,8 @@ def actualizar_todos_central_bank_drivers():
                 print(
                     f"[{currency}] OK · "
                     f"{resultado['events_found']} declaraciones · "
-                    f"{resultado['members_found']} votantes · "
+                    f"{resultado['members_found']} miembros · "
+                    f"{resultado['voters_found']} votantes · "
                     f"{resultado['changes_found']} cambios"
                     + (" · COMMITTEE SKIPPED" if resultado.get("committee_skipped") else "")
                 )
@@ -2747,7 +2846,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.2 NEUTRALIZATION GUARD ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.2 + ECB FULL COUNCIL ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
@@ -2777,7 +2876,8 @@ if __name__ == "__main__":
             print(
                 f"{resultado['currency']} · OK · "
                 f"{resultado['events_found']} declaraciones · "
-                f"{resultado['members_found']} votantes · "
+                f"{resultado['members_found']} miembros · "
+                f"{resultado['voters_found']} votantes · "
                 f"{resultado['changes_found']} cambios"
             )
 
