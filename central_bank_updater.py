@@ -62,6 +62,10 @@ V14_REQUIRE_CONFIRMATION_FOR_EXTREMES = True
 # corresponding evidence payload satisfies deterministic validation rules.
 V14_COMPONENT_EVIDENCE_AUDIT = True
 
+# V14.3.1: absence of differentiated evidence is not evidence of Neutrality.
+V14_EVIDENCE_SUFFICIENCY = True
+V14_MIN_ABS_SCORE_FOR_DIRECTIONAL_EVIDENCE = 0.05
+
 
 COMMITTEE_CONFIG = {
     "USD": {
@@ -847,6 +851,42 @@ def _has_differentiated_relative_evidence(item, direction):
     return False
 
 
+def _v14_evidence_sufficiency(item, audited, structural_score):
+    """Classify evidence availability separately from policy direction."""
+    if not V14_EVIDENCE_SUFFICIENCY:
+        return "directional_evidence"
+
+    vote = float(audited.get("vote_score", 0) or 0)
+    path = float(audited.get("path_score", 0) or 0)
+    risk = float(audited.get("risk_score", 0) or 0)
+    has_component = any(abs(x) > 0 for x in (vote, path, risk))
+
+    evidence_type = str(item.get("evidence_type") or "").strip()
+    confidence = str(item.get("confidence") or "Low").strip()
+    latest_signal = str(item.get("latest_signal") or "").strip()
+
+    # Neutrality must itself be evidenced. Zero components alone do not prove it.
+    affirmative_neutral = (
+        not has_component
+        and latest_signal == "Neutral"
+        and evidence_type in {
+            "Official vote",
+            "Explicit stance change",
+            "Multiple consistent statements",
+        }
+        and confidence in {"Medium", "High"}
+        and bool(str(item.get("reason") or "").strip())
+        and _valid_https_url(item.get("source_url"))
+    )
+    if affirmative_neutral:
+        return "neutral_evidence"
+
+    if has_component and abs(float(structural_score)) >= V14_MIN_ABS_SCORE_FOR_DIRECTIONAL_EVIDENCE:
+        return "directional_evidence"
+
+    return "insufficient_evidence"
+
+
 def _prepare_v14_scores(ai_members, previous_members):
     """
     V14.3:
@@ -900,9 +940,13 @@ def _prepare_v14_scores(ai_members, previous_members):
             prev.get("StructuralBias") or prev.get("structural_bias") or ""
         ).strip()
 
+        sufficiency = _v14_evidence_sufficiency(item, audited, relative_score)
         guard_status = "not_needed"
 
-        if candidate in {"Lean Hawkish", "Lean Dovish"} and prev_bias in {"", "Neutral"}:
+        if sufficiency == "insufficient_evidence":
+            candidate = "INSUFFICIENT_EVIDENCE"
+
+        elif candidate in {"Lean Hawkish", "Lean Dovish"} and prev_bias in {"", "Neutral"}:
             direction = 1 if candidate == "Lean Hawkish" else -1
             if not _has_differentiated_relative_evidence(item, direction):
                 candidate = "Neutral"
@@ -916,6 +960,7 @@ def _prepare_v14_scores(ai_members, previous_members):
             "structural_score": round(relative_score, 3),
             "candidate": candidate,
             "guard": guard_status,
+            "sufficiency": sufficiency,
             "vote_score": audited.get("vote_score", 0),
             "path_score": audited.get("path_score", 0),
             "risk_score": audited.get("risk_score", 0),
@@ -2059,6 +2104,12 @@ def preparar_central_bank_members(
             "candidate": "Neutral",
         })
         structural_bias_candidate = v14_score["candidate"]
+        evidence_insufficient = structural_bias_candidate == "INSUFFICIENT_EVIDENCE"
+        candidate_for_resolution = (
+            previous_bias
+            if evidence_insufficient and previous_bias in VALID_BIASES
+            else ("Neutral" if evidence_insufficient else structural_bias_candidate)
+        )
 
         confidence = str(
             item.get("confidence")
@@ -2079,7 +2130,7 @@ def preparar_central_bank_members(
             previous_bias,
             previous_previous_bias,
             previous_change,
-            structural_bias_candidate,
+            candidate_for_resolution,
             confidence,
             evidence_type,
             recalibrate=RECALIBRATE_BIAS,
@@ -2089,7 +2140,7 @@ def preparar_central_bank_members(
 
         transition_blocked, transition_reason = _v14_transition_guard(
             previous_bias,
-            structural_bias_candidate,
+            candidate_for_resolution,
             evidence_type,
             confidence,
             audited_item,
@@ -2099,7 +2150,7 @@ def preparar_central_bank_members(
         candidate_for_state = (
             previous_bias
             if transition_blocked and previous_bias in VALID_BIASES
-            else structural_bias_candidate
+            else candidate_for_resolution
         )
 
         structural_bias = _resolver_bias(
@@ -2123,6 +2174,8 @@ def preparar_central_bank_members(
         if previous_bias in VALID_BIASES:
             if structural_bias != previous_bias:
                 decision = f"CHANGE -> {structural_bias}"
+            elif evidence_insufficient:
+                decision = f"INSUFFICIENT EVIDENCE · KEEP {structural_bias}"
             elif transition_blocked:
                 decision = (
                     f"TRANSITION HOLD {structural_bias} "
@@ -2144,6 +2197,7 @@ def preparar_central_bank_members(
             f"audit=V[{v14_score.get('vote_audit', '')}]"
             f"/P[{v14_score.get('path_audit', '')}]"
             f"/R[{v14_score.get('risk_audit', '')}] | "
+            f"sufficiency={v14_score.get('sufficiency', 'n/a')} | "
             f"guard={v14_score.get('guard', 'n/a')} | "
             f"candidate={structural_bias_candidate} | "
             f"latest={latest_signal} | "
@@ -2439,10 +2493,10 @@ def actualizar_central_bank_currency(currency):
                 resultado_members = {
                     "ok": True,
                     "skipped": True,
-                    "reason": "v14_3_evidence_audit_dry_run",
+                    "reason": "v14_3_1_evidence_sufficiency_dry_run",
                 }
                 print(
-                    f"[{currency}] V14.3 DRY RUN · committee NOT saved to Sheets · "
+                    f"[{currency}] V14.3.1 DRY RUN · committee NOT saved to Sheets · "
                     f"{len(members)} voters · {len(changes)} proposed changes"
                 )
             else:
@@ -2607,7 +2661,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3 EVIDENCE AUDIT ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.1 EVIDENCE SUFFICIENCY ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
