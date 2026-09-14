@@ -744,6 +744,49 @@ def _component_payload_ok(item, prefix):
     )
 
 
+def _freshest_structural_evidence_date(item):
+    """Return the newest dated STRUCTURAL evidence in the current research item.
+
+    ExpectedVote evidence is intentionally excluded because that forecast is audited
+    independently. We compare the general evidence date plus V/P/R component dates.
+    """
+    candidates = []
+    for key in ("evidence_date", "vote_date", "path_date", "risk_date"):
+        value = _clean_date(item.get(key))
+        if _valid_iso_date(value):
+            candidates.append(value)
+    return max(candidates) if candidates else ""
+
+
+def _previous_structural_evidence_date(previous):
+    value = _clean_date(
+        previous.get("EvidenceDate")
+        or previous.get("evidence_date")
+        or ""
+    )
+    return value if _valid_iso_date(value) else ""
+
+
+def _structural_evidence_is_stale(item, previous):
+    """V14.3.7 monotonic freshness guard.
+
+    If Sheets already contains newer structural evidence for the member, a later run
+    that happens to retrieve only older material must not regress StructuralBias,
+    LatestSignal, confidence, or evidence provenance. Recalibration explicitly bypasses
+    this guard.
+    """
+    if not V14_EVIDENCE_FRESHNESS_GUARD or RECALIBRATE_BIAS or not previous:
+        return False, "", ""
+
+    current_date = _freshest_structural_evidence_date(item)
+    previous_date = _previous_structural_evidence_date(previous)
+
+    if current_date and previous_date and current_date < previous_date:
+        return True, current_date, previous_date
+
+    return False, current_date, previous_date
+
+
 def _audit_component_scores(item):
     """
     V14.3 deterministic evidence audit.
@@ -1136,6 +1179,7 @@ def _prepare_v14_scores(ai_members, previous_members):
     raw = {}
     item_index = {}
     audit_index = {}
+    freshness_index = {}
 
     for item in ai_members or []:
         name = str(item.get("name") or "").strip()
@@ -1149,11 +1193,26 @@ def _prepare_v14_scores(ai_members, previous_members):
         audited_item["path_score"] = audited["path_score"]
         audited_item["risk_score"] = audited["risk_score"]
 
+        previous = previous_index.get(key, {})
+        stale, current_evidence_date, previous_evidence_date = (
+            _structural_evidence_is_stale(audited_item, previous)
+        )
+
         item_index[key] = audited_item
         audit_index[key] = audited
-        raw[key] = _raw_evidence_score(audited_item)
+        freshness_index[key] = {
+            "stale": stale,
+            "current_date": current_evidence_date,
+            "previous_date": previous_evidence_date,
+        }
+        raw[key] = 0.0 if stale else _raw_evidence_score(audited_item)
 
-    values = sorted(raw.values())
+    # A stale member must not move the committee-relative center either.
+    values = sorted(
+        raw[key]
+        for key in raw
+        if not freshness_index.get(key, {}).get("stale", False)
+    )
     if values:
         n = len(values)
         committee_center = (
@@ -1178,10 +1237,21 @@ def _prepare_v14_scores(ai_members, previous_members):
             prev.get("StructuralBias") or prev.get("structural_bias") or ""
         ).strip()
 
+        freshness = freshness_index.get(key, {})
+        stale_evidence = bool(freshness.get("stale", False))
+
         sufficiency = _v14_evidence_sufficiency(item, audited, relative_score)
         guard_status = "not_needed"
 
-        if sufficiency == "insufficient_evidence":
+        if stale_evidence:
+            # Treat stale retrieval as unusable for state evolution. The previous
+            # persisted state/provenance will be retained later when building the row.
+            relative_score = 0.0
+            candidate = "INSUFFICIENT_EVIDENCE"
+            sufficiency = "insufficient_evidence"
+            guard_status = "blocked_stale_evidence"
+
+        elif sufficiency == "insufficient_evidence":
             candidate = "INSUFFICIENT_EVIDENCE"
 
         elif candidate in {"Lean Hawkish", "Lean Dovish"} and prev_bias in {"", "Neutral"}:
@@ -1206,6 +1276,9 @@ def _prepare_v14_scores(ai_members, previous_members):
             "path_audit": audited.get("path_audit", ""),
             "risk_audit": audited.get("risk_audit", ""),
             "audited_item": item,
+            "stale_evidence": stale_evidence,
+            "current_evidence_date": freshness.get("current_date", ""),
+            "previous_evidence_date": freshness.get("previous_date", ""),
         }
 
     return scored
@@ -2543,6 +2616,34 @@ def preparar_central_bank_members(
             or structural_bias_candidate
         ).strip()
 
+        stale_evidence = bool(v14_score.get("stale_evidence", False))
+        if stale_evidence and previous:
+            # V14.3.7: do not let an older research hit regress the persisted
+            # member state or provenance. ExpectedVote remains independently audited.
+            previous_latest_signal = str(
+                previous.get("LatestSignal")
+                or previous.get("latest_signal")
+                or ""
+            ).strip()
+            if previous_latest_signal:
+                latest_signal = previous_latest_signal
+
+            previous_confidence = str(
+                previous.get("Confidence")
+                or previous.get("confidence")
+                or ""
+            ).strip()
+            if previous_confidence:
+                confidence = previous_confidence
+
+            previous_evidence_type = str(
+                previous.get("EvidenceType")
+                or previous.get("evidence_type")
+                or ""
+            ).strip()
+            if previous_evidence_type:
+                evidence_type = previous_evidence_type
+
         hysteresis_blocked = _hysteresis_blocks_reversal(
             previous_bias,
             previous_previous_bias,
@@ -2607,6 +2708,12 @@ def preparar_central_bank_members(
         if previous_bias in VALID_BIASES:
             if structural_bias != previous_bias:
                 decision = f"CHANGE -> {structural_bias}"
+            elif stale_evidence:
+                decision = (
+                    f"STALE EVIDENCE HOLD {structural_bias} "
+                    f"({v14_score.get('current_evidence_date', '')} < "
+                    f"{v14_score.get('previous_evidence_date', '')})"
+                )
             elif evidence_insufficient:
                 decision = f"INSUFFICIENT EVIDENCE · KEEP {structural_bias}"
             elif neutralization_blocked:
@@ -2638,6 +2745,9 @@ def preparar_central_bank_members(
             f"sufficiency={v14_score.get('sufficiency', 'n/a')} | "
             f"neutralization={neutralization_reason} | "
             f"guard={v14_score.get('guard', 'n/a')} | "
+            f"freshness={'STALE' if stale_evidence else 'OK'}"
+            f"[{v14_score.get('current_evidence_date', '') or '-'}"
+            f" vs {v14_score.get('previous_evidence_date', '') or '-'}] | "
             f"candidate={structural_bias_candidate} | "
             f"latest={latest_signal} | "
             f"expected_vote={expected_vote_raw}->{expected_vote} [{expected_vote_audit}] | "
@@ -2668,21 +2778,26 @@ def preparar_central_bank_members(
             "ExpectedVote": expected_vote,
             "Confidence": confidence,
             "EvidenceType": evidence_type,
-            "Evidence": str(
-                item.get("reason")
-                or ""
-            ).strip(),
-            "EvidenceDate": item.get(
-                "evidence_date"
+            "Evidence": (
+                str(previous.get("Evidence") or previous.get("reason") or "").strip()
+                if stale_evidence and previous
+                else str(item.get("reason") or "").strip()
             ),
-            "Source": str(
-                item.get("source")
-                or ""
-            ).strip(),
-            "SourceURL": str(
-                item.get("source_url")
-                or ""
-            ).strip(),
+            "EvidenceDate": (
+                previous.get("EvidenceDate") or previous.get("evidence_date")
+                if stale_evidence and previous
+                else item.get("evidence_date")
+            ),
+            "Source": (
+                str(previous.get("Source") or previous.get("source") or "").strip()
+                if stale_evidence and previous
+                else str(item.get("source") or "").strip()
+            ),
+            "SourceURL": (
+                str(previous.get("SourceURL") or previous.get("source_url") or "").strip()
+                if stale_evidence and previous
+                else str(item.get("source_url") or "").strip()
+            ),
             "UpdatedAt": updated_at,
             "MembershipAsOf": committee.get(
                 "membership_as_of"
@@ -2975,10 +3090,10 @@ def actualizar_central_bank_currency(currency):
                 resultado_members = {
                     "ok": True,
                     "skipped": True,
-                    "reason": "v14_3_6_expected_vote_temporal_guard_dry_run",
+                    "reason": "v14_3_7_evidence_freshness_guard_dry_run",
                 }
                 print(
-                    f"[{currency}] V14.3.6 DRY RUN · committee NOT saved to Sheets · "
+                    f"[{currency}] V14.3.7 DRY RUN · committee NOT saved to Sheets · "
                     f"{len(members)} members · "
                     f"{sum(1 for member in members if bool(member.get('Voting', False)))} voters · "
                     f"{len(changes)} proposed changes"
@@ -3152,7 +3267,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.6 EXPECTED-VOTE TEMPORAL GUARD + WEBAPP RESILIENCE ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.7 EVIDENCE FRESHNESS GUARD ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
