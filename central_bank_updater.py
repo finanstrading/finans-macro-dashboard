@@ -1304,7 +1304,7 @@ def buscar_bancos_centrales_ia(divisa, previous_members):
     # are not present in the saved snapshot. They require a real evidence
     # search before the model is allowed to fall back to Neutral/Low.
     previous_names = {
-        _normalizar_member_key(
+        _normalizar_nombre(
             p.get("Member") or p.get("name") or ""
         )
         for p in (previous_members or [])
@@ -1313,7 +1313,7 @@ def buscar_bancos_centrales_ia(divisa, previous_members):
     new_ecb_members = []
     if divisa == "EUR":
         for name in datos["fallback_voters"]:
-            if _normalizar_member_key(name) not in previous_names:
+            if _normalizar_nombre(name) not in previous_names:
                 new_ecb_members.append(name)
 
     new_ecb_members_text = (
