@@ -79,6 +79,11 @@ V14_MIN_OPPOSING_SCORE_FOR_NEUTRALIZATION = 0.05
 # WebApp retry/failsafe improvements are isolated from monetary-policy scoring.
 V14_EXPECTED_VOTE_AUDIT = True
 
+# V14.3.7: monotonic structural-evidence freshness guard.
+# Prevent older research retrieved on a later run from overwriting newer persisted evidence.
+# Recalibration mode intentionally bypasses this guard.
+V14_EVIDENCE_FRESHNESS_GUARD = True
+
 
 COMMITTEE_CONFIG = {
     "USD": {
