@@ -72,8 +72,10 @@ V14_MIN_ABS_SCORE_FOR_DIRECTIONAL_EVIDENCE = 0.05
 V14_NEUTRALIZATION_GUARD = True
 V14_MIN_OPPOSING_SCORE_FOR_NEUTRALIZATION = 0.05
 
-# V14.3.4: expected_vote is independently audited for EVERY central bank.
-# Unsupported directional alternatives are never shown as if they were member-specific forecasts.
+# V14.3.5: expected_vote is independently audited for EVERY central bank.
+# Preserve the working V14.3.2 structural-bias engine unchanged.
+# Official individual votes are valid evidence for Hold/Hike/Cut when dated/sourced,
+# and ECB non-voters are explicitly labelled No vota for the next meeting.
 V14_EXPECTED_VOTE_AUDIT = True
 
 
@@ -1007,13 +1009,24 @@ def _v14_neutralization_allowed(previous_bias, candidate, sufficiency, structura
     return False, "same_direction_or_too_weak"
 
 
-def _audit_expected_vote(item, audited):
-    """V14.3.4 deterministic audit of the NEXT-MEETING expected vote.
+def _expected_vote_evidence_age_days(date_value):
+    value = _clean_date(date_value)
+    if not value:
+        return None
+    try:
+        evidence_dt = datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        return max(0, (datetime.now(timezone.utc) - evidence_dt).days)
+    except Exception:
+        return None
 
-    StructuralBias and LatestSignal are NOT used as substitutes for vote evidence.
-    Directional options (Hike/Cut, including composites) require member-specific,
-    dated, sourced evidence. Committee baseline / market pricing alone cannot create
-    a member-specific directional expected vote.
+
+def _audit_expected_vote(item, audited):
+    """V14.3.5 deterministic audit of the NEXT-MEETING expected vote.
+
+    This layer is deliberately isolated from StructuralBias. It improves only the
+    next-meeting forecast and never changes V14.3.2 scoring, persistence, hysteresis
+    or neutralization. A recent formal individual vote is itself valid member-specific
+    evidence, including for Hold. Directional composites still require real evidence.
     """
     raw = str(item.get("expected_vote") or "Unclear").strip()
     allowed = {"Hike", "Hold", "Cut", "Hike or Hold", "Hold or Cut", "Unclear"}
@@ -1030,42 +1043,58 @@ def _audit_expected_vote(item, audited):
     source_url = str(item.get("expected_vote_source_url") or "").strip()
     vote_conf = str(item.get("expected_vote_confidence") or "Low").strip()
 
-    specific_basis = basis in {
-        "Official vote",
-        "Explicit next-meeting stance",
-        "Multiple consistent statements",
-        "Single statement",
-    }
     evidence_payload_ok = (
         bool(reason)
         and bool(source)
         and _valid_https_url(source_url)
         and _valid_iso_date(date_value)
     )
-    member_specific = specific_basis and evidence_payload_ok and vote_conf in {"Medium", "High"}
+    age_days = _expected_vote_evidence_age_days(date_value)
+
+    # A formal individual vote is objective evidence even if the model labels its
+    # forecast confidence Low. Keep it usable for 180 days unless newer evidence
+    # in the same research pass leads the model to select another basis.
+    official_vote_valid = (
+        basis == "Official vote"
+        and evidence_payload_ok
+        and age_days is not None
+        and age_days <= 180
+    )
+
+    explicit_or_statement_valid = (
+        basis in {
+            "Explicit next-meeting stance",
+            "Multiple consistent statements",
+            "Single statement",
+        }
+        and evidence_payload_ok
+        and vote_conf in {"Medium", "High"}
+    )
+
+    member_specific = official_vote_valid or explicit_or_statement_valid
 
     vote = float(audited.get("vote_score", 0) or 0)
     path = float(audited.get("path_score", 0) or 0)
     risk = float(audited.get("risk_score", 0) or 0)
     direction = 0.48 * vote + 0.38 * path + 0.14 * risk
 
-    # No directional option without member-specific evidence.
     if raw in {"Hike", "Cut", "Hike or Hold", "Hold or Cut"} and not member_specific:
         return "Unclear", "blocked_no_member_specific_directional_evidence"
 
-    # Hold also needs a real member-specific basis; committee baseline alone is not
-    # enough to pretend we know an individual's next vote.
+    # V14.3.5 fix: a recent, sourced formal Hold vote IS member-specific evidence.
     if raw == "Hold" and not member_specific:
         return "Unclear", "blocked_hold_without_member_specific_evidence"
 
-    # Cross-check the proposed next-meeting direction against independently audited
-    # current evidence. This does NOT infer the vote from bias; it only blocks an
-    # internally contradictory directional alternative.
+    # Do not let an older vote mechanically override clearly opposing, audited
+    # current evidence. This is only a contradiction guard; it does not infer a vote.
     if raw in {"Cut", "Hold or Cut"} and direction > 0.15 and path >= 0 and vote >= 0:
         return "Hold" if raw == "Hold or Cut" else "Unclear", "blocked_cut_contradicts_audited_tightening_evidence"
 
     if raw in {"Hike", "Hike or Hold"} and direction < -0.15 and path <= 0 and vote <= 0:
         return "Hold" if raw == "Hike or Hold" else "Unclear", "blocked_hike_contradicts_audited_easing_evidence"
+
+    if official_vote_valid:
+        return raw, "accepted_recent_official_vote"
 
     return raw, "accepted"
 
@@ -1488,6 +1517,22 @@ expected_vote:
 Hike / Hold / Cut / Hike or Hold / Hold or Cut / Unclear
 
 EXPECTED-VOTE EVIDENCE — MANDATORY FOR EVERY MEMBER:
+GLOBAL MEMBER-BY-MEMBER EXPECTED-VOTE RESEARCH PROCEDURE:
+- For EVERY member of EVERY bank, perform an individual search for evidence relevant
+  to the NEXT scheduled policy meeting. Do not infer the vote from StructuralBias.
+- Check, in order: (1) explicit next-meeting stance, (2) most recent official
+  individual vote/dissent, (3) later speeches/interviews that may supersede that vote,
+  (4) multiple consistent recent statements, (5) a single sufficiently explicit statement.
+- A recent official individual vote is valid member-specific evidence, including a
+  vote to HOLD. Do not downgrade Hold to Unclear merely because the member voted with
+  the majority. Voting with the majority may be uninformative for StructuralBias but
+  it is still evidence about the member's latest policy choice.
+- Prefer the newest evidence when a later statement materially changes the inference.
+- Search official sources first for votes/minutes and reputable wires/financial media
+  for subsequent direct remarks.
+- If, after this individual search, no member-specific evidence supports a reliable
+  next-meeting forecast, return Unclear. Never manufacture certainty from market pricing.
+
 expected_vote_basis:
 Official vote / Explicit next-meeting stance / Multiple consistent statements /
 Single statement / Committee baseline / No specific evidence
@@ -2487,6 +2532,12 @@ def preparar_central_bank_members(
             },
         )
 
+        # ECB: policy bias/latest signal remain analytically relevant for all 27,
+        # but a governor without a vote at the next meeting has no expected vote.
+        if currency == "EUR" and not bool(item.get("_voting_next_meeting")):
+            expected_vote = "No vota"
+            expected_vote_audit = "ecb_not_voting_next_meeting"
+
         transition_blocked, transition_reason = _v14_transition_guard(
             previous_bias,
             candidate_for_resolution,
@@ -2557,6 +2608,9 @@ def preparar_central_bank_members(
             f"candidate={structural_bias_candidate} | "
             f"latest={latest_signal} | "
             f"expected_vote={expected_vote_raw}->{expected_vote} [{expected_vote_audit}] | "
+            f"vote_basis={str(item.get('expected_vote_basis') or 'No specific evidence')} | "
+            f"vote_date={str(item.get('expected_vote_date') or '')} | "
+            f"vote_source={str(item.get('expected_vote_source') or '')} | "
             f"evidence={evidence_type} | "
             f"confidence={confidence} | "
             f"decision={decision}"
@@ -2867,10 +2921,10 @@ def actualizar_central_bank_currency(currency):
                 resultado_members = {
                     "ok": True,
                     "skipped": True,
-                    "reason": "v14_3_4_global_expected_vote_audit_dry_run",
+                    "reason": "v14_3_5_expected_vote_evidence_guard_dry_run",
                 }
                 print(
-                    f"[{currency}] V14.3.4 DRY RUN · committee NOT saved to Sheets · "
+                    f"[{currency}] V14.3.5 DRY RUN · committee NOT saved to Sheets · "
                     f"{len(members)} members · "
                     f"{sum(1 for member in members if bool(member.get('Voting', False)))} voters · "
                     f"{len(changes)} proposed changes"
@@ -3042,7 +3096,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.4 GLOBAL EXPECTED-VOTE AUDIT ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.5 EXPECTED-VOTE EVIDENCE GUARD ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
