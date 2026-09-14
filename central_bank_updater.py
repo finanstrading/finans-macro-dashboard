@@ -72,10 +72,11 @@ V14_MIN_ABS_SCORE_FOR_DIRECTIONAL_EVIDENCE = 0.05
 V14_NEUTRALIZATION_GUARD = True
 V14_MIN_OPPOSING_SCORE_FOR_NEUTRALIZATION = 0.05
 
-# V14.3.5: expected_vote is independently audited for EVERY central bank.
+# V14.3.6: expected_vote temporal-evidence guard + WebApp resilience.
 # Preserve the working V14.3.2 structural-bias engine unchanged.
-# Official individual votes are valid evidence for Hold/Hike/Cut when dated/sourced,
-# and ECB non-voters are explicitly labelled No vota for the next meeting.
+# Explicit next-meeting evidence outranks older votes; formal votes remain valid evidence
+# when not superseded. ECB non-voters are explicitly labelled No vota.
+# WebApp retry/failsafe improvements are isolated from monetary-policy scoring.
 V14_EXPECTED_VOTE_AUDIT = True
 
 
@@ -1021,12 +1022,13 @@ def _expected_vote_evidence_age_days(date_value):
 
 
 def _audit_expected_vote(item, audited):
-    """V14.3.5 deterministic audit of the NEXT-MEETING expected vote.
+    """V14.3.6 deterministic audit of the NEXT-MEETING expected vote.
 
     This layer is deliberately isolated from StructuralBias. It improves only the
     next-meeting forecast and never changes V14.3.2 scoring, persistence, hysteresis
-    or neutralization. A recent formal individual vote is itself valid member-specific
-    evidence, including for Hold. Directional composites still require real evidence.
+    or neutralization. Explicit next-meeting evidence is authoritative when valid.
+    A recent formal individual vote remains valid member-specific evidence, including
+    for Hold, when it has not been superseded by later member-specific evidence.
     """
     raw = str(item.get("expected_vote") or "Unclear").strip()
     allowed = {"Hike", "Hold", "Cut", "Hike or Hold", "Hold or Cut", "Unclear"}
@@ -1051,27 +1053,42 @@ def _audit_expected_vote(item, audited):
     )
     age_days = _expected_vote_evidence_age_days(date_value)
 
-    # A formal individual vote is objective evidence even if the model labels its
-    # forecast confidence Low. Keep it usable for 180 days unless newer evidence
-    # in the same research pass leads the model to select another basis.
+    # Evidence windows are deliberately asymmetric. A formal vote is objective and can
+    # remain informative for longer; a lone statement must be materially fresher.
     official_vote_valid = (
         basis == "Official vote"
         and evidence_payload_ok
         and age_days is not None
         and age_days <= 180
     )
-
-    explicit_or_statement_valid = (
-        basis in {
-            "Explicit next-meeting stance",
-            "Multiple consistent statements",
-            "Single statement",
-        }
+    explicit_next_meeting_valid = (
+        basis == "Explicit next-meeting stance"
         and evidence_payload_ok
+        and age_days is not None
+        and age_days <= 120
+        and vote_conf in {"Medium", "High"}
+    )
+    multiple_statements_valid = (
+        basis == "Multiple consistent statements"
+        and evidence_payload_ok
+        and age_days is not None
+        and age_days <= 120
+        and vote_conf in {"Medium", "High"}
+    )
+    single_statement_valid = (
+        basis == "Single statement"
+        and evidence_payload_ok
+        and age_days is not None
+        and age_days <= 90
         and vote_conf in {"Medium", "High"}
     )
 
-    member_specific = official_vote_valid or explicit_or_statement_valid
+    member_specific = any((
+        official_vote_valid,
+        explicit_next_meeting_valid,
+        multiple_statements_valid,
+        single_statement_valid,
+    ))
 
     vote = float(audited.get("vote_score", 0) or 0)
     path = float(audited.get("path_score", 0) or 0)
@@ -1085,8 +1102,13 @@ def _audit_expected_vote(item, audited):
     if raw == "Hold" and not member_specific:
         return "Unclear", "blocked_hold_without_member_specific_evidence"
 
-    # Do not let an older vote mechanically override clearly opposing, audited
-    # current evidence. This is only a contradiction guard; it does not infer a vote.
+    # Never use StructuralBias components to overrule a valid EXPLICIT next-meeting
+    # stance. V/P/R describe structural evidence and are intentionally a separate layer.
+    if explicit_next_meeting_valid:
+        return raw, "accepted_explicit_next_meeting_stance"
+
+    # For less direct evidence, use audited current evidence only as a contradiction
+    # guard. This blocks implausible alternatives but never manufactures Hike/Cut.
     if raw in {"Cut", "Hold or Cut"} and direction > 0.15 and path >= 0 and vote >= 0:
         return "Hold" if raw == "Hold or Cut" else "Unclear", "blocked_cut_contradicts_audited_tightening_evidence"
 
@@ -1095,6 +1117,10 @@ def _audit_expected_vote(item, audited):
 
     if official_vote_valid:
         return raw, "accepted_recent_official_vote"
+    if multiple_statements_valid:
+        return raw, "accepted_multiple_recent_statements"
+    if single_statement_valid:
+        return raw, "accepted_recent_single_statement"
 
     return raw, "accepted"
 
@@ -1184,7 +1210,7 @@ def _prepare_v14_scores(ai_members, previous_members):
 
     return scored
 
-def _webapp_post(payload, timeout=90, max_retries=3):
+def _webapp_post(payload, timeout=90, max_retries=5):
     """POST robusto a Apps Script con reintentos para fallos transitorios."""
     if not CENTRAL_BANK_DRIVERS_WEBAPP_URL:
         raise ValueError("Falta CENTRAL_BANK_DRIVERS_WEBAPP_URL.")
@@ -1229,7 +1255,7 @@ def _webapp_post(payload, timeout=90, max_retries=3):
             if attempt >= max_retries:
                 break
 
-            wait_seconds = 5 * attempt + random.uniform(0, 2)
+            wait_seconds = min(20, 4 * attempt) + random.uniform(0, 2)
             action = str(payload.get("action") or "unknown")
             print(
                 f"[WebApp:{action}] Error transitorio "
@@ -1520,18 +1546,25 @@ EXPECTED-VOTE EVIDENCE — MANDATORY FOR EVERY MEMBER:
 GLOBAL MEMBER-BY-MEMBER EXPECTED-VOTE RESEARCH PROCEDURE:
 - For EVERY member of EVERY bank, perform an individual search for evidence relevant
   to the NEXT scheduled policy meeting. Do not infer the vote from StructuralBias.
-- Check, in order: (1) explicit next-meeting stance, (2) most recent official
-  individual vote/dissent, (3) later speeches/interviews that may supersede that vote,
-  (4) multiple consistent recent statements, (5) a single sufficiently explicit statement.
-- A recent official individual vote is valid member-specific evidence, including a
-  vote to HOLD. Do not downgrade Hold to Unclear merely because the member voted with
-  the majority. Voting with the majority may be uninformative for StructuralBias but
-  it is still evidence about the member's latest policy choice.
-- Prefer the newest evidence when a later statement materially changes the inference.
+- Build a chronological evidence timeline for the member before choosing expected_vote.
+- Evidence priority is: (1) explicit stance for the NEXT meeting; (2) any later direct
+  speech/interview that materially supersedes an older vote; (3) the most recent official
+  individual vote/dissent; (4) multiple consistent recent statements; (5) one sufficiently
+  explicit recent statement.
+- A recent official individual vote is valid member-specific evidence, including HOLD.
+  Voting with the majority may be uninformative for StructuralBias but is still evidence
+  about the member's latest policy choice.
+- IMPORTANT: if there is material member-specific evidence dated AFTER the official vote,
+  do not cite the older vote as expected_vote_basis unless the later evidence clearly
+  confirms the same next-meeting choice. Use the newer evidence/basis instead.
+- When evidence conflicts, prefer the evidence most directly tied to the NEXT meeting,
+  then recency, then evidentiary strength.
 - Search official sources first for votes/minutes and reputable wires/financial media
   for subsequent direct remarks.
 - If, after this individual search, no member-specific evidence supports a reliable
   next-meeting forecast, return Unclear. Never manufacture certainty from market pricing.
+- Committee baseline may be returned as expected_vote_basis only to document why the
+  individual forecast is Unclear; do NOT turn committee baseline into a personal Hold/Hike/Cut.
 
 expected_vote_basis:
 Official vote / Explicit next-meeting stance / Multiple consistent statements /
@@ -2883,11 +2916,32 @@ def actualizar_central_bank_currency(currency):
         )
     )
 
-    resultado_drivers = (
-        guardar_central_bank_drivers(
-            eventos
+    # V14.3.6 reliability: a transient failure while saving recent statements must
+    # not discard the already-paid OpenAI committee research for this currency.
+    # Drivers are append/dedup data, so we can safely report the save failure and
+    # continue to the protected committee snapshot path.
+    drivers_save_failed = False
+    try:
+        resultado_drivers = (
+            guardar_central_bank_drivers(
+                eventos
+            )
         )
-    )
+    except Exception as error:
+        drivers_save_failed = True
+        resultado_drivers = {
+            "ok": False,
+            "skipped": True,
+            "reason": "drivers_save_failed",
+            "error": str(error),
+        }
+        print(
+            f"[{currency}] DRIVERS SAVE FAILED · {error}"
+        )
+        print(
+            f"[{currency}] RESILIENCE · committee processing will continue; "
+            "the paid research result is not discarded."
+        )
 
     committee_skipped = not previous_state_ok
 
@@ -2921,10 +2975,10 @@ def actualizar_central_bank_currency(currency):
                 resultado_members = {
                     "ok": True,
                     "skipped": True,
-                    "reason": "v14_3_5_expected_vote_evidence_guard_dry_run",
+                    "reason": "v14_3_6_expected_vote_temporal_guard_dry_run",
                 }
                 print(
-                    f"[{currency}] V14.3.5 DRY RUN · committee NOT saved to Sheets · "
+                    f"[{currency}] V14.3.6 DRY RUN · committee NOT saved to Sheets · "
                     f"{len(members)} members · "
                     f"{sum(1 for member in members if bool(member.get('Voting', False)))} voters · "
                     f"{len(changes)} proposed changes"
@@ -2965,6 +3019,7 @@ def actualizar_central_bank_currency(currency):
         ),
         "changes_found": len(changes),
         "committee_skipped": committee_skipped,
+        "drivers_save_failed": drivers_save_failed,
         "drivers_save_result": (
             resultado_drivers
         ),
@@ -3033,6 +3088,7 @@ def actualizar_todos_central_bank_drivers():
                     f"{resultado['voters_found']} votantes · "
                     f"{resultado['changes_found']} cambios"
                     + (" · COMMITTEE SKIPPED" if resultado.get("committee_skipped") else "")
+                    + (" · DRIVERS SAVE FAILED" if resultado.get("drivers_save_failed") else "")
                 )
 
                 break
@@ -3096,7 +3152,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.5 EXPECTED-VOTE EVIDENCE GUARD ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.6 EXPECTED-VOTE TEMPORAL GUARD + WEBAPP RESILIENCE ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
@@ -3129,6 +3185,8 @@ if __name__ == "__main__":
                 f"{resultado['members_found']} miembros · "
                 f"{resultado['voters_found']} votantes · "
                 f"{resultado['changes_found']} cambios"
+                + (" · COMMITTEE SKIPPED" if resultado.get("committee_skipped") else "")
+                + (" · DRIVERS SAVE FAILED" if resultado.get("drivers_save_failed") else "")
             )
 
         else:
