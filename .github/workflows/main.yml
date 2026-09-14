@@ -33,8 +33,9 @@ jobs:
           print("RESPONSE:", r.text[:500])
           PY
 
-      - name: Run Central Bank updater
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CENTRAL_BANK_DRIVERS_WEBAPP_URL: ${{ secrets.CENTRAL_BANK_DRIVERS_WEBAPP_URL }}
-        run: python central_bank_updater.py
+          - name: Run Central Bank updater
+            env:
+              OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+              CENTRAL_BANK_DRIVERS_WEBAPP_URL: ${{ secrets.CENTRAL_BANK_DRIVERS_WEBAPP_URL }}
+              CENTRAL_BANK_V14_DRY_RUN: ${{ vars.CENTRAL_BANK_V14_DRY_RUN }}
+            run: python central_bank_updater.py
