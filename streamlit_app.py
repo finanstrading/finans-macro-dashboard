@@ -2809,8 +2809,12 @@ def cargar_central_bank_members(divisa):
             if not name:
                 continue
 
+            voting_raw = _cell(row, "Voting", "True").lower()
+            voting = voting_raw in {"true", "1", "yes", "si", "sí", "y"}
+
             members.append({
                 "name": name,
+                "voting": voting,
                 "bias": _cell(
                     row,
                     "StructuralBias",
@@ -2939,9 +2943,10 @@ def render_committee_map(divisa, declarations_signature=None):
 
         members = result.get("members", [])
         clasificados = [m for m in members if m.get("bias") != "Pending"]
-        hawks = sum(m.get("bias") in {"Hawkish", "Lean Hawkish"} for m in clasificados)
-        neutral = sum(m.get("bias") == "Neutral" for m in clasificados)
-        doves = sum(m.get("bias") in {"Dovish", "Lean Dovish"} for m in clasificados)
+        votantes_clasificados = [m for m in clasificados if m.get("voting", True)]
+        hawks = sum(m.get("bias") in {"Hawkish", "Lean Hawkish"} for m in votantes_clasificados)
+        neutral = sum(m.get("bias") == "Neutral" for m in votantes_clasificados)
+        doves = sum(m.get("bias") in {"Dovish", "Lean Dovish"} for m in votantes_clasificados)
 
         if clasificados:
             c1, c2, c3 = st.columns(3)
@@ -2973,6 +2978,14 @@ def render_committee_map(divisa, declarations_signature=None):
         voting_note = str(
             cfg.get("voting_note") or ""
         ).strip()
+
+        if divisa == "EUR" and members:
+            total_votantes = sum(m.get("voting", True) for m in members)
+            voting_note = (
+                f"Se muestran los {len(members)} miembros del Governing Council. "
+                f"{total_votantes} tienen derecho de voto en la próxima decisión; "
+                "los gobernadores nacionales rotan sus derechos de voto."
+            )
 
         if voting_note:
             st.caption(
@@ -3006,7 +3019,7 @@ def render_committee_map(divisa, declarations_signature=None):
 
         if membership_as_of:
             meta_membership.append(
-                f"Votantes verificados: {membership_as_of}"
+                f"Composición verificada: {membership_as_of}"
             )
 
         if next_meeting_date:
@@ -3068,7 +3081,7 @@ def render_committee_map(divisa, declarations_signature=None):
             )
         ):
             st.markdown(
-                f"[Ver fuente oficial de votantes ↗]"
+                f"[Ver fuente oficial del comité y votación ↗]"
                 f"({membership_source_url})"
             )
 
@@ -3099,11 +3112,21 @@ def render_committee_map(divisa, declarations_signature=None):
                 }.get(item.get("expected_vote"), "Incierto")
 
                 nombre_seguro = html.escape(str(item.get("name", "")))
+                voting = bool(item.get("voting", True))
+                voting_badge = (
+                    '<span style="display:inline-block;border-radius:999px;padding:2px 8px;'
+                    'font-size:0.70rem;font-weight:800;background:#DCFCE7;color:#166534;">'
+                    'VOTA</span>'
+                    if voting else
+                    '<span style="display:inline-block;border-radius:999px;padding:2px 8px;'
+                    'font-size:0.70rem;font-weight:800;background:#F3F4F6;color:#6B7280;">'
+                    'NO VOTA</span>'
+                )
                 st.markdown(
                     f'<div style="display:flex;align-items:center;gap:8px;'
                     f'margin-bottom:0.2rem;">'
                     f'<strong style="color:#111111;">{nombre_seguro}</strong>'
-                    f'{bias_badge}</div>',
+                    f'{bias_badge}{voting_badge}</div>',
                     unsafe_allow_html=True,
                 )
                 latest_signal = str(
