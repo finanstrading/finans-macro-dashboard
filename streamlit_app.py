@@ -750,31 +750,9 @@ st.markdown(
                 flex-shrink: 0 !important;
             }}
 
-            /* Mercado — sidebar tablet/móvil */
             section[data-testid="stSidebar"]
             div[data-testid="stSegmentedControl"] button {{
-                background: #FFFFFF !important;
-                border-color: #D1D5DB !important;
-                color: #111111 !important;
-            }}
-
-            section[data-testid="stSidebar"]
-            div[data-testid="stSegmentedControl"] button * {{
-                color: #111111 !important;
-                -webkit-text-fill-color: #111111 !important;
-                opacity: 1 !important;
-            }}
-
-            section[data-testid="stSidebar"]
-            div[data-testid="stSegmentedControl"] button[aria-checked="true"] {{
-                background: #E3C85B !important;
-                border-color: #C9A227 !important;
-            }}
-
-            section[data-testid="stSidebar"]
-            div[data-testid="stSegmentedControl"] button[aria-checked="true"] * {{
-                color: #111111 !important;
-                -webkit-text-fill-color: #111111 !important;
+                outline: 4px solid red !important;
             }}
 
             /* Evita desbordamiento horizontal general */
