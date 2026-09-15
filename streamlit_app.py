@@ -749,11 +749,7 @@ st.markdown(
                 min-width: 58px !important;
                 flex-shrink: 0 !important;
             }}
-
-            section[data-testid="stSidebar"]
-            div[data-testid="stSegmentedControl"] button {{
-                outline: 4px solid red !important;
-            }}
+            
 
             /* Evita desbordamiento horizontal general */
             .stApp {{
@@ -9090,6 +9086,10 @@ if pagina_principal == "🚀 Bancos Centrales":
             font-size: 0.95rem;
             font-weight: 600;
             color: #111827;
+        }
+
+        div[role="radiogroup"] button {
+            outline: 3px solid red !important;
         }
         </style>
         """,
