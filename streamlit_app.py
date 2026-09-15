@@ -9088,7 +9088,9 @@ if pagina_principal == "🚀 Bancos Centrales":
             color: #111827;
         }
 
-        /* Divisas — mejor contraste */
+    @media (max-width: 1024px) {
+
+        /* Divisas — tablet y móvil */
         div[role="radiogroup"] button {
             color: #D1D5DB !important;
             font-weight: 700 !important;
@@ -9109,6 +9111,8 @@ if pagina_principal == "🚀 Bancos Centrales":
             -webkit-text-fill-color: #111111 !important;
             opacity: 1 !important;
         }
+
+    }
         </style>
         """,
         unsafe_allow_html=True,
