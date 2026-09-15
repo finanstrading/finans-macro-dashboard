@@ -748,25 +748,30 @@ st.markdown(
                 white-space: nowrap !important;
                 min-width: 58px !important;
                 flex-shrink: 0 !important;
-
-                background: #FFFFFF !important;
-                color: #111111 !important;
-                border: 1px solid #D1D5DB !important;
-                font-weight: 800 !important;
             }}
 
+            /* Mercado — sidebar tablet/móvil */
+            section[data-testid="stSidebar"]
+            div[data-testid="stSegmentedControl"] button {{
+                background: #FFFFFF !important;
+                border-color: #D1D5DB !important;
+                color: #111111 !important;
+            }}
+
+            section[data-testid="stSidebar"]
             div[data-testid="stSegmentedControl"] button * {{
                 color: #111111 !important;
                 -webkit-text-fill-color: #111111 !important;
                 opacity: 1 !important;
             }}
 
+            section[data-testid="stSidebar"]
             div[data-testid="stSegmentedControl"] button[aria-checked="true"] {{
                 background: #E3C85B !important;
                 border-color: #C9A227 !important;
-                color: #111111 !important;
             }}
 
+            section[data-testid="stSidebar"]
             div[data-testid="stSegmentedControl"] button[aria-checked="true"] * {{
                 color: #111111 !important;
                 -webkit-text-fill-color: #111111 !important;
