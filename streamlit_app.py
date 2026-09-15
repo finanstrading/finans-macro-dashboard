@@ -9109,6 +9109,43 @@ if pagina_principal == "🚀 Bancos Centrales":
         key="live_currency",
     )
 
+    components.html(
+        """
+        <script>
+        const parentDoc = window.parent.document;
+
+        function protegerDivisasDeTraduccion() {
+            const control = parentDoc.querySelector(
+                'div[data-testid="stSegmentedControl"]'
+            );
+
+            if (!control) return;
+
+            control.setAttribute("translate", "no");
+            control.classList.add("notranslate");
+
+            control.querySelectorAll("*").forEach(function(el) {
+                el.setAttribute("translate", "no");
+                el.classList.add("notranslate");
+            });
+        }
+
+        protegerDivisasDeTraduccion();
+
+        const observer = new MutationObserver(
+            protegerDivisasDeTraduccion
+        );
+
+        observer.observe(parentDoc.body, {
+            childList: true,
+            subtree: true
+        });
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
     # ===================================================
     # BANCOS CENTRALES — OPENAI WEB SEARCH GUARDADO
     # ===================================================
