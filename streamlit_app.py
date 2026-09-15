@@ -9088,7 +9088,7 @@ if pagina_principal == "🚀 Bancos Centrales":
             color: #111827;
         }
 
-        @media (max-width: 1400px) {
+        @media (max-width: 1024px) {
 
             /* Divisas — tablet y móvil */
             div[role="radiogroup"] button {
