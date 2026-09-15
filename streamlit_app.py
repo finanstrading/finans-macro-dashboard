@@ -9088,8 +9088,26 @@ if pagina_principal == "🚀 Bancos Centrales":
             color: #111827;
         }
 
+        /* Divisas — mejor contraste */
         div[role="radiogroup"] button {
-            outline: 3px solid red !important;
+            color: #D1D5DB !important;
+            font-weight: 700 !important;
+        }
+
+        div[role="radiogroup"] button * {
+            color: #D1D5DB !important;
+            -webkit-text-fill-color: #D1D5DB !important;
+            opacity: 1 !important;
+        }
+
+        div[role="radiogroup"] button[aria-checked="true"] {
+            color: #111111 !important;
+        }
+
+        div[role="radiogroup"] button[aria-checked="true"] * {
+            color: #111111 !important;
+            -webkit-text-fill-color: #111111 !important;
+            opacity: 1 !important;
         }
         </style>
         """,
