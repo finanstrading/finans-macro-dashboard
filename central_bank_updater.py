@@ -8,7 +8,7 @@ import re
 import unicodedata
 
 from datetime import datetime, timezone
-from openai import OpenAI, RateLimitError
+from openai import OpenAI, RateLimitError, APIConnectionError, APITimeoutError
 
 
 # ===================================================
@@ -1150,10 +1150,15 @@ def _audit_expected_vote(item, audited):
     if raw == "Hold" and not member_specific:
         return "Unclear", "blocked_hold_without_member_specific_evidence"
 
-    # Never use StructuralBias components to overrule a valid EXPLICIT next-meeting
-    # stance. V/P/R describe structural evidence and are intentionally a separate layer.
+    # Never use StructuralBias components to overrule direct decision evidence.
+    # A valid explicit next-meeting stance has first priority. A sourced official
+    # individual vote is also authoritative for the recorded choice and must not be
+    # invalidated by structural V/P/R evidence from statements. StructuralBias and
+    # ExpectedVote/recorded vote are intentionally separate dimensions.
     if explicit_next_meeting_valid:
         return raw, "accepted_explicit_next_meeting_stance"
+    if official_vote_valid:
+        return raw, "accepted_recent_official_vote"
 
     # For less direct evidence, use audited current evidence only as a contradiction
     # guard. This blocks implausible alternatives but never manufactures Hike/Cut.
@@ -1163,8 +1168,6 @@ def _audit_expected_vote(item, audited):
     if raw in {"Hike", "Hike or Hold"} and direction < -0.15 and path <= 0 and vote <= 0:
         return "Hold" if raw == "Hike or Hold" else "Unclear", "blocked_hike_contradicts_audited_easing_evidence"
 
-    if official_vote_valid:
-        return raw, "accepted_recent_official_vote"
     if multiple_statements_valid:
         return raw, "accepted_multiple_recent_statements"
     if single_statement_valid:
@@ -3213,7 +3216,7 @@ def actualizar_todos_central_bank_drivers():
 
                 break
 
-            except RateLimitError as error:
+            except (RateLimitError, APIConnectionError, APITimeoutError) as error:
 
                 if intento < max_intentos - 1:
 
@@ -3225,8 +3228,9 @@ def actualizar_todos_central_bank_drivers():
                         )
                     )
 
+                    error_kind = type(error).__name__
                     print(
-                        f"[{currency}] Rate limit · "
+                        f"[{currency}] OpenAI transient error ({error_kind}) · "
                         f"reintento en {espera:.1f}s"
                     )
 
@@ -3240,7 +3244,7 @@ def actualizar_todos_central_bank_drivers():
                     "currency": currency,
                     "ok": False,
                     "error": (
-                        "Rate limit: "
+                        f"OpenAI transient error ({type(error).__name__}): "
                         + str(error)
                     ),
                 })
@@ -3272,7 +3276,7 @@ def actualizar_todos_central_bank_drivers():
 if __name__ == "__main__":
 
     print(
-        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.7 EVIDENCE FRESHNESS GUARD ==="
+        "=== CENTRAL BANK DRIVERS + MEMBERS UPDATE · V14.3.7.2 OFFICIAL-VOTE PRECEDENCE + CONNECTION RETRY ==="
     )
     print(
         f"RECALIBRATE_BIAS={RECALIBRATE_BIAS}"
