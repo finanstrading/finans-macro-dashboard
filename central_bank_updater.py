@@ -1479,6 +1479,24 @@ approximately the last 72 hours by relevant officials of this central bank.
 MANDATORY COVERAGE PROCEDURE:
 - Search EACH current/fallback member's full name together with the central-bank
   name or acronym; do not rely only on a general central-bank news search.
+
+- SPECIAL FEDERAL RESERVE COVERAGE:
+For USD/Federal Reserve recent statements, Part A MUST cover not only the
+current voting FOMC members but also ALL current Federal Reserve Bank
+presidents who participate in FOMC policy discussions, even when they are
+non-voters in the current year.
+
+Monetary-policy-relevant remarks from non-voting Fed presidents MUST be
+returned in the events array when they contain a meaningful signal about
+inflation, employment, the policy rate, future hikes/cuts/holds, policy
+restrictiveness, the balance of risks, or the expected monetary-policy path.
+
+Non-voting status is NOT a reason to exclude an official from Part A.
+
+This expansion applies ONLY to Part A recent statements. It MUST NOT add
+non-voters to the current voting FOMC roster, change official voter counts,
+or affect voting eligibility in Part B.
+
 - For Part A, search both official sources and reputable financial-news/wire
   sources, including Reuters, Bloomberg, MNI/Market News, Newsquawk and other
   outlets that report direct central-bank remarks.
