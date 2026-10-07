@@ -3025,6 +3025,20 @@ def actualizar_central_bank_currency(currency):
         data = json.loads(
             resultado_texto
         )
+
+    print(
+        f"[{currency}] OPENAI EVENTS · "
+        f"{len(data.get('events', []))} encontrados"
+    )
+
+    for evento in data.get("events", []):
+        print(
+            f"[{currency}] EVENT · "
+            f"{evento.get('event_date')} · "
+            f"{evento.get('member')} · "
+            f"{evento.get('source')}"
+        )
+        
     except Exception as error:
         print("DEBUG JSON INVALIDO:")
         print(repr(resultado_texto))
