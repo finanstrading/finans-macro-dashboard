@@ -3025,6 +3025,13 @@ def actualizar_central_bank_currency(currency):
         data = json.loads(
             resultado_texto
         )
+    except Exception as error:
+        print("DEBUG JSON INVALIDO:")
+        print(repr(resultado_texto))
+        raise ValueError(
+            "No se pudo interpretar "
+            f"la respuesta de OpenAI: {error}"
+        )
 
     print(
         f"[{currency}] OPENAI EVENTS · "
@@ -3038,14 +3045,7 @@ def actualizar_central_bank_currency(currency):
             f"{evento.get('member')} · "
             f"{evento.get('source')}"
         )
-        
-    except Exception as error:
-        print("DEBUG JSON INVALIDO:")
-        print(repr(resultado_texto))
-        raise ValueError(
-            "No se pudo interpretar "
-            f"la respuesta de OpenAI: {error}"
-        )
+
 
     eventos = (
         preparar_central_bank_drivers(
