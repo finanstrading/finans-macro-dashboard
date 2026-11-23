@@ -630,14 +630,12 @@ def motor_crecimiento(serie, resultado, indicador, objetivo):
 
 
 def motor_empleo(serie, resultado, indicador, objetivo):
+    """Evalúa NFP con volatilidad reciente y el resto con dirección adecuada."""
     inverso = detectar_direccion_inversa(indicador)
     ultimo = resultado["ultimo_valor"]
 
-    # Tratamiento específico del Non Farm Payrolls.
     if es_nfp(indicador):
-
         serie_nfp_reciente = _serie(serie).tail(24)
-
         if len(serie_nfp_reciente) >= 6:
             media_nfp_reciente = float(serie_nfp_reciente.mean())
             volatilidad_nfp_reciente = float(serie_nfp_reciente.std())
@@ -646,86 +644,25 @@ def motor_empleo(serie, resultado, indicador, objetivo):
             volatilidad_nfp_reciente = float(_serie(serie).std())
 
         volatilidad_nfp_reciente = max(
-            volatilidad_nfp_reciente,
+            volatilidad_nfp_reciente if np.isfinite(volatilidad_nfp_reciente) else 0.0,
             30000.0,
         )
-
         zscore_nfp_reciente = (
-            (ultimo - media_nfp_reciente)
-            / volatilidad_nfp_reciente
+            (ultimo - media_nfp_reciente) / volatilidad_nfp_reciente
         )
-
         nivel_nfp = _limitar(
-            50.0
-            + 22.0 * np.tanh(
-                zscore_nfp_reciente / 1.5
-            )
+            50.0 + 22.0 * np.tanh(zscore_nfp_reciente / 1.5)
         )
-
-    if str(resultado.get("divisa", "")).strip().upper() == "USD":
-        print("\n========== DEBUG NIVEL NFP RECIENTE ==========")
-        print("ULTIMO:", ultimo)
-        print("MEDIA 24:", round(media_nfp_reciente, 2))
-        print("VOL 24:", round(volatilidad_nfp_reciente, 2))
-        print("ZSCORE 24:", round(zscore_nfp_reciente, 2))
-        print("NIVEL NFP:", round(nivel_nfp, 2))
-        print("==============================================\n")
-
         componentes = {
-            "Nivel del mercado laboral":
-                nivel_nfp,
-
-            "Tendencia":
-                score_tendencia(resultado),
-
-            "Impulso reciente":
-                score_momentum_nfp(resultado, serie),
-
-            "Persistencia":
-                score_persistencia(
-                    serie,
-                    float(resultado["media_historica"]),
-                    inverso=False,
-                    ventana=6,
-                ),
-
-            "Posición histórica":
-                score_historico(resultado),
+            "Nivel del mercado laboral": nivel_nfp,
+            "Tendencia": score_tendencia(resultado),
+            "Impulso reciente": score_momentum_nfp(resultado, serie),
+            "Persistencia": score_persistencia(
+                serie, float(resultado["media_historica"]),
+                inverso=False, ventana=6,
+            ),
+            "Posición histórica": score_historico(resultado),
         }
-
-    if (
-        str(resultado.get("divisa", "")).strip().upper() == "USD"
-        and str(indicador).strip() == "Non Farm Payrolls"
-    ):
-        print("\n========== DEBUG COMPONENTES USD NFP ==========")
-        print("SERIE:", _serie(serie).tail(8).tolist())
-        print("ULTIMO:", resultado.get("ultimo_valor"))
-        print("ANTERIOR:", resultado.get("valor_anterior"))
-        print("MEDIA:", resultado.get("media_historica"))
-        print("VOLATILIDAD:", resultado.get("volatilidad"))
-        print("ZSCORE:", resultado.get("zscore"))
-        print("PERCENTIL:", resultado.get("percentil"))
-        print("TENDENCIA 12:", resultado.get("tendencia_12"))
-        print("MOMENTUM:", resultado.get("momentum_3"))
-        print("COMPONENTES:", componentes)
-        print("================================================\n")
-
-    if (
-        str(resultado.get("divisa", "")).strip().upper() == "USD"
-        and str(indicador).strip() == "Unemployment Rate"
-    ):
-        print("\n========== DEBUG COMPONENTES USD UNEMPLOYMENT ==========")
-        print("SERIE:", _serie(serie).tail(6).tolist())
-        print("ULTIMO:", resultado.get("ultimo_valor"))
-        print("ANTERIOR:", resultado.get("valor_anterior"))
-        print("ZSCORE:", resultado.get("zscore"))
-        print("PERCENTIL:", resultado.get("percentil"))
-        print("TENDENCIA 12:", resultado.get("tendencia_12"))
-        print("MOMENTUM:", resultado.get("momentum_3"))
-        print("MEDIA:", resultado.get("media_historica"))
-        print("COMPONENTES:", componentes)
-        print("=========================================================\n")
-
         pesos = {
             "Nivel del mercado laboral": 0.25,
             "Tendencia": 0.15,
@@ -733,36 +670,20 @@ def motor_empleo(serie, resultado, indicador, objetivo):
             "Persistencia": 0.15,
             "Posición histórica": 0.20,
         }
+        return componentes, pesos, f"{ultimo:.0f}; una lectura mayor es más hawkish"
 
-        return (
-            componentes,
-            pesos,
-            f"{ultimo:.0f}; una lectura mayor es más hawkish"
-        )
-
-    # Resto de indicadores laborales: comportamiento actual.
+    # Desempleo, solicitudes de subsidio y demás series laborales.
+    # Para tasas de desempleo y solicitudes, una lectura menor es más hawkish.
     componentes = {
-        "Nivel del mercado laboral":
-            score_nivel_relativo(resultado, inverso=inverso),
-
-        "Tendencia":
-            score_tendencia(resultado, inverso=inverso),
-
-        "Impulso reciente":
-            score_momentum(resultado, inverso=inverso),
-
-        "Persistencia":
-            score_persistencia(
-                serie,
-                float(resultado["media_historica"]),
-                inverso=inverso,
-                ventana=6,
-            ),
-
-        "Posición histórica":
-            score_historico(resultado, inverso=inverso),
+        "Nivel del mercado laboral": score_nivel_relativo(resultado, inverso=inverso),
+        "Tendencia": score_tendencia(resultado, inverso=inverso),
+        "Impulso reciente": score_momentum(resultado, inverso=inverso),
+        "Persistencia": score_persistencia(
+            serie, float(resultado["media_historica"]),
+            inverso=inverso, ventana=6,
+        ),
+        "Posición histórica": score_historico(resultado, inverso=inverso),
     }
-
     pesos = {
         "Nivel del mercado laboral": 0.35,
         "Tendencia": 0.25,
@@ -770,13 +691,10 @@ def motor_empleo(serie, resultado, indicador, objetivo):
         "Persistencia": 0.15,
         "Posición histórica": 0.05,
     }
-
     direccion = (
-        "una lectura menor es más hawkish"
-        if inverso
+        "una lectura menor es más hawkish" if inverso
         else "una lectura mayor es más hawkish"
     )
-
     return componentes, pesos, f"{ultimo:.2f}; {direccion}"
 
 
