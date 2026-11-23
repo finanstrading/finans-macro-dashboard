@@ -175,85 +175,78 @@ def _policy_australia_rba():
 
 
 
+# Códigos encontrados en el catálogo real de Finnhub y probados en el diagnóstico.
+FINNHUB_POLICY_CODES = {
+    'CHF': 'MA-CHE-7382',
+    'NZD': 'MA-NZL-7382',
+    'JPY': 'MA-JPN-7382',
+}
+
+
+def _finnhub_token():
+    """Consulta variables de entorno o secretos Streamlit sin exponer la clave."""
+    keys = ('FINNHUB_API_KEY', 'FINNHUB_TOKEN', 'FINNHUB_KEY')
+    for key in keys:
+        value = os.environ.get(key)
+        if value and str(value).strip():
+            return str(value).strip()
+    for key in keys:
+        try:
+            value = st.secrets.get(key)
+            if value and str(value).strip():
+                return str(value).strip()
+        except Exception:
+            pass
+    for section in ('Finnhub', 'finnhub', 'FINNHUB'):
+        try:
+            config = st.secrets.get(section)
+            if config:
+                for key in (*keys, 'api_key', 'token'):
+                    value = config.get(key)
+                    if value and str(value).strip():
+                        return str(value).strip()
+        except Exception:
+            pass
+    return None
+
+
 @st.cache_data(ttl=21600, show_spinner=False)
-def _bis_all():
-    """Descarga BIS una vez por 6 horas; guarda también los errores para evitar bloqueos."""
-    import zipfile
-    from io import BytesIO
-    url = 'https://data.bis.org/static/bulk/WS_CBPOL_csv_flat.zip'
+def _policy_finnhub(currency, token):
+    """Histórico de Interest Rate (%) de Finnhub; errores también quedan cacheados.
+
+    El catálogo etiqueta estas series como Interest Rate. Antes de tratarlas
+    como tipos oficiales definitivos, contrastar la definición con cada banco.
+    """
+    code = FINNHUB_POLICY_CODES[currency]
     try:
-        response = requests.get(url, timeout=(4, 15), headers={
-            'User-Agent': 'MacroFX/1.0 (public macroeconomic research)',
-            'Accept': 'application/zip,application/octet-stream,*/*',
-        })
+        response = requests.get(
+            'https://finnhub.io/api/v1/economic',
+            params={'code': code, 'token': token}, timeout=(4, 12)
+        )
         response.raise_for_status()
-        buffer = BytesIO(response.content)
-        if not zipfile.is_zipfile(buffer):
-            return {}, 'BIS: la respuesta no contiene un ZIP válido'
-        frames = []
-        with zipfile.ZipFile(buffer) as archive:
-            for member in archive.namelist():
-                if not member.lower().endswith('.csv'):
-                    continue
-                with archive.open(member) as handle:
-                    for chunk in pd.read_csv(handle, chunksize=100000,
-                                             on_bad_lines='skip', low_memory=False):
-                        chunk.columns = [str(c).strip().upper().strip() for c in chunk.columns]
-                        required = {'REF_AREA', 'FREQ', 'TIME_PERIOD', 'OBS_VALUE'}
-                        if not required.issubset(chunk.columns):
-                            continue
-                        subset = chunk.loc[chunk['REF_AREA'].astype(str).str.strip().str.upper()
-                                           .isin(('CH', 'NZ', 'JP'))].copy()
-                        if not subset.empty:
-                            frames.append(subset)
-        if not frames:
-            return {}, 'BIS: no se encontraron países CH, NZ o JP; comprobar columnas y códigos del CSV'
-        data = pd.concat(frames, ignore_index=True)
-        output = {}
-        for currency, area in [('CHF', 'CH'), ('NZD', 'NZ'), ('JPY', 'JP')]:
-            country = data.loc[data['REF_AREA'].astype(str).str.strip().str.upper().eq(area)]
-            if country.empty:
-                continue
-            # Preferir frecuencia diaria; si no existe, usar mensual SIN etiquetarla diaria.
-            freq = country['FREQ'].astype(str).str.strip().str.upper()
-            chosen_freq = next((f for f in ('D', 'M') if freq.eq(f).any()), None)
-            if chosen_freq is None:
-                continue
-            country = country.loc[freq.eq(chosen_freq)].copy()
-            # No mezclar series o instrumentos distintos.
-            group_cols = [c for c in ('KEY', 'SERIES_KEY') if c in country.columns]
-            if not group_cols:
-                group_cols = [c for c in ('COLLECTION', 'UNIT_MEASURE', 'UNIT',
-                                          'RATE_TYPE', 'INSTRUMENT') if c in country.columns]
-            if group_cols:
-                country = max((g for _, g in country.groupby(group_cols, dropna=False)),
-                              key=len)
-            periods = country['TIME_PERIOD'].astype(str).str.strip()
-            if chosen_freq == 'M':
-                # BIS monthly SDMX dates usually use YYYY-MM.
-                dates = pd.to_datetime(periods + '-01', errors='coerce')
-                fallback = pd.to_datetime(periods, errors='coerce')
-                dates = dates.fillna(fallback)
-            else:
-                dates = pd.to_datetime(periods, errors='coerce')
-            vals = pd.to_numeric(country['OBS_VALUE'], errors='coerce')
-            clean = pd.DataFrame({'date': dates, 'rate': vals}).dropna()
-            clean = clean.loc[clean['rate'].between(-20, 100)]
-            series = _as_series(clean.to_dict('records'), 'rate')
-            if len(series) >= 10:
-                output[currency] = (series, chosen_freq)
-        if not output:
-            return {}, 'BIS: no se extrajeron series válidas; revisar frecuencia y claves del dataset'
-        return output, None
+        payload = response.json()
+        if isinstance(payload, dict):
+            if payload.get('error'):
+                return pd.Series(dtype=float), f'Finnhub: {str(payload["error"])[:110]}'
+            rows = payload.get('data', [])
+        elif isinstance(payload, list):
+            rows = payload
+        else:
+            rows = []
+        if not isinstance(rows, list):
+            return pd.Series(dtype=float), 'Finnhub: formato de observaciones inesperado'
+        series = _as_series(rows, 'value')
+        series = series[series.between(-20, 50)]
+        # No mostrar series vacías, sin historia o claramente desactualizadas.
+        if len(series) < 2:
+            return pd.Series(dtype=float), f'Finnhub {code}: histórico insuficiente'
+        if series.index.max() < pd.Timestamp.now().normalize() - pd.Timedelta(days=400):
+            return pd.Series(dtype=float), f'Finnhub {code}: última observación demasiado antigua'
+        return series, None
     except Exception as exc:
-        return {}, f'BIS: {type(exc).__name__}: {str(exc)[:140]}'
+        # No incluir URL ni parámetros, que contienen el token.
+        return pd.Series(dtype=float), f'Finnhub {code}: {type(exc).__name__}'
 
-
-def _policy_bis(currency):
-    rates, error = _bis_all()
-    if currency not in rates:
-        raise ValueError(error or f'BIS: sin serie válida para {currency}')
-    return rates[currency]
 
 def _policy_sheet(currency, df, convert_values):
     if df is None or 'Fecha' not in df: return pd.Series(dtype=float)
@@ -337,16 +330,21 @@ def load_rates(currency, sheet_df=None, convert_values=None):
                 sources['Tipo oficial (%)'] = 'Bank of Canada · V122514'
         except Exception as exc:
             warnings.append(f'Banco de Canadá V122514: {type(exc).__name__}')
-    # BIS: fuente verificable de tipos de política monetaria para las tres
-    # divisas pendientes. Se ejecuta si EODHD no ofrece una serie válida.
-    if 'Tipo oficial (%)' not in result and currency in ('CHF', 'NZD', 'JPY'):
-        try:
-            series, frequency = _policy_bis(currency)
+    # Finnhub: tres históricos confirmados en el diagnóstico de MacroFX.
+    # No ejecutar BIS ni los códigos candidatos EODHD que ya fallaron.
+    if 'Tipo oficial (%)' not in result and currency in FINNHUB_POLICY_CODES:
+        finnhub_token = _finnhub_token()
+        if not finnhub_token:
+            warnings.append('Finnhub: FINNHUB_API_KEY no detectada en los secretos de esta app.')
+        else:
+            series, error = _policy_finnhub(currency, finnhub_token)
             if not series.empty:
                 result['Tipo oficial (%)'] = series
-                sources['Tipo oficial (%)'] = f'BIS · CBPOL · {currency} · {"diario" if frequency == "D" else "mensual"}'
-        except Exception as exc:
-            warnings.append(f'BIS CBPOL {currency}: {type(exc).__name__}: {str(exc)[:135]}')
+                sources['Tipo oficial (%)'] = (
+                    f'Finnhub · {FINNHUB_POLICY_CODES[currency]} · Interest Rate (%)'
+                )
+            elif error:
+                warnings.append(error)
     if currency == 'USD':
         for label, fred_id in [('Tipo oficial (%)', 'DFEDTARU'), ('Bono 2Y (%)', 'DGS2'), ('Bono 10Y (%)', 'DGS10')]:
             if label not in result:
