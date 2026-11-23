@@ -1,5 +1,6 @@
 """MacroFX: tipos oficiales y rentabilidades soberanas, fuentes verificables."""
 import os
+import io
 import pandas as pd
 import requests
 import streamlit as st
@@ -83,6 +84,19 @@ def _policy_sheet(currency, df, convert_values):
             return pd.Series(result['value'].to_numpy(dtype=float),index=pd.DatetimeIndex(result['date']))
     return pd.Series(dtype=float)
 
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _fred_usd(series_id):
+    """Public FRED CSV fallback for USD; values are percentages, not prices."""
+    url = f'https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}'
+    resp = requests.get(url, timeout=20)
+    resp.raise_for_status()
+    data = pd.read_csv(io.StringIO(resp.text))
+    if data.empty or series_id not in data.columns:
+        return pd.Series(dtype=float)
+    date_col = data.columns[0]
+    return _as_series(data.rename(columns={date_col: 'date', series_id: 'value'}).to_dict('records'), 'value')
+
 def load_rates(currency, sheet_df=None, convert_values=None):
     """Return (series_by_name, source_by_name, warnings). Never fabricates missing rates."""
     result, sources, warnings = {}, {}, []
@@ -109,6 +123,16 @@ def load_rates(currency, sheet_df=None, convert_values=None):
                 warnings.append(f'Tipo oficial EODHD: {exc}')
     else:
         warnings.append('Falta EODHD_API_KEY en los secretos de Streamlit: no se consultan bonos automáticamente.')
+    if currency == 'USD':
+        for label, fred_id in [('Tipo oficial (%)', 'DFEDTARU'), ('Bono 2Y (%)', 'DGS2'), ('Bono 10Y (%)', 'DGS10')]:
+            if label not in result:
+                try:
+                    series = _fred_usd(fred_id)
+                    if not series.empty:
+                        result[label] = series
+                        sources[label] = f'FRED · {fred_id}'
+                except Exception as exc:
+                    warnings.append(f'FRED {fred_id}: {exc}')
     if 'Tipo oficial (%)' not in result and convert_values is not None:
         s=_policy_sheet(currency,sheet_df,convert_values)
         if not s.empty:
