@@ -285,7 +285,7 @@ def _scan_g10_pairs(window=20, months=12):
             # Ordena por evidencia exploratoria; no representa probabilidad.
             score = float(max(corr, 0) * ratio) if np.isfinite(corr) and np.isfinite(ratio) else np.nan
             rows.append({
-                'Par': pair, 'Divergencia': kind, 'Presión 2Y': direction,
+                'Par': pair, 'Divergencia': kind, 'Presión 2Y': direction, 'Relevancia interna': relevance,
                 'Δ spread (pb)': round(change, 1),
                 'Δ FX (%)': round(fx_change, 2),
                 'Corr. 90d': round(corr, 2) if np.isfinite(corr) else np.nan,
@@ -301,7 +301,7 @@ def _scan_g10_pairs(window=20, months=12):
 def _render_g10_scanner():
     st.markdown('#### Escáner de divergencias G10 · 28 pares')
     st.caption('Escaneo bajo demanda: últimos 12 meses, ventana de 20 observaciones comunes. '
-               'Se muestran magnitudes relativas y se priorizan divergencias; el orden no es una probabilidad de éxito.')
+               'Color solo si Δ spread ≥ 20 pb y Δ FX ≥ 1,0 % en direcciones opuestas. El orden no es una probabilidad de éxito.')
     if st.button('Actualizar ranking de 28 pares', key='fxdiv_scan_button'):
         with st.spinner('Consultando bonos 2Y y los históricos FX de hasta 28 pares; puede tardar...'):
             ranking, errors = _scan_g10_pairs()
@@ -330,8 +330,26 @@ def _render_g10_scanner():
         view = view.sort_values(['_es_divergencia', 'Índice exploratorio'], ascending=[False, False], na_position='last').drop(columns=['_es_divergencia'])
         st.caption(f'{len(view)} pares visibles de {len(ranking)} calculados. '
                    '«Recientes» se compara con la última fecha del conjunto, no con la hora actual.')
-        visible_columns = [c for c in view.columns if c not in ('Fuente FX', 'Corr. 90d', 'Índice exploratorio')]
-        st.dataframe(view[visible_columns], use_container_width=True, hide_index=True)
+        visible_columns = [c for c in view.columns if c not in (
+            'Fuente FX', 'Corr. 90d', 'Índice exploratorio', 'Relevancia interna')]
+        # Colorear exclusivamente divergencias con movimientos opuestos y mínimos
+        # absolutos de 20 pb en el diferencial y 1.0 % en FX.
+        # No se utilizan correlaciones, magnitudes relativas ni relevancia interna.
+        def _color_divergencia(row):
+            styles = [''] * len(row)
+            spread = pd.to_numeric(row['Δ spread (pb)'], errors='coerce')
+            fx = pd.to_numeric(row['Δ FX (%)'], errors='coerce')
+            if pd.isna(spread) or pd.isna(fx):
+                return styles
+            idx = row.index.get_loc('Divergencia')
+            if spread >= 20.0 and fx <= -1.0 and row['Divergencia'] == 'Alcista':
+                styles[idx] = 'background-color: #DDF5E5; color: #14532D; font-weight: bold'
+            elif spread <= -20.0 and fx >= 1.0 and row['Divergencia'] == 'Bajista':
+                styles[idx] = 'background-color: #FDE2E2; color: #991B1B; font-weight: bold'
+            return styles
+
+        styled_view = view[visible_columns].style.apply(_color_divergencia, axis=1)
+        st.dataframe(styled_view, use_container_width=True, hide_index=True)
         if not view.empty:
             selected = st.selectbox('Abrir gráfico de un par del ranking', view['Par'].tolist(), key='fxdiv_rank_selected')
             if st.button('Ver par seleccionado', key='fxdiv_rank_open'):
@@ -339,7 +357,7 @@ def _render_g10_scanner():
                 st.session_state['fxdiv_base'] = a
                 st.session_state['fxdiv_quote'] = b
                 st.rerun()
-        export_columns = [c for c in ranking.columns if c not in ('Fuente FX', 'Corr. 90d', 'Índice exploratorio')]
+        export_columns = [c for c in ranking.columns if c not in ('Fuente FX', 'Corr. 90d', 'Índice exploratorio', 'Relevancia interna')]
         st.download_button('Descargar ranking CSV', ranking[export_columns].to_csv(index=False).encode('utf-8'),
                            file_name='ranking_divergencias_g10.csv', mime='text/csv', key='fxdiv_rank_csv')
     errors = st.session_state.get('fxdiv_rank_errors', [])
