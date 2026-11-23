@@ -76,18 +76,15 @@ def _spot_eodhd(base, quote, token):
 def _spot_yahoo(base, quote):
     """Yahoo Finance daily FX closes using public chart endpoint; no API key."""
     import requests
-    # Yahoo's canonical USD crosses are often XXX=X (e.g. JPY=X for USD/JPY).
+    # Explicit quote orientation: BASE/QUOTE must always mean units of QUOTE per BASE.
+    # Yahoo shorthand XXX=X is USD/XXX (e.g. JPY=X is USD/JPY),
+    # therefore AUD=X is USD/AUD, NOT AUD/USD.
     candidates = [f'{base}{quote}=X']
     if base == 'USD':
-        candidates.insert(0, f'{quote}=X')
-    if quote == 'USD':
-        candidates.insert(0, f'{base}=X')
-    # Inverted symbols are only used after direct quotes fail.
+        candidates.insert(0, f'{quote}=X')  # USD/QUOTE, direct
     inverse = [f'{quote}{base}=X']
     if quote == 'USD':
-        inverse.insert(0, f'{base}=X')
-    if base == 'USD':
-        inverse.insert(0, f'{quote}=X')
+        inverse.insert(0, f'{base}=X')  # USD/BASE, invert to BASE/USD
     attempts = [(symbol, False) for symbol in dict.fromkeys(candidates)]
     attempts += [(symbol, True) for symbol in dict.fromkeys(inverse) if symbol not in candidates]
     failures = []
