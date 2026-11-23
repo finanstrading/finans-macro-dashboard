@@ -11,14 +11,14 @@ from plotly.subplots import make_subplots
 from fx_rates import load_rates
 
 PRESETS = {
-    'USD': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Mercado laboral': ['Non Farm Payroll', 'Unemployment'], 'Actividad': ['ISM Services', 'GDP'], 'Inflación y Fed': ['CPI', 'Fed Funds']},
-    'EUR': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Actividad': ['Services PMI', 'GDP'], 'Industria': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Deposit Rate']},
-    'GBP': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Salarios e inflación': ['Average Earnings', 'CPI'], 'Actividad': ['Services PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Bank Rate']},
-    'AUD': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Mercado laboral': ['Employment', 'Unemployment'], 'Actividad': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Cash Rate']},
-    'CAD': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Mercado laboral': ['Employment', 'Unemployment'], 'Actividad': ['GDP', 'Retail Sales'], 'Inflación y tipos': ['CPI', 'Policy Rate']},
-    'JPY': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Salarios e inflación': ['Cash Earnings', 'CPI'], 'Actividad': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Policy Rate']},
-    'NZD': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Mercado laboral': ['Employment', 'Unemployment'], 'Actividad': ['GDP', 'Retail Sales'], 'Inflación y tipos': ['CPI', 'OCR']},
-    'CHF': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Actividad': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Policy Rate']},
+    'USD': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Mercado laboral': ['Non Farm Payroll', 'Unemployment'], 'Actividad': ['ISM Services', 'GDP'], 'Inflación y Fed': ['CPI', 'Tipo oficial (%)']},
+    'EUR': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Actividad': ['Services PMI', 'GDP'], 'Industria': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Tipo oficial (%)']},
+    'GBP': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Salarios e inflación': ['Average Earnings', 'CPI'], 'Actividad': ['Services PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Tipo oficial (%)']},
+    'AUD': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Mercado laboral': ['Employment', 'Unemployment'], 'Actividad': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Tipo oficial (%)']},
+    'CAD': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Mercado laboral': ['Employment', 'Unemployment'], 'Actividad': ['GDP', 'Retail Sales'], 'Inflación y tipos': ['CPI', 'Tipo oficial (%)']},
+    'JPY': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Salarios e inflación': ['Cash Earnings', 'CPI'], 'Actividad': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Tipo oficial (%)']},
+    'NZD': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Mercado laboral': ['Employment', 'Unemployment'], 'Actividad': ['GDP', 'Retail Sales'], 'Inflación y tipos': ['CPI', 'Tipo oficial (%)']},
+    'CHF': {'Inflación y empleo': ['CPI', 'Unemployment'], 'Actividad': ['Manufacturing PMI', 'GDP'], 'Inflación y tipos': ['CPI', 'Tipo oficial (%)']},
 }
 COLORS = ['#C9A227', '#3689C9', '#20A17A', '#AD72C7']
 
@@ -28,10 +28,10 @@ def _norm(value):
 
 def _match(hint, available_names):
     needle = _norm(hint)
-    exact = [x for x in indicators if _norm(x) == needle]
+    exact = [x for x in available_names if _norm(x) == needle]
     if exact:
         return exact[0]
-    partial = [x for x in indicators if needle in _norm(x)]
+    partial = [x for x in available_names if needle in _norm(x)]
     if partial:
         return sorted(partial, key=lambda x: (len(_norm(x)), x))[0]
     return None
@@ -54,11 +54,9 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
     except Exception as exc:
         st.error(f'No se pudo cargar la hoja de {currency}: {exc}')
         return
-    if not indicators:
-        st.warning('No hay indicadores disponibles en esta divisa.')
-        return
     rates, rate_sources, rate_warnings = load_rates(currency, df, convert_values)
-    available_names = list(indicators) + list(rates)
+    rate_labels = ['Tipo oficial (%)', 'Bono 2Y (%)', 'Bono 10Y (%)']
+    available_names = list(dict.fromkeys(list(indicators) + rate_labels))
     presets = PRESETS.get(currency, {})
     preset_name = st.selectbox('Relación predeterminada', ['Personalizada'] + list(presets), key=f'fxcorr_preset_{currency}')
     preset_matches = []
@@ -73,17 +71,21 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
     selection_key = f'fxcorr_selected_{currency}'
     previous_key = f'fxcorr_previous_preset_{currency}'
     if selection_key not in st.session_state:
-        st.session_state[selection_key] = preset_matches or indicators[:min(2, len(indicators))]
+        st.session_state[selection_key] = preset_matches or available_names[:min(2, len(available_names))]
+    st.session_state[selection_key] = [n for n in st.session_state[selection_key] if n in available_names][:4]
     if st.session_state.get(previous_key) != preset_name:
         if preset_name != 'Personalizada':
             st.session_state[selection_key] = preset_matches
         st.session_state[previous_key] = preset_name
     st.caption('Tipos oficiales y bonos soberanos 2Y/10Y disponibles en el mismo comparador.')
     selected = st.multiselect('Indicadores (máximo 4)', available_names, max_selections=4, key=selection_key)
-    with st.expander('Estado de datos de tipos y bonos'):
-        for label, source in rate_sources.items():
-            item = rates[label]
-            st.write(f'{label}: {item.iloc[-1]:.3f}% · {item.index[-1]:%d/%m/%Y} · {source}')
+    with st.expander('Estado de datos de tipos y bonos', expanded=not all(k in rates for k in rate_labels)):
+        for label in rate_labels:
+            if label in rates and not rates[label].empty:
+                item = rates[label]
+                st.success(f'{label}: {item.iloc[-1]:.3f}% · {item.index[-1]:%d/%m/%Y} · {rate_sources.get(label, "Fuente desconocida")}')
+            else:
+                st.warning(f'{label}: datos no disponibles. El indicador permanece en el selector.')
         for warning in rate_warnings:
             st.caption(warning)
     if missing:
@@ -101,6 +103,9 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
     months = {'3M': 3, '6M': 6, '1A': 12, '3A': 36, '5A': 60, '10A': 120}
     start = end - pd.DateOffset(months=months[period]) if period in months else df['Fecha'].min()
     for name in selected:
+        if name in rate_labels and name not in rates:
+            st.warning(f'{name}: datos no disponibles; revisa el estado de fuentes.')
+            continue
         s = rates[name] if name in rates else _series(df, name, convert_values)
         s = s.loc[s.index >= start]
         if not s.empty:
@@ -127,7 +132,7 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
         fig.update_yaxes(title_text='Otros indicadores (unidades originales)', secondary_y=True)
         st.caption('En escala original, los indicadores 2–4 comparten el eje derecho; si sus unidades difieren, utiliza la escala normalizada.')
     st.plotly_chart(fig, use_container_width=True, key=f'fxcorr_plot_{currency}')
-    st.caption(f'Fuentes: {sheet} (macro) y EODHD/Google Sheets (tipos y bonos). Última fecha del conjunto: {end:%d/%m/%Y}. Sin interpolación.')
+    st.caption(f'Fuentes: {sheet} (macro) y fuentes detalladas en Estado de datos de tipos y bonos. Última fecha del conjunto: {end:%d/%m/%Y}. Sin interpolación.')
     if len(series) >= 2:
         st.markdown('#### Correlación de variaciones mensuales')
         st.caption('Se utiliza la última observación disponible de cada mes. Se calculan diferencias mensuales para tasas/índices macro, no niveles de precio. No se rellenan meses ausentes ni se asume causalidad.')
