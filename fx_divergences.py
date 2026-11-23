@@ -303,7 +303,7 @@ def _render_g10_scanner():
     horizon = st.radio('Horizonte del ranking', ['1 mes (20 observaciones)', '3 meses (60 observaciones)'], index=0, horizontal=True, key='fxdiv_rank_horizon')
     scan_window = 20 if horizon.startswith('1 mes') else 60
     st.caption(f'Escaneo bajo demanda: últimos 12 meses de histórico, comparación de {scan_window} observaciones comunes. '
-               'Color solo si Δ spread ≥ 20 pb y Δ FX ≥ 1,0 % en direcciones opuestas. El orden no es una probabilidad de éxito.')
+               'Divergencia moderada: |Δ spread| ≥ 5 pb y |Δ FX| ≥ 0,5 %. Fuerte: ≥ 15 pb y ≥ 2 %. Solo movimientos opuestos; el color no indica probabilidad de éxito.')
     if st.button('Actualizar ranking de 28 pares', key='fxdiv_scan_button'):
         with st.spinner('Consultando bonos 2Y y los históricos FX de hasta 28 pares; puede tardar...'):
             ranking, errors = _scan_g10_pairs(window=scan_window)
@@ -338,24 +338,33 @@ def _render_g10_scanner():
                    '«Recientes» se compara con la última fecha del conjunto, no con la hora actual.')
         visible_columns = [c for c in view.columns if c not in (
             'Fuente FX', 'Corr. 90d', 'Índice exploratorio', 'Relevancia interna')]
-        # Colorear exclusivamente divergencias con movimientos opuestos y mínimos
-        # absolutos de 20 pb en el diferencial y 1.0 % en FX.
-        # No se utilizan correlaciones, magnitudes relativas ni relevancia interna.
+        # Dos niveles de intensidad basados SOLO en las variaciones del spread y FX.
+        # La dirección opuesta es imprescindible; no se emplean correlaciones ni ratios.
         def _color_divergencia(row):
             styles = [''] * len(row)
             spread = pd.to_numeric(row['Δ spread (pb)'], errors='coerce')
             fx = pd.to_numeric(row['Δ FX (%)'], errors='coerce')
             if pd.isna(spread) or pd.isna(fx):
                 return styles
+            bullish = spread > 0 and fx < 0 and row['Divergencia'] == 'Alcista'
+            bearish = spread < 0 and fx > 0 and row['Divergencia'] == 'Bajista'
+            if not (bullish or bearish):
+                return styles
+            if abs(spread) < 5.0 or abs(fx) < 0.5:
+                return styles
+            strong = abs(spread) >= 15.0 and abs(fx) >= 2.0
             idx = row.index.get_loc('Divergencia')
-            if spread >= 20.0 and fx <= -1.0 and row['Divergencia'] == 'Alcista':
-                styles[idx] = 'background-color: #DDF5E5; color: #14532D; font-weight: bold'
-            elif spread <= -20.0 and fx >= 1.0 and row['Divergencia'] == 'Bajista':
-                styles[idx] = 'background-color: #FDE2E2; color: #991B1B; font-weight: bold'
+            if bullish:
+                styles[idx] = ('background-color: #86D8A5; color: #064E3B; font-weight: bold' if strong
+                               else 'background-color: #DDF5E5; color: #14532D; font-weight: bold')
+            else:
+                styles[idx] = ('background-color: #F5A3A3; color: #7F1D1D; font-weight: bold' if strong
+                               else 'background-color: #FDE2E2; color: #991B1B; font-weight: bold')
             return styles
 
         styled_view = view[visible_columns].style.apply(_color_divergencia, axis=1)
         st.dataframe(styled_view, use_container_width=True, hide_index=True)
+        st.caption('Color intenso: divergencia fuerte (≥ 15 pb y ≥ 2 %). Color suave: moderada (≥ 5 pb y ≥ 0,5 %). Sin color: no alcanza ambos mínimos o está alineado.')
         if not view.empty:
             selected = st.selectbox('Abrir gráfico de un par del ranking', view['Par'].tolist(), key='fxdiv_rank_selected')
             if st.button('Ver par seleccionado', key='fxdiv_rank_open'):
