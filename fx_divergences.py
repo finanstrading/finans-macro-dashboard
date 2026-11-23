@@ -229,7 +229,7 @@ def _directional_bias(frame, window):
                 relative_strength=strength_ratio, observations=len(changes))
 
 
-def _scan_g10_pairs(window=20, months=12):
+def _scan_g10_pairs(window=60, months=12):
     """Escaneo bajo demanda: 8 series de bonos, 28 históricos FX, sin duplicar pares."""
     # Orden de cotización convencional para que EUR/USD, GBP/USD, USD/JPY, etc.
     # aparezcan con la orientación más habitual.
@@ -300,14 +300,20 @@ def _scan_g10_pairs(window=20, months=12):
 
 def _render_g10_scanner():
     st.markdown('#### Escáner de divergencias G10 · 28 pares')
-    st.caption('Escaneo bajo demanda: últimos 12 meses, ventana de 20 observaciones comunes. '
+    horizon = st.radio('Horizonte del ranking', ['1 mes (20 observaciones)', '3 meses (60 observaciones)'], index=0, horizontal=True, key='fxdiv_rank_horizon')
+    scan_window = 20 if horizon.startswith('1 mes') else 60
+    st.caption(f'Escaneo bajo demanda: últimos 12 meses de histórico, comparación de {scan_window} observaciones comunes. '
                'Color solo si Δ spread ≥ 20 pb y Δ FX ≥ 1,0 % en direcciones opuestas. El orden no es una probabilidad de éxito.')
     if st.button('Actualizar ranking de 28 pares', key='fxdiv_scan_button'):
         with st.spinner('Consultando bonos 2Y y los históricos FX de hasta 28 pares; puede tardar...'):
-            ranking, errors = _scan_g10_pairs()
+            ranking, errors = _scan_g10_pairs(window=scan_window)
         st.session_state['fxdiv_rank_data'] = ranking
         st.session_state['fxdiv_rank_errors'] = errors
+        st.session_state['fxdiv_rank_window'] = scan_window
     ranking = st.session_state.get('fxdiv_rank_data')
+    if ranking is not None and st.session_state.get('fxdiv_rank_window') != scan_window:
+        st.info('Has cambiado el horizonte. Pulsa «Actualizar ranking de 28 pares» para recalcularlo con la nueva ventana.')
+        ranking = None
     if ranking is None:
         st.info('Pulsa «Actualizar ranking de 28 pares» para ejecutar el escaneo. '
                 'No se realizan 28 solicitudes cada vez que cambias el gráfico.')
