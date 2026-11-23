@@ -17,6 +17,7 @@ from currency_score_engine import (
 )
 
 from fx_correlations import render_fx_correlations
+from fx_divergences import render_fx_divergences
 from cftc_positioning import render_cftc_positioning 
 
 import feedparser
@@ -8496,6 +8497,7 @@ with st.sidebar:
             "🚀 Bancos Centrales",
             "CFTC Positioning",
             "Correlaciones FX",
+            "Divergencias de Tipos FX",
         ],
         index=0,
         label_visibility="collapsed",
@@ -9028,6 +9030,12 @@ def clasificar_catalizador_fx(article, divisa):
 # ===================================================
 # CFTC POSITIONING
 # ===================================================
+
+if pagina_principal == "Divergencias de Tipos FX":
+    with st.sidebar:
+        render_logout(AUTH_PROFILE)
+    render_fx_divergences()
+    st.stop()
 
 if pagina_principal == "Correlaciones FX":
     with st.sidebar:
