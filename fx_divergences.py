@@ -395,7 +395,6 @@ def render_fx_divergences():
         quote = st.selectbox('Divisa B (cotizada)', choices, index=default, key='fxdiv_quote')
     with col_period:
         period = st.selectbox('Período', list(PERIODS), index=3, key='fxdiv_period')
-    display_mode = st.radio('Visualización', ('Doble eje: spread (pb) y FX', 'Comparación normalizada: cambios desde el inicio'), horizontal=True, key='fxdiv_mode')
 
     with st.spinner(f'Cargando bonos 2Y y {base}/{quote}...'):
         a_rates, a_sources, a_warnings = load_rates(base)
@@ -444,7 +443,7 @@ def render_fx_divergences():
         if st.button('Restablecer vista', key=f'fxdiv_reset_{base}_{quote}_{period}'):
             st.session_state[zoom_key] = (min_date, max_date)
     with help_col:
-        st.caption('Selecciona las fechas para ampliar el gráfico. Los dos ejes Y se ajustan automáticamente.')
+        st.caption('Selecciona las fechas para ampliar el gráfico. Los ejes Y se ajustan automáticamente a los cambios desde el inicio.')
     if min_date < max_date:
         selected_dates = st.slider(
             'Fechas visibles', min_value=min_date, max_value=max_date,
@@ -461,20 +460,14 @@ def render_fx_divergences():
         return
 
     fig = make_subplots(specs=[[{'secondary_y': True}]])
-    if display_mode.startswith('Doble eje'):
-        spread_values = chart_frame['Spread_pb']
-        fx_values = chart_frame['FX']
-        left_label, right_label = 'Diferencial 2Y (puntos básicos)', f'{base}/{quote} (precio)'
-    else:
-        # Percentage change of the spread is unstable around zero; use basis-point
-        # change from start on the left, FX percentage return on the right.
-        spread_values = chart_frame['Spread_pb'] - chart_frame['Spread_pb'].iloc[0]
-        fx_values = (chart_frame['FX'] / chart_frame['FX'].iloc[0] - 1) * 100
-        left_label, right_label = 'Cambio diferencial desde inicio (pb)', f'Retorno {base}/{quote} desde inicio (%)'
+    # Única vista: variaciones desde el inicio del intervalo visible.
+    # Spread en puntos básicos; FX en porcentaje (ejes con unidades distintas).
+    spread_values = chart_frame['Spread_pb'] - chart_frame['Spread_pb'].iloc[0]
+    fx_values = (chart_frame['FX'] / chart_frame['FX'].iloc[0] - 1) * 100
+    left_label, right_label = 'Cambio diferencial desde inicio (pb)', f'Retorno {base}/{quote} desde inicio (%)'
     fig.add_trace(go.Scatter(x=chart_frame.index, y=spread_values, mode='lines', name=f'Spread 2Y {base} − {quote}', line=dict(color='#C9A227', width=3), hovertemplate='%{x|%d/%m/%Y}<br>%{y:.2f}<extra>%{fullData.name}</extra>'), secondary_y=False)
     fig.add_trace(go.Scatter(x=chart_frame.index, y=fx_values, mode='lines', name=f'{base}/{quote}', line=dict(color='#2563EB', width=2.5), hovertemplate='%{x|%d/%m/%Y}<br>%{y:.3f}<extra>%{fullData.name}</extra>'), secondary_y=True)
-    if display_mode.startswith('Doble eje'):
-        fig.add_hline(y=0, line_dash='dot', line_color='#9CA3AF', opacity=0.65)
+    fig.add_hline(y=0, line_dash='dot', line_color='#9CA3AF', opacity=0.65)
     fig.update_layout(dragmode=False, height=560, template='plotly_white', hovermode='x unified', title=f'{base}/{quote} · diferencial 2Y frente al tipo de cambio', legend=dict(orientation='h', y=-0.18), margin=dict(l=25, r=25, t=60, b=35))
     fig.update_yaxes(title_text=left_label, secondary_y=False)
     fig.update_yaxes(title_text=right_label, secondary_y=True)
