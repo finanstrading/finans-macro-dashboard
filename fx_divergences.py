@@ -278,25 +278,56 @@ def render_fx_divergences():
     c3.metric(f'Spread {base} − {quote}', f"{latest['Spread_pb']:+.1f} pb")
     c4.metric(f'{base}/{quote}', f"{latest['FX']:.5f}")
 
+    # Zoom estable: filtrar las fechas antes de crear el gráfico obliga a
+    # Plotly a recalcular los rangos de ambos ejes verticales.
+    st.markdown('#### Intervalo visible del gráfico')
+    min_date = frame.index.min().date()
+    max_date = frame.index.max().date()
+    zoom_key = f'fxdiv_zoom_{base}_{quote}_{period}'
+    reset_col, help_col = st.columns([1, 5])
+    with reset_col:
+        if st.button('Restablecer vista', key=f'fxdiv_reset_{base}_{quote}_{period}'):
+            st.session_state[zoom_key] = (min_date, max_date)
+    with help_col:
+        st.caption('Selecciona las fechas para ampliar el gráfico. Los dos ejes Y se ajustan automáticamente.')
+    if min_date < max_date:
+        selected_dates = st.slider(
+            'Fechas visibles', min_value=min_date, max_value=max_date,
+            value=(min_date, max_date), format='DD/MM/YYYY', key=zoom_key,
+        )
+        chart_frame = frame.loc[
+            (frame.index.date >= selected_dates[0]) &
+            (frame.index.date <= selected_dates[1])
+        ]
+    else:
+        chart_frame = frame
+    if len(chart_frame) < 2:
+        st.warning('Amplía el intervalo: hacen falta al menos dos fechas con datos.')
+        return
+
     fig = make_subplots(specs=[[{'secondary_y': True}]])
     if display_mode.startswith('Doble eje'):
-        spread_values = frame['Spread_pb']
-        fx_values = frame['FX']
+        spread_values = chart_frame['Spread_pb']
+        fx_values = chart_frame['FX']
         left_label, right_label = 'Diferencial 2Y (puntos básicos)', f'{base}/{quote} (precio)'
     else:
         # Percentage change of the spread is unstable around zero; use basis-point
         # change from start on the left, FX percentage return on the right.
-        spread_values = frame['Spread_pb'] - frame['Spread_pb'].iloc[0]
-        fx_values = (frame['FX'] / frame['FX'].iloc[0] - 1) * 100
+        spread_values = chart_frame['Spread_pb'] - chart_frame['Spread_pb'].iloc[0]
+        fx_values = (chart_frame['FX'] / chart_frame['FX'].iloc[0] - 1) * 100
         left_label, right_label = 'Cambio diferencial desde inicio (pb)', f'Retorno {base}/{quote} desde inicio (%)'
-    fig.add_trace(go.Scatter(x=frame.index, y=spread_values, mode='lines', name=f'Spread 2Y {base} − {quote}', line=dict(color='#C9A227', width=3), hovertemplate='%{x|%d/%m/%Y}<br>%{y:.2f}<extra>%{fullData.name}</extra>'), secondary_y=False)
-    fig.add_trace(go.Scatter(x=frame.index, y=fx_values, mode='lines', name=f'{base}/{quote}', line=dict(color='#2563EB', width=2.5), hovertemplate='%{x|%d/%m/%Y}<br>%{y:.3f}<extra>%{fullData.name}</extra>'), secondary_y=True)
+    fig.add_trace(go.Scatter(x=chart_frame.index, y=spread_values, mode='lines', name=f'Spread 2Y {base} − {quote}', line=dict(color='#C9A227', width=3), hovertemplate='%{x|%d/%m/%Y}<br>%{y:.2f}<extra>%{fullData.name}</extra>'), secondary_y=False)
+    fig.add_trace(go.Scatter(x=chart_frame.index, y=fx_values, mode='lines', name=f'{base}/{quote}', line=dict(color='#2563EB', width=2.5), hovertemplate='%{x|%d/%m/%Y}<br>%{y:.3f}<extra>%{fullData.name}</extra>'), secondary_y=True)
     if display_mode.startswith('Doble eje'):
         fig.add_hline(y=0, line_dash='dot', line_color='#9CA3AF', opacity=0.65)
-    fig.update_layout(height=560, template='plotly_white', hovermode='x unified', title=f'{base}/{quote} · diferencial 2Y frente al tipo de cambio', legend=dict(orientation='h', y=-0.18), margin=dict(l=25, r=25, t=60, b=35))
+    fig.update_layout(dragmode=False, height=560, template='plotly_white', hovermode='x unified', title=f'{base}/{quote} · diferencial 2Y frente al tipo de cambio', legend=dict(orientation='h', y=-0.18), margin=dict(l=25, r=25, t=60, b=35))
     fig.update_yaxes(title_text=left_label, secondary_y=False)
     fig.update_yaxes(title_text=right_label, secondary_y=True)
-    st.plotly_chart(fig, use_container_width=True, key=f'fxdiv_chart_{base}_{quote}')
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(autorange=True, fixedrange=True, secondary_y=False)
+    fig.update_yaxes(autorange=True, fixedrange=True, secondary_y=True)
+    st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': False}, key=f'fxdiv_chart_{base}_{quote}')
+    st.caption('El zoom solo modifica el gráfico. El diagnóstico inferior sigue usando el período completo seleccionado arriba.')
 
     st.markdown('#### Diagnóstico macro: presión, divergencia y relevancia')
     window = st.select_slider('Ventana de comparación (observaciones comunes)',
