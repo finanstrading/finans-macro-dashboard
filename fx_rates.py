@@ -7,6 +7,16 @@ import streamlit as st
 
 COUNTRIES = {'USD':'US','EUR':'DE','GBP':'UK','AUD':'AU','NZD':'NZ','CAD':'CA','JPY':'JP','CHF':'SW'}
 POLICY_CODES = {'USD':'FED_TARGET_UPPER','EUR':'ECB_DFR','GBP':'BOE_BANK_RATE'}
+# Códigos candidatos EODHD: se validan contra el campo `code` de cada registro.
+# No se sustituye un tipo oficial por un tipo interbancario o de mercado.
+POLICY_CANDIDATES = {
+    'AUD': ('RBA_CASH_RATE', 'RBA_CASH_RATE_TARGET', 'RBA_TARGET_CASH_RATE'),
+    'NZD': ('RBNZ_OCR', 'RBNZ_OFFICIAL_CASH_RATE'),
+    'CAD': ('BOC_OVERNIGHT_RATE', 'BOC_TARGET_OVERNIGHT', 'BOC_POLICY_RATE'),
+    'JPY': ('BOJ_POLICY_RATE', 'BOJ_SHORT_TERM_POLICY_RATE'),
+    'CHF': ('SNB_POLICY_RATE', 'SNB_KEY_POLICY_RATE'),
+}
+
 POLICY_HINTS = {
     'USD':['Fed Funds Rate','Federal Funds Rate','Fed Funds Target'],
     'EUR':['ECB Deposit Rate','Deposit Facility Rate','ECB Interest Rate'],
@@ -96,6 +106,41 @@ def _policy_eodhd(currency, token):
         if not batch or offset >= total: break
     return _as_series(out,'rate')
 
+@st.cache_data(ttl=21600, show_spinner=False)
+def _policy_eodhd_candidate(code, token):
+    """Consulta un código concreto; solo acepta observaciones con código idéntico."""
+    rows = []
+    offset = 0
+    while offset < 5000:
+        data = _get_json('https://eodhd.com/api/rates/policy-rates', {
+            'api_token': token, 'filter[code]': code,
+            'page[limit]': 100, 'page[offset]': offset})
+        batch = data.get('data', []) if isinstance(data, dict) else []
+        if not isinstance(batch, list):
+            break
+        matching = [r for r in batch if isinstance(r, dict) and
+                    str(r.get('code', '')).upper() == code.upper()]
+        rows.extend(matching)
+        offset += len(batch)
+        if not batch or offset >= data.get('meta', {}).get('total', offset):
+            break
+    return _as_series(rows, 'rate')
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _policy_canada_boc():
+    """Banco de Canadá, serie oficial V122514: objetivo del tipo overnight."""
+    url = 'https://www.bankofcanada.ca/valet/observations/V122514/json'
+    data = _get_json(url, {'start_date': '2000-01-01'})
+    observations = data.get('observations', []) if isinstance(data, dict) else []
+    rows = []
+    for obs in observations:
+        value = obs.get('V122514', {})
+        if isinstance(value, dict) and value.get('v') is not None:
+            rows.append({'date': obs.get('d'), 'rate': value['v']})
+    return _as_series(rows, 'rate')
+
+
 def _policy_sheet(currency, df, convert_values):
     if df is None or 'Fecha' not in df: return pd.Series(dtype=float)
     for hint in POLICY_HINTS[currency]:
@@ -148,6 +193,27 @@ def load_rates(currency, sheet_df=None, convert_values=None):
                 warnings.append(f'Tipo oficial EODHD: {type(exc).__name__} (revisar permisos y respuesta)')
     else:
         warnings.append('EODHD: credencial no detectada en este despliegue. Comprueba los secretos de la app que estás visualizando.')
+    # Extensión para los cinco bancos centrales restantes.
+    # EODHD se consulta con códigos candidatos estrictamente verificados.
+    if 'Tipo oficial (%)' not in result and currency in POLICY_CANDIDATES and token:
+        for code in POLICY_CANDIDATES[currency]:
+            try:
+                series = _policy_eodhd_candidate(code, token)
+                if not series.empty:
+                    result['Tipo oficial (%)'] = series
+                    sources['Tipo oficial (%)'] = f'EODHD · {code}'
+                    break
+            except Exception as exc:
+                warnings.append(f'EODHD tipo oficial {code}: {type(exc).__name__}')
+    # Fuente oficial alternativa, sin credenciales, para CAD.
+    if 'Tipo oficial (%)' not in result and currency == 'CAD':
+        try:
+            series = _policy_canada_boc()
+            if not series.empty:
+                result['Tipo oficial (%)'] = series
+                sources['Tipo oficial (%)'] = 'Bank of Canada · V122514'
+        except Exception as exc:
+            warnings.append(f'Banco de Canadá V122514: {type(exc).__name__}')
     if currency == 'USD':
         for label, fred_id in [('Tipo oficial (%)', 'DFEDTARU'), ('Bono 2Y (%)', 'DGS2'), ('Bono 10Y (%)', 'DGS10')]:
             if label not in result:
