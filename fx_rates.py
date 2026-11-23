@@ -173,6 +173,81 @@ def _policy_australia_rba():
         raise ValueError('RBA: tabla sin observaciones válidas')
     return series
 
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _policy_bis(currency):
+    """BIS CBPOL daily policy rates (central-bank-validated series).
+
+    Source: https://data.bis.org/static/bulk/WS_CBPOL_csv_flat.zip
+    Uses the published flat CSV rather than unverified vendor ticker guesses.
+    BIS historical series may splice different monetary-policy instruments.
+    """
+    import zipfile
+    from io import BytesIO
+
+    area = {'CHF': 'CH', 'NZD': 'NZ', 'JPY': 'JP'}[currency]
+    url = 'https://data.bis.org/static/bulk/WS_CBPOL_csv_flat.zip'
+    response = requests.get(url, timeout=75, headers={
+        'User-Agent': 'MacroFX/1.0 (research dashboard; public BIS data)',
+        'Accept': 'application/zip,application/octet-stream,*/*',
+    })
+    response.raise_for_status()
+    if not zipfile.is_zipfile(BytesIO(response.content)):
+        raise ValueError('BIS: la descarga no es un archivo ZIP válido')
+
+    frames = []
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        members = [n for n in archive.namelist() if n.lower().endswith('.csv')]
+        if not members:
+            raise ValueError('BIS: no se encontró un CSV en el archivo')
+        for member in members:
+            with archive.open(member) as handle:
+                for chunk in pd.read_csv(handle, chunksize=100000, low_memory=False,
+                                         on_bad_lines='skip'):
+                    chunk.columns = [str(c).strip().upper() for c in chunk.columns]
+                    required = {'REF_AREA', 'FREQ', 'TIME_PERIOD', 'OBS_VALUE'}
+                    if not required.issubset(chunk.columns):
+                        continue
+                    selected = chunk.loc[
+                        chunk['REF_AREA'].astype(str).str.upper().eq(area)
+                        & chunk['FREQ'].astype(str).str.upper().eq('D')
+                    ].copy()
+                    if selected.empty:
+                        continue
+                    # The BIS dataset can contain more than one rate per country;
+                    # prefer the main policy rate series when metadata identifies it.
+                    if 'COLLECTION' in selected.columns:
+                        main = selected['COLLECTION'].astype(str).str.upper().eq('A')
+                        if main.any():
+                            selected = selected.loc[main]
+                    frames.append(selected)
+    if not frames:
+        raise ValueError(f'BIS: no hay observaciones diarias para {currency}')
+    data = pd.concat(frames, ignore_index=True)
+    # Identify a single coherent BIS time series rather than mixing instruments.
+    # Full series key is the strongest discriminator when present.
+    key_cols = [c for c in ('KEY', 'SERIES_KEY', 'COLLECTION', 'UNIT_MEASURE',
+                             'UNIT', 'DECIMALS') if c in data.columns]
+    if 'KEY' in key_cols:
+        key_cols = ['KEY']
+    elif 'SERIES_KEY' in key_cols:
+        key_cols = ['SERIES_KEY']
+    else:
+        key_cols = [c for c in key_cols if c not in ('DECIMALS',)]
+    if key_cols:
+        groups = data.groupby(key_cols, dropna=False, sort=False)
+        # Main daily policy series is expected to have the longest history.
+        data = max((g for _, g in groups), key=len)
+    dates = pd.to_datetime(data['TIME_PERIOD'], errors='coerce')
+    values = pd.to_numeric(data['OBS_VALUE'], errors='coerce')
+    clean = pd.DataFrame({'date': dates, 'rate': values}).dropna()
+    clean = clean[clean['rate'].between(-20, 100)]
+    series = _as_series(clean.to_dict('records'), 'rate')
+    if len(series) < 10:
+        raise ValueError(f'BIS: serie insuficiente para {currency}')
+    return series
+
 def _policy_sheet(currency, df, convert_values):
     if df is None or 'Fecha' not in df: return pd.Series(dtype=float)
     for hint in POLICY_HINTS[currency]:
@@ -255,6 +330,16 @@ def load_rates(currency, sheet_df=None, convert_values=None):
                 sources['Tipo oficial (%)'] = 'Bank of Canada · V122514'
         except Exception as exc:
             warnings.append(f'Banco de Canadá V122514: {type(exc).__name__}')
+    # BIS: fuente verificable de tipos de política monetaria para las tres
+    # divisas pendientes. Se ejecuta si EODHD no ofrece una serie válida.
+    if 'Tipo oficial (%)' not in result and currency in ('CHF', 'NZD', 'JPY'):
+        try:
+            series = _policy_bis(currency)
+            if not series.empty:
+                result['Tipo oficial (%)'] = series
+                sources['Tipo oficial (%)'] = f'BIS · CBPOL · {currency} · diario'
+        except Exception as exc:
+            warnings.append(f'BIS CBPOL {currency}: {type(exc).__name__}: {str(exc)[:135]}')
     if currency == 'USD':
         for label, fred_id in [('Tipo oficial (%)', 'DFEDTARU'), ('Bono 2Y (%)', 'DGS2'), ('Bono 10Y (%)', 'DGS10')]:
             if label not in result:
