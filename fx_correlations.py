@@ -132,4 +132,3 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
                 rows.append({'Indicadores': f'{a} / {b}', 'Pearson (Δ mensual)': round(float(r), 3) if pd.notna(r) else 'N/D', 'Meses comparables': len(pair)})
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         st.caption('N/D significa menos de seis cambios mensuales comparables o variación nula. La correlación no implica causalidad; las series trimestrales pueden requerir un análisis específico.')
-
