@@ -1,5 +1,6 @@
 """MacroFX | Divergencias de Tipos FX: diferenciales soberanos 2Y vs FX spot."""
 import os
+from itertools import combinations
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -228,14 +229,141 @@ def _directional_bias(frame, window):
                 relative_strength=strength_ratio, observations=len(changes))
 
 
+def _scan_g10_pairs(window=20, months=12):
+    """Escaneo bajo demanda: 8 series de bonos, 28 históricos FX, sin duplicar pares."""
+    # Orden de cotización convencional para que EUR/USD, GBP/USD, USD/JPY, etc.
+    # aparezcan con la orientación más habitual.
+    priority = ('EUR', 'GBP', 'AUD', 'NZD', 'USD', 'CAD', 'CHF', 'JPY')
+    bond_key = 'Bono 2Y (%)'
+    bonds = {}
+    failures = []
+    for currency in priority:
+        try:
+            rates, _, warnings = load_rates(currency)
+            series = rates.get(bond_key)
+            if series is None or len(series) == 0:
+                failures.append(f'{currency}: bono 2Y no disponible')
+            else:
+                bonds[currency] = series
+        except Exception as exc:
+            failures.append(f'{currency}: {type(exc).__name__} al cargar bono')
+    token = _eodhd_key()
+    rows = []
+    for a, b in combinations(priority, 2):
+        pair = a + '/' + b
+        if a not in bonds or b not in bonds:
+            failures.append(f'{pair}: falta bono 2Y')
+            continue
+        try:
+            spot, source = _spot_with_fallback(a, b, token)
+            frame = _prepare(bonds[a], bonds[b], spot)
+            if frame.empty:
+                raise ValueError('sin fechas comunes')
+            end = frame.index.max()
+            frame = frame.loc[frame.index >= end - pd.DateOffset(months=months)]
+            signal = _directional_bias(frame, window)
+            if signal is None:
+                raise ValueError('histórico común insuficiente')
+            change, fx_change = signal['spread_change'], signal['fx_return']
+            corr, ratio = signal['corr'], signal['relative_strength']
+            direction = ('Alcista' if change > 0 else 'Bajista') if abs(change) > 1e-8 else 'Neutral'
+            divergence = 'No' if change * fx_change >= 0 or abs(change) < 1e-8 or abs(fx_change) < 1e-8 else 'Sí'
+            if divergence == 'Sí':
+                kind = direction
+            else:
+                kind = 'Alineado'
+            if not np.isfinite(corr) or corr < 0.2 or not np.isfinite(ratio):
+                relevance = 'No confirmada'
+            elif ratio < 0.5:
+                relevance = 'Baja'
+            elif corr >= 0.6 and ratio >= 1.5:
+                relevance = 'Alta'
+            elif corr >= 0.35 and ratio >= 1.0:
+                relevance = 'Media'
+            else:
+                relevance = 'Baja'
+            # Ordena por evidencia exploratoria; no representa probabilidad.
+            score = float(max(corr, 0) * ratio) if np.isfinite(corr) and np.isfinite(ratio) else np.nan
+            rows.append({
+                'Par': pair, 'Divergencia': kind, 'Presión 2Y': direction,
+                'Relevancia': relevance, 'Δ spread (pb)': round(change, 1),
+                'Δ FX (%)': round(fx_change, 2),
+                'Corr. 90d': round(corr, 2) if np.isfinite(corr) else np.nan,
+                'Magnitud relativa': round(ratio, 2) if np.isfinite(ratio) else np.nan,
+                'Índice exploratorio': round(score, 3) if np.isfinite(score) else np.nan,
+                'Última fecha': end.date().isoformat(), 'Fuente FX': source,
+            })
+        except Exception as exc:
+            failures.append(f'{pair}: {type(exc).__name__} ({str(exc)[:80]})')
+    return pd.DataFrame(rows), failures
+
+
+def _render_g10_scanner():
+    st.markdown('#### Escáner de divergencias G10 · 28 pares')
+    st.caption('Escaneo bajo demanda: últimos 12 meses, ventana de 20 observaciones comunes. '
+               'El ranking utiliza correlación y magnitud relativa como criterios exploratorios, '
+               'no como probabilidad de éxito.')
+    if st.button('Actualizar ranking de 28 pares', key='fxdiv_scan_button'):
+        with st.spinner('Consultando bonos 2Y y los históricos FX de hasta 28 pares; puede tardar...'):
+            ranking, errors = _scan_g10_pairs()
+        st.session_state['fxdiv_rank_data'] = ranking
+        st.session_state['fxdiv_rank_errors'] = errors
+    ranking = st.session_state.get('fxdiv_rank_data')
+    if ranking is None:
+        st.info('Pulsa «Actualizar ranking de 28 pares» para ejecutar el escaneo. '
+                'No se realizan 28 solicitudes cada vez que cambias el gráfico.')
+        return
+    if ranking.empty:
+        st.warning('No se pudieron calcular pares. Revisa el diagnóstico de fuentes.')
+    else:
+        f1, f2, f3 = st.columns(3)
+        with f1:
+            filter_div = st.selectbox('Divergencia', ['Todas', 'Alcista', 'Bajista', 'Alineado'], key='fxdiv_rank_div')
+        with f2:
+            filter_rel = st.selectbox('Relevancia', ['Todas', 'Alta', 'Media', 'Baja', 'No confirmada'], key='fxdiv_rank_rel')
+        with f3:
+            only_recent = st.checkbox('Solo datos recientes (≤ 7 días)', value=True, key='fxdiv_rank_recent')
+        view = ranking.copy()
+        if filter_div != 'Todas':
+            view = view[view['Divergencia'] == filter_div]
+        if filter_rel != 'Todas':
+            view = view[view['Relevancia'] == filter_rel]
+        if only_recent:
+            latest = pd.to_datetime(ranking['Última fecha']).max()
+            view = view[pd.to_datetime(view['Última fecha']) >= latest - pd.Timedelta(days=7)]
+        view = view.assign(_es_divergencia=view['Divergencia'].isin(['Alcista', 'Bajista']))
+        view = view.sort_values(['_es_divergencia', 'Índice exploratorio'], ascending=[False, False], na_position='last').drop(columns=['_es_divergencia'])
+        st.caption(f'{len(view)} pares visibles de {len(ranking)} calculados. '
+                   '«Recientes» se compara con la última fecha del conjunto, no con la hora actual.')
+        st.dataframe(view.drop(columns=['Fuente FX']), use_container_width=True, hide_index=True)
+        if not view.empty:
+            selected = st.selectbox('Abrir gráfico de un par del ranking', view['Par'].tolist(), key='fxdiv_rank_selected')
+            if st.button('Ver par seleccionado', key='fxdiv_rank_open'):
+                a, b = selected.split('/')
+                st.session_state['fxdiv_base'] = a
+                st.session_state['fxdiv_quote'] = b
+                st.rerun()
+        st.download_button('Descargar ranking CSV', ranking.to_csv(index=False).encode('utf-8'),
+                           file_name='ranking_divergencias_g10.csv', mime='text/csv', key='fxdiv_rank_csv')
+    errors = st.session_state.get('fxdiv_rank_errors', [])
+    if errors:
+        with st.expander(f'Diagnóstico: {len(errors)} pares/fuentes no disponibles'):
+            for msg in errors:
+                st.caption(msg)
+    st.divider()
+
+
 def render_fx_divergences():
     st.markdown('### Divergencias de Tipos FX')
     st.caption('Bonos soberanos 2Y · diferencial A − B frente al precio de A/B · Finans Trading')
+    _render_g10_scanner()
     col_a, col_b, col_period = st.columns([1, 1, 1])
     with col_a:
         base = st.selectbox('Divisa A (base)', CURRENCIES, index=0, key='fxdiv_base')
     with col_b:
         choices = [c for c in CURRENCIES if c != base]
+        if st.session_state.get('fxdiv_quote') not in choices and 'fxdiv_quote' in st.session_state:
+            st.session_state['fxdiv_quote'] = choices[0]
         default = choices.index('JPY') if 'JPY' in choices else 0
         quote = st.selectbox('Divisa B (cotizada)', choices, index=default, key='fxdiv_quote')
     with col_period:
