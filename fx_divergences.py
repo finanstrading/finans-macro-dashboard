@@ -286,7 +286,7 @@ def _scan_g10_pairs(window=20, months=12):
             score = float(max(corr, 0) * ratio) if np.isfinite(corr) and np.isfinite(ratio) else np.nan
             rows.append({
                 'Par': pair, 'Divergencia': kind, 'Presión 2Y': direction,
-                'Relevancia': relevance, 'Δ spread (pb)': round(change, 1),
+                'Δ spread (pb)': round(change, 1),
                 'Δ FX (%)': round(fx_change, 2),
                 'Corr. 90d': round(corr, 2) if np.isfinite(corr) else np.nan,
                 'Magnitud relativa': round(ratio, 2) if np.isfinite(ratio) else np.nan,
@@ -301,8 +301,7 @@ def _scan_g10_pairs(window=20, months=12):
 def _render_g10_scanner():
     st.markdown('#### Escáner de divergencias G10 · 28 pares')
     st.caption('Escaneo bajo demanda: últimos 12 meses, ventana de 20 observaciones comunes. '
-               'El ranking utiliza correlación y magnitud relativa como criterios exploratorios, '
-               'no como probabilidad de éxito.')
+               'Se muestran magnitudes relativas y se priorizan divergencias; el orden no es una probabilidad de éxito.')
     if st.button('Actualizar ranking de 28 pares', key='fxdiv_scan_button'):
         with st.spinner('Consultando bonos 2Y y los históricos FX de hasta 28 pares; puede tardar...'):
             ranking, errors = _scan_g10_pairs()
@@ -316,18 +315,14 @@ def _render_g10_scanner():
     if ranking.empty:
         st.warning('No se pudieron calcular pares. Revisa el diagnóstico de fuentes.')
     else:
-        f1, f2, f3 = st.columns(3)
+        f1, f3 = st.columns([2, 1])
         with f1:
             filter_div = st.selectbox('Divergencia', ['Todas', 'Alcista', 'Bajista', 'Alineado'], key='fxdiv_rank_div')
-        with f2:
-            filter_rel = st.selectbox('Relevancia', ['Todas', 'Alta', 'Media', 'Baja', 'No confirmada'], key='fxdiv_rank_rel')
         with f3:
             only_recent = st.checkbox('Solo datos recientes (≤ 7 días)', value=True, key='fxdiv_rank_recent')
         view = ranking.copy()
         if filter_div != 'Todas':
             view = view[view['Divergencia'] == filter_div]
-        if filter_rel != 'Todas':
-            view = view[view['Relevancia'] == filter_rel]
         if only_recent:
             latest = pd.to_datetime(ranking['Última fecha']).max()
             view = view[pd.to_datetime(view['Última fecha']) >= latest - pd.Timedelta(days=7)]
@@ -335,7 +330,8 @@ def _render_g10_scanner():
         view = view.sort_values(['_es_divergencia', 'Índice exploratorio'], ascending=[False, False], na_position='last').drop(columns=['_es_divergencia'])
         st.caption(f'{len(view)} pares visibles de {len(ranking)} calculados. '
                    '«Recientes» se compara con la última fecha del conjunto, no con la hora actual.')
-        st.dataframe(view.drop(columns=['Fuente FX']), use_container_width=True, hide_index=True)
+        visible_columns = [c for c in view.columns if c not in ('Fuente FX', 'Corr. 90d', 'Índice exploratorio')]
+        st.dataframe(view[visible_columns], use_container_width=True, hide_index=True)
         if not view.empty:
             selected = st.selectbox('Abrir gráfico de un par del ranking', view['Par'].tolist(), key='fxdiv_rank_selected')
             if st.button('Ver par seleccionado', key='fxdiv_rank_open'):
@@ -343,7 +339,8 @@ def _render_g10_scanner():
                 st.session_state['fxdiv_base'] = a
                 st.session_state['fxdiv_quote'] = b
                 st.rerun()
-        st.download_button('Descargar ranking CSV', ranking.to_csv(index=False).encode('utf-8'),
+        export_columns = [c for c in ranking.columns if c not in ('Fuente FX', 'Corr. 90d', 'Índice exploratorio')]
+        st.download_button('Descargar ranking CSV', ranking[export_columns].to_csv(index=False).encode('utf-8'),
                            file_name='ranking_divergencias_g10.csv', mime='text/csv', key='fxdiv_rank_csv')
     errors = st.session_state.get('fxdiv_rank_errors', [])
     if errors:
@@ -457,7 +454,7 @@ def render_fx_divergences():
     st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': False}, key=f'fxdiv_chart_{base}_{quote}')
     st.caption('El zoom solo modifica el gráfico. El diagnóstico inferior sigue usando el período completo seleccionado arriba.')
 
-    st.markdown('#### Diagnóstico macro: presión, divergencia y relevancia')
+    st.markdown('#### Diagnóstico macro: presión de tipos y divergencia')
     window = st.select_slider('Ventana de comparación (observaciones comunes)',
                               options=[5, 10, 20, 40, 60, 90], value=20, key='fxdiv_window')
     signal = _directional_bias(frame, window)
@@ -468,8 +465,7 @@ def render_fx_divergences():
         fx_change = signal['fx_return']
         corr = signal['corr']
         ratio = signal['relative_strength']
-        # Three independent concepts: direction of rates, disagreement with FX,
-        # and empirical relevance. Never turn the spread level into a forecast.
+        # Direction of rates and disagreement with FX are descriptive, not forecasts.
         if abs(change) < 1e-8:
             pressure = 'Sin cambio'
         else:
@@ -480,20 +476,9 @@ def render_fx_divergences():
             divergence = 'Alcista' if change > 0 else 'Bajista'
         else:
             divergence = 'Alineados'
-        if not np.isfinite(ratio) or not np.isfinite(corr) or corr < 0.20:
-            relevance = 'No confirmada'
-        elif ratio < 0.5:
-            relevance = 'Baja'
-        elif corr >= 0.60 and ratio >= 1.5:
-            relevance = 'Alta'
-        elif corr >= 0.35 and ratio >= 1.0:
-            relevance = 'Media'
-        else:
-            relevance = 'Baja'
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         c1.metric('Presión de tipos 2Y', pressure)
         c2.metric('Divergencia con FX', divergence)
-        c3.metric('Relevancia estadística', relevance)
         st.caption(f'En {window} observaciones: diferencial {change:+.1f} pb · '
                    f'{base}/{quote} {fx_change:+.2f}% · '
                    f'correlación móvil (hasta 90 cambios) '
@@ -502,7 +487,7 @@ def render_fx_divergences():
                    f'{base}/{quote} {fx_change:+.2f}% · correlación móvil N/D')
         if divergence in ('Alcista', 'Bajista'):
             st.info(f'Divergencia {divergence.lower()} potencial para {base}/{quote}. '
-                    f'Relevancia: {relevance.lower()}. La dirección de tipos es descriptiva, '
+                    'La dirección de tipos es descriptiva, '
                     'no una señal de entrada ni una previsión del precio.')
         elif divergence == 'Alineados':
             st.info('El diferencial 2Y y el precio FX se han movido en la misma dirección durante la ventana.')
@@ -513,17 +498,7 @@ def render_fx_divergences():
                      'No depende de la correlación y no indica por sí sola que el par vaya a subir o bajar.')
             st.write('**Divergencia:** signo contrario entre la variación del spread y el retorno del par. '
                      'Alcista significa spread al alza y FX a la baja; bajista, lo contrario.')
-            st.write('**Relevancia exploratoria:** se compara la magnitud absoluta del movimiento actual '
-                     'con la mediana histórica de movimientos de igual ventana, y se exige una relación '
-                     'positiva reciente entre cambios diarios de spread y retornos FX.')
-            st.write('Alta: correlación ≥ 0,60 y magnitud ≥ 1,5× mediana; '
-                     'media: correlación ≥ 0,35 y magnitud ≥ 1×; '
-                     'baja: correlación ≥ 0,20 y magnitud ≥ 0,5×; '
-                     'no confirmada: datos insuficientes o correlación inferior a 0,20. '
-                     'Si la correlación es suficiente pero la magnitud es inferior a 0,5×, se clasifica baja.')
-            st.caption('Los umbrales son heurísticos, no una prueba de significación estadística '
-                       'ni una probabilidad calibrada. Las ventanas solapadas y los cambios de régimen '
-                       'pueden alterar la lectura.')
+            st.caption('La divergencia describe un desacuerdo de dirección, no una señal validada de trading.')
 
     returns = frame['FX'].pct_change()
     spread_changes = frame['Spread_pb'].diff()
