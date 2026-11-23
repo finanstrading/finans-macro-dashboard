@@ -16,6 +16,7 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
+from fx_correlations import render_fx_correlations
 from cftc_positioning import render_cftc_positioning 
 
 import feedparser
@@ -8494,6 +8495,7 @@ with st.sidebar:
             "Macro House",
             "🚀 Bancos Centrales",
             "CFTC Positioning",
+            "Correlaciones FX",
         ],
         index=0,
         label_visibility="collapsed",
@@ -9026,6 +9028,18 @@ def clasificar_catalizador_fx(article, divisa):
 # ===================================================
 # CFTC POSITIONING
 # ===================================================
+
+if pagina_principal == "Correlaciones FX":
+    with st.sidebar:
+        render_logout(AUTH_PROFILE)
+    render_fx_correlations(
+        MERCADOS,
+        cargar_datos_mercado,
+        convertir_fechas,
+        convertir_valores,
+        obtener_indicadores,
+    )
+    st.stop()
 
 if pagina_principal == "CFTC Positioning":
 
