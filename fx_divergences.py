@@ -174,6 +174,60 @@ def _divergence(frame, lookback):
     return 'Movimiento alineado', delta_spread, delta_fx
 
 
+def _directional_bias(frame, window):
+    """Descriptive 2Y directional bias; not a calibrated forecast."""
+    if len(frame) <= window:
+        return None
+    spread = frame['Spread_pb'].astype(float)
+    fx = frame['FX'].astype(float)
+    change_pb = float(spread.iloc[-1] - spread.iloc[-window - 1])
+    fx_return = float((fx.iloc[-1] / fx.iloc[-window - 1] - 1) * 100)
+
+    # Correlate changes, not nonstationary levels; use a trailing window.
+    changes = pd.DataFrame({'spread': spread.diff(), 'fx': fx.pct_change()}).dropna().tail(90)
+    corr = float(changes['spread'].corr(changes['fx'])) if len(changes) >= 30 and changes['spread'].std() > 0 and changes['fx'].std() > 0 else np.nan
+
+    # Compare the current move with past moves over the SAME observation horizon.
+    historical = spread.diff(window).abs().dropna()
+    reference = float(historical.median()) if len(historical) >= 10 else np.nan
+    if np.isfinite(reference) and reference > 0:
+        strength_ratio = abs(change_pb) / reference
+    else:
+        strength_ratio = np.nan
+
+    # Only present a directional reading if the observed relation is positive.
+    # A negative/weak relationship invalidates a simple carry-spread interpretation.
+    if not np.isfinite(corr) or corr < 0.2:
+        bias = 'Neutral / relación no confirmada'
+        reason = 'La correlación reciente no respalda suficientemente la lectura direccional basada en el spread.'
+    elif not np.isfinite(strength_ratio) or strength_ratio < 0.5:
+        bias = 'Neutral / cambio de spread pequeño'
+        reason = 'El movimiento reciente del diferencial es pequeño respecto a su historial comparable.'
+    elif change_pb > 0:
+        bias = 'Alcista para A/B'
+        reason = 'El diferencial 2Y se ha ampliado a favor de la divisa base.'
+    elif change_pb < 0:
+        bias = 'Bajista para A/B'
+        reason = 'El diferencial 2Y se ha reducido en contra de la divisa base.'
+    else:
+        bias = 'Neutral'
+        reason = 'El diferencial no ha cambiado.'
+
+    if bias.startswith(('Alcista', 'Bajista')):
+        if corr >= 0.6 and strength_ratio >= 1.5:
+            strength = 'Alta'
+        elif corr >= 0.35 and strength_ratio >= 1:
+            strength = 'Media'
+        else:
+            strength = 'Baja'
+    else:
+        strength = 'No aplicable'
+    divergence = ('FX no acompaña al spread' if change_pb * fx_return < 0 else 'FX acompaña al spread') if abs(change_pb) > 1e-9 and abs(fx_return) > 1e-9 else 'Sin movimiento concluyente'
+    return dict(bias=bias, strength=strength, reason=reason, corr=corr,
+                spread_change=change_pb, fx_return=fx_return, divergence=divergence,
+                relative_strength=strength_ratio, observations=len(changes))
+
+
 def render_fx_divergences():
     st.markdown('### Divergencias de Tipos FX')
     st.caption('Bonos soberanos 2Y · diferencial A − B frente al precio de A/B · Finans Trading')
@@ -251,6 +305,25 @@ def render_fx_divergences():
         st.info(f'**{label}** · Spread: {delta_spread:+.1f} pb · {base}/{quote}: {delta_fx:+.2f}% en {window} observaciones comunes.')
     else:
         st.caption('Necesitas más observaciones para calcular la divergencia de la ventana elegida.')
+
+    st.markdown('#### Sesgo direccional macro (bonos 2Y)')
+    signal = _directional_bias(frame, window)
+    if signal is None:
+        st.caption('No hay observaciones suficientes para evaluar el sesgo de esta ventana.')
+    else:
+        s1, s2, s3 = st.columns(3)
+        s1.metric(f'Sesgo {base}/{quote}', signal['bias'])
+        s2.metric('Fuerza indicativa', signal['strength'])
+        s3.metric('Correlación móvil (cambios diarios)',
+                  f"{signal['corr']:+.2f}" if np.isfinite(signal['corr']) else 'N/D')
+        st.write(signal['reason'])
+        st.caption(f"Ventana: {window} observaciones comunes · Spread: {signal['spread_change']:+.1f} pb · "
+                   f"FX: {signal['fx_return']:+.2f}% · {signal['divergence']} · "
+                   f"Correlación calculada con {signal['observations']} cambios diarios recientes.")
+        st.caption('Regla exploratoria: sesgo solo con correlación ≥ 0,20 y cambio de spread ≥ 0,5 veces '
+                   'la mediana histórica de movimientos de igual ventana. Fuerza alta: correlación ≥ 0,60 '
+                   'y movimiento ≥ 1,5 veces la mediana; media: correlación ≥ 0,35 y movimiento ≥ 1 vez. '
+                   'No es probabilidad, señal calibrada ni recomendación de compra/venta.')
 
     returns = frame['FX'].pct_change()
     spread_changes = frame['Spread_pb'].diff()
