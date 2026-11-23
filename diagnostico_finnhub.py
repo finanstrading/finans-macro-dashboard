@@ -77,3 +77,43 @@ if st.button('Consultar catálogo de Finnhub', type='primary'):
         st.info('Si hay coincidencias, comparte únicamente sus códigos y nombres. Nunca compartas la API key.')
     except (requests.RequestException, ValueError, RuntimeError) as exc:
         st.error(str(exc))
+
+st.divider()
+st.subheader("Verificar históricos de tipos oficiales")
+
+codes = {
+    "CHF": "MA-CHE-7382",
+    "NZD": "MA-NZL-7382",
+    "JPY": "MA-JPN-7382",
+}
+
+if st.button("Verificar históricos Finnhub"):
+    token = get_token()
+
+    if not token:
+        st.error("No se encontró FINNHUB_API_KEY")
+    else:
+        for currency, code in codes.items():
+            st.subheader(f"{currency} — {code}")
+            try:
+                response = requests.get(
+                    "https://finnhub.io/api/v1/economic",
+                    params={"code": code, "token": token},
+                    timeout=15,
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                if isinstance(data, dict):
+                    observations = data.get("data", [])
+                elif isinstance(data, list):
+                    observations = data
+                else:
+                    observations = []
+
+                st.write("Observaciones:", len(observations))
+                st.write("Últimas observaciones:")
+                st.dataframe(observations[-10:])
+
+            except Exception as exc:
+                st.error(f"{type(exc).__name__}: {exc}")
