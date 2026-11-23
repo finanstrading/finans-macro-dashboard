@@ -19,33 +19,34 @@ POLICY_HINTS = {
 }
 
 def _token():
-    import os
-    import streamlit as st
-
-    # Primero consultar las variables de entorno.
-    token = os.getenv("EODHD_API_KEY")
-    if token:
-        return token.strip()
-
-    # Después consultar los secretos de Streamlit.
-    try:
-        for key in ("EODHD_API_KEY", "EODHD_TOKEN"):
-            token = st.secrets.get(key)
-            if token:
-                return str(token).strip()
-
-        # Compatibilidad con configuraciones anteriores.
-        for section in ("Eodhd", "eodhd", "EODHD"):
-            config = st.secrets.get(section)
-            if config:
-                token = config.get("EODHD_API_KEY") or config.get("api_key")
-                if token:
-                    return str(token).strip()
-
-    except Exception:
-        pass
-
+    """Busca la clave sin ocultar un secreto válido por errores en otro origen."""
+    for key in ('EODHD_API_KEY', 'EODHD_TOKEN', 'EODHD_API_TOKEN'):
+        value = os.environ.get(key)
+        if value and value.strip():
+            return value.strip()
+    for key in ('EODHD_API_KEY', 'EODHD_TOKEN', 'EODHD_API_TOKEN'):
+        try:
+            value = st.secrets.get(key)
+            if value and str(value).strip():
+                return str(value).strip()
+        except Exception:
+            continue
+    for section in ('Eodhd', 'eodhd', 'EODHD'):
+        try:
+            cfg = st.secrets.get(section)
+            if cfg:
+                for key in ('EODHD_API_KEY', 'EODHD_TOKEN', 'api_key', 'api_token'):
+                    value = cfg.get(key)
+                    if value and str(value).strip():
+                        return str(value).strip()
+        except Exception:
+            continue
     return None
+
+
+def credential_status():
+    """Diagnóstico seguro: jamás devuelve ni imprime el token."""
+    return 'EODHD: credencial detectada' if _token() else 'EODHD: credencial no detectada en este despliegue'
 
 @st.cache_data(ttl=21600, show_spinner=False)
 def _get_json(url, params):
@@ -78,7 +79,7 @@ def _bond(currency, years, token, symbols):
         rows = _get_json(f'https://eodhd.com/api/eod/{ticker}.GBOND', {'api_token':token,'fmt':'json','order':'a'})
         return _as_series(rows,'close'), None
     except Exception as exc:
-        return pd.Series(dtype=float), f'{ticker}.GBOND: {exc}'
+        return pd.Series(dtype=float), f'{ticker}.GBOND: {type(exc).__name__} (revisar endpoint, permisos o red)'
 
 @st.cache_data(ttl=21600,show_spinner=False)
 def _policy_eodhd(currency, token):
@@ -123,13 +124,14 @@ def _fred_usd(series_id):
 def load_rates(currency, sheet_df=None, convert_values=None):
     """Return (series_by_name, source_by_name, warnings). Never fabricates missing rates."""
     result, sources, warnings = {}, {}, []
+    warnings.append(credential_status())
     token = _token()
     if token:
         try:
             symbols = _symbols(token)
         except Exception as exc:
             symbols=set()
-            warnings.append(f'No se pudo consultar el catálogo GBOND: {exc}')
+            warnings.append(f'Catálogo GBOND: {type(exc).__name__} (revisar permisos, endpoint o red)')
         for tenor in (2,10):
             label=f'Bono {tenor}Y (%)'
             s,err=_bond(currency,tenor,token,symbols) if symbols else (pd.Series(dtype=float),'Catálogo no disponible')
@@ -143,9 +145,9 @@ def load_rates(currency, sheet_df=None, convert_values=None):
                     result['Tipo oficial (%)']=s
                     sources['Tipo oficial (%)']=f'EODHD · {POLICY_CODES[currency]}'
             except Exception as exc:
-                warnings.append(f'Tipo oficial EODHD: {exc}')
+                warnings.append(f'Tipo oficial EODHD: {type(exc).__name__} (revisar permisos y respuesta)')
     else:
-        warnings.append('Falta EODHD_API_KEY en los secretos de Streamlit: no se consultan bonos automáticamente.')
+        warnings.append('EODHD: credencial no detectada en este despliegue. Comprueba los secretos de la app que estás visualizando.')
     if currency == 'USD':
         for label, fred_id in [('Tipo oficial (%)', 'DFEDTARU'), ('Bono 2Y (%)', 'DGS2'), ('Bono 10Y (%)', 'DGS10')]:
             if label not in result:
