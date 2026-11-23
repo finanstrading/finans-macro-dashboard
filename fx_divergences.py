@@ -298,32 +298,73 @@ def render_fx_divergences():
     fig.update_yaxes(title_text=right_label, secondary_y=True)
     st.plotly_chart(fig, use_container_width=True, key=f'fxdiv_chart_{base}_{quote}')
 
-    st.markdown('#### Lectura de divergencia')
-    window = st.select_slider('Ventana de comparación (observaciones comunes)', options=[5, 10, 20, 40, 60, 90], value=20, key='fxdiv_window')
-    label, delta_spread, delta_fx = _divergence(frame, window)
-    if delta_spread is not None:
-        st.info(f'**{label}** · Spread: {delta_spread:+.1f} pb · {base}/{quote}: {delta_fx:+.2f}% en {window} observaciones comunes.')
-    else:
-        st.caption('Necesitas más observaciones para calcular la divergencia de la ventana elegida.')
-
-    st.markdown('#### Sesgo direccional macro (bonos 2Y)')
+    st.markdown('#### Diagnóstico macro: presión, divergencia y relevancia')
+    window = st.select_slider('Ventana de comparación (observaciones comunes)',
+                              options=[5, 10, 20, 40, 60, 90], value=20, key='fxdiv_window')
     signal = _directional_bias(frame, window)
     if signal is None:
-        st.caption('No hay observaciones suficientes para evaluar el sesgo de esta ventana.')
+        st.info('No hay observaciones suficientes para evaluar la ventana elegida.')
     else:
-        s1, s2, s3 = st.columns(3)
-        s1.metric(f'Sesgo {base}/{quote}', signal['bias'])
-        s2.metric('Fuerza indicativa', signal['strength'])
-        s3.metric('Correlación móvil (cambios diarios)',
-                  f"{signal['corr']:+.2f}" if np.isfinite(signal['corr']) else 'N/D')
-        st.write(signal['reason'])
-        st.caption(f"Ventana: {window} observaciones comunes · Spread: {signal['spread_change']:+.1f} pb · "
-                   f"FX: {signal['fx_return']:+.2f}% · {signal['divergence']} · "
-                   f"Correlación calculada con {signal['observations']} cambios diarios recientes.")
-        st.caption('Regla exploratoria: sesgo solo con correlación ≥ 0,20 y cambio de spread ≥ 0,5 veces '
-                   'la mediana histórica de movimientos de igual ventana. Fuerza alta: correlación ≥ 0,60 '
-                   'y movimiento ≥ 1,5 veces la mediana; media: correlación ≥ 0,35 y movimiento ≥ 1 vez. '
-                   'No es probabilidad, señal calibrada ni recomendación de compra/venta.')
+        change = signal['spread_change']
+        fx_change = signal['fx_return']
+        corr = signal['corr']
+        ratio = signal['relative_strength']
+        # Three independent concepts: direction of rates, disagreement with FX,
+        # and empirical relevance. Never turn the spread level into a forecast.
+        if abs(change) < 1e-8:
+            pressure = 'Sin cambio'
+        else:
+            pressure = 'Alcista' if change > 0 else 'Bajista'
+        if abs(change) < 1e-8 or abs(fx_change) < 1e-8:
+            divergence = 'No definida'
+        elif change * fx_change < 0:
+            divergence = 'Alcista' if change > 0 else 'Bajista'
+        else:
+            divergence = 'Alineados'
+        if not np.isfinite(ratio) or not np.isfinite(corr) or corr < 0.20:
+            relevance = 'No confirmada'
+        elif ratio < 0.5:
+            relevance = 'Baja'
+        elif corr >= 0.60 and ratio >= 1.5:
+            relevance = 'Alta'
+        elif corr >= 0.35 and ratio >= 1.0:
+            relevance = 'Media'
+        else:
+            relevance = 'Baja'
+        c1, c2, c3 = st.columns(3)
+        c1.metric('Presión de tipos 2Y', pressure)
+        c2.metric('Divergencia con FX', divergence)
+        c3.metric('Relevancia estadística', relevance)
+        st.caption(f'En {window} observaciones: diferencial {change:+.1f} pb · '
+                   f'{base}/{quote} {fx_change:+.2f}% · '
+                   f'correlación móvil (hasta 90 cambios) '
+                   f'{corr:+.2f}' if np.isfinite(corr) else
+                   f'En {window} observaciones: diferencial {change:+.1f} pb · '
+                   f'{base}/{quote} {fx_change:+.2f}% · correlación móvil N/D')
+        if divergence in ('Alcista', 'Bajista'):
+            st.info(f'Divergencia {divergence.lower()} potencial para {base}/{quote}. '
+                    f'Relevancia: {relevance.lower()}. La dirección de tipos es descriptiva, '
+                    'no una señal de entrada ni una previsión del precio.')
+        elif divergence == 'Alineados':
+            st.info('El diferencial 2Y y el precio FX se han movido en la misma dirección durante la ventana.')
+        else:
+            st.info('No hay una divergencia direccional definida durante la ventana.')
+        with st.expander('Metodología del diagnóstico'):
+            st.write('**Presión de tipos:** signo de la variación del spread A − B en la ventana. '
+                     'No depende de la correlación y no indica por sí sola que el par vaya a subir o bajar.')
+            st.write('**Divergencia:** signo contrario entre la variación del spread y el retorno del par. '
+                     'Alcista significa spread al alza y FX a la baja; bajista, lo contrario.')
+            st.write('**Relevancia exploratoria:** se compara la magnitud absoluta del movimiento actual '
+                     'con la mediana histórica de movimientos de igual ventana, y se exige una relación '
+                     'positiva reciente entre cambios diarios de spread y retornos FX.')
+            st.write('Alta: correlación ≥ 0,60 y magnitud ≥ 1,5× mediana; '
+                     'media: correlación ≥ 0,35 y magnitud ≥ 1×; '
+                     'baja: correlación ≥ 0,20 y magnitud ≥ 0,5×; '
+                     'no confirmada: datos insuficientes o correlación inferior a 0,20. '
+                     'Si la correlación es suficiente pero la magnitud es inferior a 0,5×, se clasifica baja.')
+            st.caption('Los umbrales son heurísticos, no una prueba de significación estadística '
+                       'ni una probabilidad calibrada. Las ventanas solapadas y los cambios de régimen '
+                       'pueden alterar la lectura.')
 
     returns = frame['FX'].pct_change()
     spread_changes = frame['Spread_pb'].diff()
