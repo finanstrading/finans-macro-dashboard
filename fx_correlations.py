@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
+from fx_rates import load_rates
 
 PRESETS = {
     'USD': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Mercado laboral': ['Non Farm Payroll', 'Unemployment'], 'Actividad': ['ISM Services', 'GDP'], 'Inflación y Fed': ['CPI', 'Fed Funds']},
@@ -25,7 +26,7 @@ def _norm(value):
     value = unicodedata.normalize('NFKD', str(value).lower())
     return re.sub(r'[^a-z0-9]+', ' ', ''.join(c for c in value if not unicodedata.combining(c))).strip()
 
-def _match(hint, indicators):
+def _match(hint, available_names):
     needle = _norm(hint)
     exact = [x for x in indicators if _norm(x) == needle]
     if exact:
@@ -56,13 +57,15 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
     if not indicators:
         st.warning('No hay indicadores disponibles en esta divisa.')
         return
+    rates, rate_sources, rate_warnings = load_rates(currency, df, convert_values)
+    available_names = list(indicators) + list(rates)
     presets = PRESETS.get(currency, {})
     preset_name = st.selectbox('Relación predeterminada', ['Personalizada'] + list(presets), key=f'fxcorr_preset_{currency}')
     preset_matches = []
     missing = []
     if preset_name != 'Personalizada':
         for hint in presets[preset_name]:
-            found = _match(hint, indicators)
+            found = _match(hint, available_names)
             if found and found not in preset_matches:
                 preset_matches.append(found)
             elif not found:
@@ -75,7 +78,14 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
         if preset_name != 'Personalizada':
             st.session_state[selection_key] = preset_matches
         st.session_state[previous_key] = preset_name
-    selected = st.multiselect('Indicadores (máximo 4)', indicators, max_selections=4, key=selection_key)
+    st.caption('Tipos oficiales y bonos soberanos 2Y/10Y disponibles en el mismo comparador.')
+    selected = st.multiselect('Indicadores (máximo 4)', available_names, max_selections=4, key=selection_key)
+    with st.expander('Estado de datos de tipos y bonos'):
+        for label, source in rate_sources.items():
+            item = rates[label]
+            st.write(f'{label}: {item.iloc[-1]:.3f}% · {item.index[-1]:%d/%m/%Y} · {source}')
+        for warning in rate_warnings:
+            st.caption(warning)
     if missing:
         st.info('No se han encontrado en esta hoja: ' + ', '.join(missing) + '. Puedes seleccionar alternativas manualmente.')
     if not selected:
@@ -87,11 +97,11 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
     with col2:
         mode = st.radio('Escala', ['Normalizada (base 100)', 'Valores originales'], horizontal=True, key='fxcorr_scale')
     series = {}
-    end = df['Fecha'].max()
+    end = max([df['Fecha'].max()] + [s.index.max() for s in rates.values() if not s.empty])
     months = {'3M': 3, '6M': 6, '1A': 12, '3A': 36, '5A': 60, '10A': 120}
     start = end - pd.DateOffset(months=months[period]) if period in months else df['Fecha'].min()
     for name in selected:
-        s = _series(df, name, convert_values)
+        s = rates[name] if name in rates else _series(df, name, convert_values)
         s = s.loc[s.index >= start]
         if not s.empty:
             series[name] = s
@@ -117,7 +127,7 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
         fig.update_yaxes(title_text='Otros indicadores (unidades originales)', secondary_y=True)
         st.caption('En escala original, los indicadores 2–4 comparten el eje derecho; si sus unidades difieren, utiliza la escala normalizada.')
     st.plotly_chart(fig, use_container_width=True, key=f'fxcorr_plot_{currency}')
-    st.caption(f'Fuente: {sheet} · Última fecha disponible en la hoja: {end:%d/%m/%Y}. Las líneas representan observaciones reales, sin interpolación.')
+    st.caption(f'Fuentes: {sheet} (macro) y EODHD/Google Sheets (tipos y bonos). Última fecha del conjunto: {end:%d/%m/%Y}. Sin interpolación.')
     if len(series) >= 2:
         st.markdown('#### Correlación de variaciones mensuales')
         st.caption('Se utiliza la última observación disponible de cada mes. Se calculan diferencias mensuales para tasas/índices macro, no niveles de precio. No se rellenan meses ausentes ni se asume causalidad.')
