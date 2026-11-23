@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 import time
 import hashlib
+import logging
 import requests
 import plotly.graph_objects as go
 from urllib.parse import quote  
@@ -4126,9 +4127,12 @@ def analizar_divisa_completa(
             if resultado is not None:
                 resultados[nombre_currency_score] = resultado
 
-        except Exception:
-            # Un indicador defectuoso no debe impedir
-            # calcular toda la divisa.
+        except Exception as exc:
+            # Mantener el resto de la divisa, pero registrar la causa
+            # para que la cobertura reducida no pase inadvertida.
+            logging.getLogger(__name__).exception(
+                "Error analizando %s / %s: %s", divisa, nombre_indicador, exc
+            )
             continue
 
     return resultados
