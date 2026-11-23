@@ -6,4 +6,4 @@ streamlit-js-eval
 requests
 feedparser
 openai
-
+beautifulsoup4>=4.12.3
