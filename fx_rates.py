@@ -141,6 +141,38 @@ def _policy_canada_boc():
     return _as_series(rows, 'rate')
 
 
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _policy_australia_rba():
+    """RBA official cash rate TARGET decision history, not observed overnight rate."""
+    from bs4 import BeautifulSoup
+    url = 'https://www.rba.gov.au/statistics/cash-rate/'
+    response = requests.get(url, timeout=25, headers={'User-Agent': 'MacroFX/1.0 (public statistics)'})
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    rows = []
+    # Select the table by its header text rather than assuming a fixed HTML position.
+    for table in soup.find_all('table'):
+        headers = ' '.join(th.get_text(' ', strip=True).lower() for th in table.find_all('th'))
+        if not ('effective date' in headers and 'cash rate target' in headers):
+            continue
+        for tr in table.find_all('tr'):
+            cells = tr.find_all(['td', 'th'])
+            if len(cells) < 3:
+                continue
+            date_text = cells[0].get_text(' ', strip=True)
+            target_text = cells[2].get_text(' ', strip=True).replace('%', '').replace(',', '')
+            date = pd.to_datetime(date_text, errors='coerce', dayfirst=True)
+            value = pd.to_numeric(target_text, errors='coerce')
+            if pd.notna(date) and pd.notna(value) and -5 < value < 30:
+                rows.append({'date': date, 'rate': float(value)})
+    if not rows:
+        raise ValueError('RBA: no se encontró la tabla oficial de decisiones con fecha y objetivo')
+    series = _as_series(rows, 'rate')
+    if series.empty:
+        raise ValueError('RBA: tabla sin observaciones válidas')
+    return series
+
 def _policy_sheet(currency, df, convert_values):
     if df is None or 'Fecha' not in df: return pd.Series(dtype=float)
     for hint in POLICY_HINTS[currency]:
@@ -205,6 +237,15 @@ def load_rates(currency, sheet_df=None, convert_values=None):
                     break
             except Exception as exc:
                 warnings.append(f'EODHD tipo oficial {code}: {type(exc).__name__}')
+    # Fuente oficial alternativa, sin credenciales, para AUD.
+    if 'Tipo oficial (%)' not in result and currency == 'AUD':
+        try:
+            series = _policy_australia_rba()
+            if not series.empty:
+                result['Tipo oficial (%)'] = series
+                sources['Tipo oficial (%)'] = 'Reserve Bank of Australia · Cash Rate Target'
+        except Exception as exc:
+            warnings.append(f'RBA Cash Rate Target: {type(exc).__name__}: {str(exc)[:110]}')
     # Fuente oficial alternativa, sin credenciales, para CAD.
     if 'Tipo oficial (%)' not in result and currency == 'CAD':
         try:
