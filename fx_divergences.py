@@ -70,6 +70,76 @@ def _spot_eodhd(base, quote, token):
     raise RuntimeError('No se pudo descargar el precio FX: ' + ', '.join(failures) + '. Revisa acceso EODHD FOREX.')
 
 
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _spot_yahoo(base, quote):
+    """Yahoo Finance daily FX closes using public chart endpoint; no API key."""
+    import requests
+    # Yahoo's canonical USD crosses are often XXX=X (e.g. JPY=X for USD/JPY).
+    candidates = [f'{base}{quote}=X']
+    if base == 'USD':
+        candidates.insert(0, f'{quote}=X')
+    if quote == 'USD':
+        candidates.insert(0, f'{base}=X')
+    # Inverted symbols are only used after direct quotes fail.
+    inverse = [f'{quote}{base}=X']
+    if quote == 'USD':
+        inverse.insert(0, f'{base}=X')
+    if base == 'USD':
+        inverse.insert(0, f'{quote}=X')
+    attempts = [(symbol, False) for symbol in dict.fromkeys(candidates)]
+    attempts += [(symbol, True) for symbol in dict.fromkeys(inverse) if symbol not in candidates]
+    failures = []
+    for symbol, invert in attempts:
+        for host in ('query1.finance.yahoo.com', 'query2.finance.yahoo.com'):
+            try:
+                response = requests.get(
+                    f'https://{host}/v8/finance/chart/{symbol}',
+                    params={'range': '10y', 'interval': '1d'},
+                    headers={'User-Agent': 'Mozilla/5.0 (compatible; MacroFX/1.0)',
+                             'Accept': 'application/json'},
+                    timeout=(4, 12),
+                )
+                response.raise_for_status()
+                payload = response.json().get('chart', {})
+                result = payload.get('result') or []
+                if not result:
+                    raise ValueError(str(payload.get('error') or 'Sin resultados'))
+                item = result[0]
+                timestamps = item.get('timestamp') or []
+                quotes = item.get('indicators', {}).get('quote') or []
+                closes = quotes[0].get('close', []) if quotes else []
+                if len(timestamps) != len(closes) or len(closes) < 3:
+                    raise ValueError('Histórico insuficiente')
+                dates = pd.to_datetime(timestamps, unit='s', utc=True).tz_localize(None).normalize()
+                series = pd.Series(pd.to_numeric(closes, errors='coerce'), index=dates)
+                series = series.replace([np.inf, -np.inf], np.nan).dropna()
+                series = series[series > 0].sort_index()
+                series = series[~series.index.duplicated(keep='last')]
+                if len(series) < 3:
+                    raise ValueError('Sin suficientes cierres válidos')
+                if invert:
+                    series = 1.0 / series
+                return series, f'Yahoo Finance · {symbol}' + (' (invertido)' if invert else '')
+            except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
+                failures.append(f'{symbol} ({host}): {type(exc).__name__}')
+    raise RuntimeError('Yahoo Finance no devolvió precios históricos: ' + ', '.join(failures[:6]))
+
+
+def _spot_with_fallback(base, quote, token):
+    """Prefer Yahoo to avoid EODHD Forex subscription requirements; EODHD backup."""
+    errors = []
+    try:
+        return _spot_yahoo(base, quote)
+    except Exception as exc:
+        errors.append(str(exc))
+    if token:
+        try:
+            return _spot_eodhd(base, quote, token)
+        except Exception as exc:
+            errors.append(str(exc))
+    raise RuntimeError('No se pudo obtener el histórico FX. ' + ' | '.join(errors))
+
 def _clean(series):
     s = pd.Series(series).copy()
     s.index = pd.to_datetime(s.index, errors='coerce')
@@ -128,14 +198,11 @@ def render_fx_divergences():
                 st.write(a_warnings + b_warnings)
             return
         token = _eodhd_key()
-        if not token:
-            st.error('No se ha detectado EODHD_API_KEY en los secretos de esta aplicación.')
-            return
         try:
-            spot, spot_source = _spot_eodhd(base, quote, token)
+            spot, spot_source = _spot_with_fallback(base, quote, token)
         except Exception as exc:
             st.error(str(exc))
-            st.info('Los bonos 2Y están disponibles, pero falta el histórico del par FX. Comprueba si tu plan EODHD incluye datos FOREX.')
+            st.info('Los bonos 2Y están disponibles, pero no se obtuvo el histórico FX ni desde Yahoo Finance ni desde EODHD. Consulta los registros de Streamlit.')
             return
 
     frame = _prepare(a_rates[bond_key], b_rates[bond_key], spot)
