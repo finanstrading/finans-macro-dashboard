@@ -10,13 +10,16 @@ from gold_cot import load_gold_cot
 
 GOLD='#C9A227'; BLUE='#4678A8'
 
-def chart(series, title, unit, key, bounds, revision, originals=None, secondary=None, fixed_y=None):
+def chart(series, title, unit, key, bounds, revision, originals=None, secondary=None, fixed_y=None, bars=None):
     fig = go.Figure()
     for i, (name, s) in enumerate(series.items()):
         s = s.dropna().sort_index()
         if s.empty:
             continue
         raw = originals[name].reindex(s.index) if originals else s
+        if name == bars:
+            fig.add_bar(x=[v.isoformat() for v in s.index], y=s.tolist(), name=name, yaxis='y2' if name == secondary else 'y', marker_color=['#39866B' if v >= 0 else '#C65C5C' for v in s], opacity=.65)
+            continue
         fig.add_scatter(x=[v.isoformat() for v in s.index], y=s.tolist(), name=name, mode='lines',
                         customdata=raw.tolist(),
                         hovertemplate='%{y:.2f}<br>Original: %{customdata:.2f}<extra>%{fullData.name}</extra>',
@@ -96,8 +99,8 @@ def render_gold_dashboard():
         st.session_state['gold_zoom_revision'] = st.session_state.get('gold_zoom_revision', 0) + 1
     revision = f"{period}:{mode}:{end}:{st.session_state.get('gold_zoom_revision',0)}"
     def window(s): return s.loc[(s.index >= start) & (s.index <= end)]
-    def draw(series,title,unit,key,originals=None,secondary=None, fixed_y=None):
-        chart(series,title,unit,key+'_'+revision,bounds,revision,originals,secondary,fixed_y)
+    def draw(series,title,unit,key,originals=None,secondary=None, fixed_y=None, bars=None):
+        chart(series,title,unit,key+'_'+revision,bounds,revision,originals,secondary,fixed_y,bars)
     st.caption('Zoom horizontal con rueda, desplazamiento arrastrando y doble clic para restablecer. El eje vertical se adapta al intervalo visible; la normalización permanece fija.')
     cols=st.columns(4)
     for col,k,label,unit in zip(cols,['Oro','DXY','DFII10','Liquidez neta'],['Oro · USD/oz','DXY','Tipo real 10Y','Liquidez neta'],['','', '%',' B USD']):
@@ -136,28 +139,8 @@ def render_gold_dashboard():
         factor = secondary or k
         draw({'Oro':x.Oro,factor:x.Factor},title,unit,'gold_compare_'+k,
              originals={'Oro':raw.Oro,factor:raw.Factor},secondary=secondary)
-    st.subheader('Tipos reales y dólar')
-    for k,title,rate in [('DFII10','Oro vs. tipo real 10Y',True),('DFII5','Oro vs. tipo real 5Y',True),('DXY','Oro vs. DXY',False)]: compare(k,title,rate)
-    rates={k:window(data[k]) for k in ('DGS10','DFII10','T10YIE') if k in data}
-    if rates: draw(rates,'Rendimiento nominal, real y breakeven 10Y','%','gold_rates')
-    st.subheader('Liquidez de la Fed')
-    compare('Liquidez neta','Oro vs. liquidez neta Fed')
-    if not liquidity.empty:
-        draw({'Liquidez neta':window(liquidity)/1000},'Liquidez neta estimada','Miles de millones USD','gold_liq')
-        impulse={f'{n} semanas':window(liquidity.diff(n))/1000 for n in (4,13,52)}
-        draw(impulse,'Variación de liquidez neta','Miles de millones USD','gold_impulse')
-    st.caption('Proxy: WALCL − WDTGAL − RRPONTSYD × 1000, en millones USD; fechas comunes, sin rellenar datos faltantes.')
-    for k,label in [('WRBWFRBL','Reservas bancarias'),('M2SL','Oferta monetaria M2')]:
-        if k in data: draw({label:window(data[k])/(1000 if k=='WRBWFRBL' else 1)},label,'Miles de millones USD','gold_'+k)
-    components_liq = {label:window(data[k])*scale for k,label,scale in [('WALCL','Balance Fed',.001),('WDTGAL','TGA',.001),('RRPONTSYD','RRP',1)] if k in data}
-    for label, series in components_liq.items():
-        draw({label:series},label+' · componente de liquidez','Miles de millones USD','gold_component_'+label)
-    st.subheader('Posicionamiento COT · Managed Money')
-    try:
-        cot = load_gold_cot()
-    except Exception as exc:
-        st.warning(f'CFTC Gold no disponible: {type(exc).__name__}: {exc}')
-    else:
+    tab = st.radio('Sección', ['Resumen','Tipos y dólar','Liquidez FED','COT','Correlaciones'], horizontal=True, key='gold_section', label_visibility='collapsed')
+    def cot_metrics(cot):
         last = cot.iloc[-1]
         st.caption(f'COMEX Gold · futuros exclusivamente · fecha de posiciones: {cot.index[-1]:%d/%m/%Y}. No es la fecha de publicación; normalmente se publica el viernes.')
         cols = st.columns(4)
@@ -165,34 +148,75 @@ def render_gold_dashboard():
             col.metric(k, '—' if pd.isna(last[k]) else (f'{last[k]:.1f}%' if k=='Net / OI' else f'{last[k]:,.0f}'))
         for col,k in zip(st.columns(2), ['COT 52','COT 156']):
             col.metric(k+' semanas','—' if pd.isna(last[k]) else f'{last[k]:.1f}')
-        draw({k:window(cot[k]) for k in ('Long','Short')},'Managed Money · Long y Short','Contratos','cot_ls')
-        draw({'Net':window(cot.Net)},'Posición neta','Contratos','cot_net')
-        draw({'Net / OI':window(cot['Net / OI'])},'Posición neta relativa','%','cot_oi')
-        draw({'Open Interest':window(cot['Open Interest'])},'Interés abierto','Contratos','cot_open')
-        draw({'Cambio semanal':window(cot['Cambio semanal'])},'Variación semanal neta','Contratos','cot_change')
-        draw({k:window(cot[k]) for k in ('COT 52','COT 156')},'COT Index · 52 y 156 semanas','Índice 0–100','cot_index',fixed_y=(0,100))
-        if 'Oro' in data:
-            pair=aligned(window(data['Oro']),window(cot['Net / OI']))
-            if len(pair)>1:
-                draw({'Oro':pair.Oro,'Net / OI':pair.Factor},'Oro vs. posicionamiento relativo','USD/oz','cot_gold',secondary='Net / OI')
+    if tab in ('Resumen','COT'):
+        try:
+            cot = load_gold_cot()
+        except Exception as exc:
+            cot = None
+            st.warning(f'CFTC Gold no disponible: {type(exc).__name__}: {exc}')
+        if cot is not None:
+            st.subheader('Posicionamiento COT · Managed Money')
+            cot_metrics(cot)
+    if tab == 'Resumen':
+        st.subheader('Escáner de divergencias · 3M y 12M')
+        table=divergence(data)
+        if table.empty: st.info('Histórico común insuficiente.')
+        else:
+            only=st.checkbox('Solo divergencias relevantes',value=True,key='gold_relevant')
+            shown=table[table['Relevancia'].isin(['Media','Alta'])] if only else table
+            if shown.empty: st.info('Sin divergencias que cumplan el filtro.')
+            else: st.dataframe(shown,use_container_width=True,hide_index=True)
+        st.caption('Umbrales exploratorios: oro 2%, tipos reales 15 pb, DXY y liquidez 2%. No son señales validadas. La liquidez se compara en fechas comunes semanales.')
+    elif tab == 'Tipos y dólar':
+        st.subheader('Tipos reales y dólar')
+        left,right = st.columns(2)
+        with left: compare('DFII10','Oro vs. tipo real 10Y',True)
+        with right: compare('DFII5','Oro vs. tipo real 5Y',True)
+        left,right = st.columns(2)
+        with left: compare('DXY','Oro vs. DXY')
+        with right:
+            rates={k:window(data[k]) for k in ('DGS10','DFII10','T10YIE') if k in data}
+            if rates: draw(rates,'Rendimiento nominal, real y breakeven 10Y','%','gold_rates')
+    elif tab == 'Liquidez FED':
+        st.subheader('Liquidez de la Fed')
+        left,right=st.columns(2)
+        with left: compare('Liquidez neta','Oro vs. liquidez neta Fed')
+        with right:
+            if not liquidity.empty: draw({'Liquidez neta':window(liquidity)/1000},'Liquidez neta estimada','Miles de millones USD','gold_liq')
+        if not liquidity.empty:
+            draw({f'{n} semanas':window(liquidity.diff(n))/1000 for n in (4,13,52)},'Variación de liquidez neta','Miles de millones USD','gold_impulse')
+        st.caption('Proxy: WALCL − WDTGAL − RRPONTSYD × 1000, en millones USD; fechas comunes, sin rellenar datos faltantes.')
+        with st.expander('Componentes de liquidez, reservas y M2'):
+            cols=st.columns(2)
+            for i,(k,label,scale) in enumerate([('WALCL','Balance Fed',.001),('WDTGAL','TGA',.001),('RRPONTSYD','RRP',1),('WRBWFRBL','Reservas bancarias',.001),('M2SL','Oferta monetaria M2',1)]):
+                if k in data:
+                    with cols[i%2]: draw({label:window(data[k])*scale},label,'Miles de millones USD','gold_'+k)
+    elif tab == 'COT' and cot is not None:
+        left,right=st.columns(2)
+        with left: draw({k:window(cot[k]) for k in ('Long','Short')},'Managed Money · Long y Short','Contratos','cot_ls')
+        with right: draw({'Net':window(cot.Net),'Cambio semanal':window(cot['Cambio semanal'])},'Posición neta y cambio semanal','Contratos netos','cot_net',secondary='Cambio semanal',bars='Cambio semanal')
+        left,right=st.columns(2)
+        with left: draw({k:window(cot[k]) for k in ('COT 52','COT 156')},'COT Index · 52 y 156 semanas','Índice 0–100','cot_index',fixed_y=(0,100))
+        with right:
+            if 'Oro' in data:
+                pair=aligned(window(data['Oro']),window(cot['Net / OI']))
+                if len(pair)>1: draw({'Oro':pair.Oro,'Net / OI':pair.Factor},'Oro vs. posicionamiento relativo','USD/oz','cot_gold',secondary='Net / OI')
+        with st.expander('Histórico del interés abierto'):
+            draw({'Open Interest':window(cot['Open Interest'])},'Interés abierto','Contratos','cot_open')
         st.caption('COT Index: rango mínimo–máximo móvil del Net/OI, no percentil. 80/20 indica extremos relativos, no señales de giro. Comparación por fecha de observación, no backtest.')
-    st.subheader('Correlaciones móviles')
-    summary=[]
-    for k in ('DFII10','DFII5','DXY'):
-        if k not in data or 'Oro' not in data: continue
-        curves=correlation_series(data,k)
-        summary.append({'Factor':k,**{f'{n}D':(round(v.dropna().iloc[-1],2) if not v.dropna().empty else None) for n,v in curves.items()}})
-        draw({f'{n} sesiones':window(v) for n,v in curves.items()},'Oro vs. '+k+' · correlación de cambios','Correlación','gold_corr_'+k,fixed_y=(-1,1))
-    if summary: st.dataframe(pd.DataFrame(summary),hide_index=True,use_container_width=True)
-    st.subheader('Escáner de divergencias · 3M y 12M')
-    table=divergence(data)
-    if table.empty: st.info('Histórico común insuficiente.')
-    else:
-        only=st.checkbox('Solo divergencias relevantes',value=True,key='gold_relevant')
-        shown=table[table['Relevancia'].isin(['Media','Alta'])] if only else table
-        if shown.empty: st.info('Sin divergencias que cumplan el filtro.')
-        else: st.dataframe(shown,use_container_width=True,hide_index=True)
-    st.caption('Umbrales exploratorios: oro 2%, tipos reales 15 pb, DXY y liquidez 2%. No son señales validadas. La liquidez se compara en fechas comunes semanales.')
+    elif tab == 'Correlaciones':
+        st.subheader('Correlaciones móviles')
+        summary=[]
+        all_curves={}
+        for k in ('DFII10','DFII5','DXY'):
+            if k not in data or 'Oro' not in data: continue
+            curves=correlation_series(data,k)
+            all_curves[k]=curves
+            summary.append({'Factor':k,**{f'{n}D':(round(v.dropna().iloc[-1],2) if not v.dropna().empty else None) for n,v in curves.items()}})
+        if summary: st.dataframe(pd.DataFrame(summary),hide_index=True,use_container_width=True)
+        cols=st.columns(2)
+        for i,(k,curves) in enumerate(all_curves.items()):
+            with cols[i%2]: draw({f'{n} sesiones':window(v) for n,v in curves.items()},'Oro vs. '+k+' · correlación de cambios','Correlación','gold_corr_'+k,fixed_y=(-1,1))
     with st.expander('Fuentes y fechas de observación'):
         st.dataframe(pd.DataFrame([{'Serie':k,'Fuente':v,'Última observación':str(data[k].index[-1].date())} for k,v in sources.items()]),hide_index=True,use_container_width=True)
         st.caption('Datos de cierre y publicaciones FRED; no son cotizaciones en tiempo real. Las fechas de observación no equivalen a fechas de publicación.')
