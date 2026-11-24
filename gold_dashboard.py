@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+from html import escape
 import streamlit.components.v1 as components
 from plotly.offline import get_plotlyjs
 import streamlit as st
@@ -117,6 +118,7 @@ Plotly.newPlot(gd,spec.data,spec.layout,{responsive:true,scrollZoom:true,display
     components.html(html, height=370, scrolling=False)
 
 def render_gold_dashboard():
+    st.markdown('**MACROFX / GOLD** · Análisis fundamental')
     with st.spinner('Cargando datos de metales…'):
         data,sources,errors=load_gold_data()
     liquidity=net_liquidity(data)
@@ -140,10 +142,15 @@ def render_gold_dashboard():
     for col,k,label,unit in zip(cols,['Oro','DXY','DFII10','Liquidez neta'],['Oro · USD/oz','DXY','Tipo real 10Y','Liquidez neta'],['','', '%',' B USD']):
         with col:
             s=data.get(k,pd.Series(dtype=float))
-            st.metric(label, '—' if s.empty else f'{s.iloc[-1]/(1000 if k=="Liquidez neta" else 1):,.2f}{unit}')
-            if not s.empty: st.caption(str(s.index[-1].date()))
+            value = '—' if s.empty else f'{s.iloc[-1]/(1000 if k=="Liquidez neta" else 1):,.2f}{unit}'
+            date = 'Sin datos' if s.empty else str(s.index[-1].date())
+            accent = '#E3B65C' if k == 'Oro' else '#E7EDF6'
+            st.markdown(f"""<div style="background:#192331;border:1px solid #344154;border-radius:12px;padding:16px 14px;min-height:116px;box-sizing:border-box">
+            <div style="color:#A9B7C9;font-size:12px;font-weight:600;letter-spacing:.05em">{escape(label.upper())}</div>
+            <div style="color:{accent};font-size:clamp(19px,2vw,30px);font-weight:650;margin:8px 0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere">{escape(value)}</div>
+            <div style="color:#A9B7C9;font-size:12px">Último dato · {escape(date)}</div></div>""", unsafe_allow_html=True)
     if errors:
-        with st.expander('Diagnóstico de fuentes',expanded=True):
+        with st.expander('Diagnóstico de fuentes',expanded=False):
             for e in errors: st.warning(e)
     def compare(k,title,rate=False):
         if 'Oro' not in data or k not in data: return
@@ -175,7 +182,15 @@ def render_gold_dashboard():
         factor = secondary or k
         draw({'Oro':x.Oro,factor:x.Factor},title,unit,'gold_compare_'+k,
              originals={'Oro':raw.Oro,factor:raw.Factor},secondary=secondary)
-    tab = st.radio('Sección', ['Resumen','Tipos y dólar','Liquidez FED','COT','Correlaciones'], horizontal=True, key='gold_section', label_visibility='collapsed')
+    sections = ['Resumen','Tipos y dólar','Liquidez FED','COT','Correlaciones']
+    if 'gold_section' not in st.session_state or st.session_state['gold_section'] not in sections:
+        st.session_state['gold_section'] = 'Resumen'
+    nav = st.columns(5)
+    for col, section, symbol in zip(nav, sections, ['▦','↗','≋','▥','∿']):
+        col.button(f'{symbol}  {section}', key='gold_nav_'+section,
+                   type='primary' if st.session_state['gold_section'] == section else 'secondary',
+                   use_container_width=True, on_click=lambda selected=section: st.session_state.update(gold_section=selected))
+    tab = st.session_state['gold_section']
     def cot_metrics(cot):
         last = cot.iloc[-1]
         st.caption(f'COMEX Gold · futuros exclusivamente · fecha de posiciones: {cot.index[-1]:%d/%m/%Y}. No es la fecha de publicación; normalmente se publica el viernes.')
