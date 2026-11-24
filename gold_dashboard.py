@@ -190,7 +190,7 @@ def render_gold_dashboard():
         except Exception as exc:
             cot = None
             st.warning(f'CFTC Gold no disponible: {type(exc).__name__}: {exc}')
-        if cot is not None and not cot.empty:
+        if tab == 'COT' and cot is not None and not cot.empty:
             st.subheader('Posicionamiento COT · Managed Money')
             cot_metrics(cot)
     if tab == 'Resumen':
