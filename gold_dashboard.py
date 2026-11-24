@@ -138,7 +138,8 @@ def render_gold_dashboard():
     if not liquidity.empty: data['Liquidez neta']=liquidity
     period=compact_selector('Horizonte',['1M','3M','6M','1Y','3Y','5Y'],'gold_period','1Y')
     months={'1M':1,'3M':3,'6M':6,'1Y':12,'3Y':36,'5Y':60}[period]
-    mode = compact_selector('Normalización de comparaciones',['Base 100','Z-score','Valores originales'],'gold_normalization','Base 100')
+    mode = compact_selector('Normalización de comparaciones',['Base 100','Z-score','Valores originales'],'gold_normalization_v2','Z-score')
+    invert = st.checkbox('Invertir segunda serie (DXY y tipos reales)', value=False, key='gold_invert')
     available = [v.index.max() for v in data.values() if not v.empty]
     gold = data.get('Oro', pd.Series(dtype=float))
     end = max(available) if available else pd.Timestamp.today().normalize()
@@ -146,7 +147,7 @@ def render_gold_dashboard():
     bounds = (start, end)
     if st.button('Restablecer zoom de todos los gráficos', key='gold_reset'):
         st.session_state['gold_zoom_revision'] = st.session_state.get('gold_zoom_revision', 0) + 1
-    revision = f"{period}:{mode}:{end}:{st.session_state.get('gold_zoom_revision',0)}"
+    revision = f"{period}:{mode}:{invert}:{end}:{st.session_state.get('gold_zoom_revision',0)}"
     def window(s): return s.loc[(s.index >= start) & (s.index <= end)]
     def draw(series,title,unit,key,originals=None,secondary=None, fixed_y=None, bars=None):
         chart(series,title,unit,key+'_'+revision,bounds,revision,originals,secondary,fixed_y,bars)
@@ -165,9 +166,9 @@ def render_gold_dashboard():
     if errors:
         with st.expander('Diagnóstico de fuentes',expanded=False):
             for e in errors: st.warning(e)
-    def compare(k,title,rate=False):
-        if 'Oro' not in data or k not in data: return
-        x = pd.concat([window(data['Oro']).rename('Oro'), window(data[k]).rename('Factor')], axis=1).sort_index()
+    def compare(k,title,rate=False,factor_series=None):
+        if 'Oro' not in data or (factor_series is None and k not in data): return
+        x = pd.concat([window(data['Oro']).rename('Oro'), window(data[k] if factor_series is None else factor_series).rename('Factor')], axis=1).sort_index()
         common = x.dropna()
         if len(common) < 2:
             st.caption(f'{title}: histórico común insuficiente.')
@@ -177,7 +178,7 @@ def render_gold_dashboard():
         if k == 'Liquidez neta':
             raw['Factor'] /= 1000
         effective = mode
-        if mode == 'Base 100' and (rate or (x <= 0).any().any()):
+        if mode == 'Base 100' and (rate or k == 'Net / OI' or (x <= 0).any().any()):
             effective = 'Z-score'
             st.caption(f'{title}: Z-score en lugar de base 100 para evitar ratios engañosos en tipos o valores no positivos.')
         secondary = None
@@ -193,6 +194,14 @@ def render_gold_dashboard():
             unit = 'Oro · USD/oz'
             secondary = k + (' (%)' if rate else ' (miles de millones USD)' if k == 'Liquidez neta' else '')
         factor = secondary or k
+        if invert and k in ('DXY','DFII10','DFII5'):
+            if effective == 'Base 100':
+                x['Factor'] = 200 - x.Factor
+            else:
+                x['Factor'] = -x.Factor
+            factor += ' · invertido'
+            if secondary: secondary = factor
+            title += ' (factor invertido)'
         draw({'Oro':x.Oro,factor:x.Factor},title,unit,'gold_compare_'+k,
              originals={'Oro':raw.Oro,factor:raw.Factor},secondary=secondary)
     sections = ['Resumen','Tipos y dólar','Liquidez FED','COT','Correlaciones']
@@ -236,7 +245,7 @@ def render_gold_dashboard():
                 st.caption('Posicionamiento COT no disponible.')
         with right:
             if cot is not None and not cot.empty and 'Oro' in data:
-                draw({'Oro':window(data['Oro']), 'Net / OI':window(cot['Net / OI'])},'Oro vs. posicionamiento relativo','USD/oz','summary_cot_gold',secondary='Net / OI')
+                compare('Net / OI','Oro vs. posicionamiento relativo',factor_series=cot['Net / OI'])
             else:
                 st.caption('Comparación COT no disponible.')
         compare('Liquidez neta','Oro vs. liquidez neta Fed')
@@ -281,8 +290,7 @@ def render_gold_dashboard():
         with left: draw({k:window(cot[k]) for k in ('COT 52','COT 156')},'COT Index · 52 y 156 semanas','Índice 0–100','cot_index',fixed_y=(0,100))
         with right:
             if 'Oro' in data:
-                pair=aligned(window(data['Oro']),window(cot['Net / OI']))
-                if len(pair)>1: draw({'Oro':pair.Oro,'Net / OI':pair.Factor},'Oro vs. posicionamiento relativo','USD/oz','cot_gold',secondary='Net / OI')
+                compare('Net / OI','Oro vs. posicionamiento relativo',factor_series=cot['Net / OI'])
         with st.expander('Histórico del interés abierto'):
             draw({'Open Interest':window(cot['Open Interest'])},'Interés abierto','Contratos','cot_open')
         st.caption('COT Index: rango mínimo–máximo móvil del Net/OI, no percentil. 80/20 indica extremos relativos, no señales de giro. Comparación por fecha de observación, no backtest.')
