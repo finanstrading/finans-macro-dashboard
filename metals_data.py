@@ -2,6 +2,8 @@
 """MacroFX — Metals market and FRED data."""
 
 from io import StringIO
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 import pandas as pd
 import requests
@@ -74,13 +76,17 @@ TREASURY_MAP = {
 }
 
 
-@st.cache_data(ttl=900, show_spinner=False)
-def treasury_curve(kind, year):
+@st.cache_resource(show_spinner=False)
+def _treasury_store():
+    return {}, Lock()
+
+
+def treasury_curve(kind, month):
     url = ("https://home.treasury.gov/resource-center/data-chart-center/"
-           "interest-rates/daily-treasury-rates.csv/" + str(year) + "/all")
+           "interest-rates/daily-treasury-rates.csv/" + month + "/all")
     r = requests.get(url, params={"type": kind,
-                     "field_tdr_date_value": year, "page": "", "_format": "csv"},
-                     timeout=(3, 6))
+                     "field_tdr_date_value_month": month, "page": "", "_format": "csv"},
+                     timeout=(3, 15))
     r.raise_for_status()
     df = pd.read_csv(StringIO(r.text))
     df.columns = df.columns.str.strip().str.upper()
@@ -88,7 +94,32 @@ def treasury_curve(kind, year):
         raise ValueError("Treasury: CSV sin fecha")
     df.index = pd.to_datetime(df.pop("DATE"), errors="coerce").dt.normalize()
     df = df.loc[df.index.notna()]
+    df = df.loc[df.index.strftime("%Y%m") == month]
+    if df.empty:
+        raise ValueError("Treasury: mes sin observaciones")
     return df.loc[~df.index.duplicated(keep="last")].sort_index()
+
+
+def _fetch_curve(kind, months, store, lock):
+    frames, warnings = [], []
+    for month in months:
+        key = (kind, month)
+        try:
+            df = treasury_curve(kind, month)
+            with lock:
+                old = store.get(key)
+                if old is not None:
+                    df = pd.concat([old, df]).sort_index(kind="stable")
+                    df = df.loc[~df.index.duplicated(keep="last")]
+                store[key] = df
+        except Exception as exc:
+            with lock:
+                df = store.get(key)
+            warnings.append(f"Tesoro ({kind}, {month}): {type(exc).__name__}; " +
+                            ("se usa última descarga exitosa." if df is not None else "sin descarga disponible."))
+        if df is not None:
+            frames.append(df)
+    return (pd.concat(frames).sort_index() if frames else None), warnings
 
 
 def clean_daily(s):
@@ -223,17 +254,21 @@ def _load_gold_data_cached(token):
 
     # Extend only compatible FRED series; never overwrite historical observations.
     today = pd.Timestamp.now(tz="America/New_York").tz_localize(None).normalize()
+    # Include previous month only when needed for the five-date validation.
+    months = [today.strftime("%Y%m")]
+    if today.day <= 12:
+        months.insert(0, (today - pd.DateOffset(months=1)).strftime("%Y%m"))
+    store, lock = _treasury_store()
+    kinds = sorted({kind for code, (kind, _) in TREASURY_MAP.items() if code in data})
     curves = {}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        jobs = {kind: pool.submit(_fetch_curve, kind, months, store, lock) for kind in kinds}
+        for kind, job in jobs.items():
+            curves[kind], warnings = job.result()
+            errors.extend(warnings)
     for code, (kind, column) in TREASURY_MAP.items():
         if code not in data:
             continue
-        if kind not in curves:
-            try:
-                years = sorted({today.year, (today - pd.Timedelta(days=45)).year})
-                curves[kind] = pd.concat([treasury_curve(kind, y) for y in years])
-            except Exception as exc:
-                curves[kind] = None
-                errors.append(f"Tesoro ({kind}): {type(exc).__name__}; se conserva FRED.")
         curve = curves[kind]
         if curve is None:
             continue
