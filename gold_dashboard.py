@@ -118,17 +118,17 @@ Plotly.newPlot(gd,spec.data,spec.layout,{responsive:true,scrollZoom:true,display
     components.html(html, height=370, scrolling=False)
 
 def compact_selector(label, options, key, default):
-    # Scope styling to these three controls only; native radio keeps keyboard support.
-    st.markdown("""<style>
-    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] {gap:6px; flex-wrap:wrap;}
-    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label {background:#e9edf2;border:1px solid #d4dbe4;border-radius:8px;padding:7px 13px;margin:0;min-height:36px;cursor:pointer;}
-    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label > div:first-child {position:absolute;opacity:0;width:1px;height:1px;overflow:hidden;}
-    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label p {color:#344054;font-weight:600;}
-    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label:has(input:checked) {background:#192331;border-color:#192331;}
-    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label:has(input:checked) p {color:#E3B65C;}
-    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label:focus-within {outline:2px solid #B78B38;outline-offset:2px;}
-    </style>""", unsafe_allow_html=True)
-    return st.radio(label, options, index=options.index(default), horizontal=True, key=key)
+    state_key = key + '_selected'
+    if st.session_state.get(state_key) not in options:
+        st.session_state[state_key] = default
+    st.markdown(f'**{label}**')
+    cols = st.columns(len(options) + 1)
+    for i, option in enumerate(options):
+        cols[i].button(option, key=f'{key}_btn_{i}',
+                       type='primary' if st.session_state[state_key] == option else 'secondary',
+                       use_container_width=True,
+                       on_click=lambda value=option: st.session_state.update({state_key: value}))
+    return st.session_state[state_key]
 
 def render_gold_dashboard():
     st.markdown('**MACROFX / GOLD** · Análisis fundamental')
