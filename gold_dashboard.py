@@ -28,6 +28,13 @@ def chart(series, title, unit, key, bounds, revision, originals=None, secondary=
     if not fig.data:
         st.caption('Sin observaciones para el horizonte seleccionado.')
         return
+    # Bound each chart to its actual plotted observations, not the gold calendar.
+    dates = [pd.Timestamp(v) for tr in fig.data for v in tr.x]
+    first, last = min(dates), max(dates)
+    if first == last:
+        first -= pd.Timedelta(hours=12)
+        last += pd.Timedelta(hours=12)
+    bounds = (first, last)
     fig.update_layout(title=title, yaxis_title=unit, template='plotly_white',
                       height=360, margin=dict(l=55,r=65,t=50,b=55),
                       legend=dict(orientation='h',y=-.2), hovermode='x unified',
@@ -51,18 +58,35 @@ const revision = """ + json.dumps(revision) + """;
 const spec = """ + payload + """;
 const gd = document.getElementById('goldplot');
 const correlation = spec.layout.yaxis.title.text === 'Correlación';
-const initialRange = spec.layout.xaxis.range.map(v => new Date(v).getTime());
+function timestamp(v) {
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(' ', 'T');
+  return Date.parse(/(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(s) ? s : (s.length === 10 ? s+'T00:00:00Z' : s+'Z'));
+}
+const initialRange = spec.layout.xaxis.range.map(timestamp);
+function boundedRange(xr) {
+  const [lo, hi] = initialRange;
+  if (!xr.every(Number.isFinite) || xr[1] <= xr[0]) return [lo, hi];
+  const width = Math.min(xr[1]-xr[0], hi-lo);
+  const left = Math.max(lo, Math.min(xr[0], hi-width));
+  return [left, left+width];
+}
 let busy = false;
 function autoscale() {
-  if (busy || (!correlation && spec.layout.yaxis.autorange === false)) return;
-  const xr = gd._fullLayout.xaxis.range.map(v => new Date(v).getTime());
+  if (busy) return;
+  const requested = gd._fullLayout.xaxis.range.map(timestamp);
+  const xr = boundedRange(requested);
   const updates = {};
-  for (const axis of ['y','y2']) {
+  if (!requested.every(Number.isFinite) || requested.some((v,i)=>Math.abs(v-xr[i])>1)) {
+    updates['xaxis.range'] = xr.map(v=>new Date(v).toISOString());
+    updates['xaxis.autorange'] = false;
+  }
+  for (const axis of ((!correlation && spec.layout.yaxis.autorange === false) ? [] : ['y','y2'])) {
     const vals = [];
     for (const tr of gd.data) {
       if ((tr.yaxis || 'y') !== axis || tr.visible === 'legendonly' || tr.visible === false) continue;
       for (let i=0;i<tr.x.length;i++) {
-        const t = new Date(tr.x[i]).getTime(), v = tr.y[i];
+        const t = timestamp(tr.x[i]), v = tr.y[i];
         if (t >= xr[0] && t <= xr[1] && v != null && Number.isFinite(Number(v))) vals.push(Number(v));
       }
     }
@@ -74,8 +98,15 @@ function autoscale() {
     updates[k+'.range']=correlation ? (full ? [-1,1] : [Math.max(-1,Math.min(-0.05,lo-pad)),Math.min(1,Math.max(0.05,hi+pad))]) : [lo-pad,hi+pad];
     updates[k+'.autorange']=false;
   }
+  if (!Object.keys(updates).length) return;
   busy=true;
   Promise.resolve(Plotly.relayout(gd,updates)).catch(console.error).finally(()=>{busy=false;});
+}
+// Native bounds prevent dragging beyond the data on supported Plotly versions.
+const xSchema = Plotly.PlotSchema && Plotly.PlotSchema.get().layout.layoutAttributes.xaxis;
+if (xSchema && xSchema.minallowed && xSchema.maxallowed) {
+  spec.layout.xaxis.minallowed = new Date(initialRange[0]).toISOString();
+  spec.layout.xaxis.maxallowed = new Date(initialRange[1]).toISOString();
 }
 Plotly.newPlot(gd,spec.data,spec.layout,{responsive:true,scrollZoom:true,displaylogo:false,doubleClick:'reset',displayModeBar:true,modeBarButtonsToRemove:['autoScale2d','zoomIn2d','zoomOut2d']}).then(()=>{
   autoscale();
