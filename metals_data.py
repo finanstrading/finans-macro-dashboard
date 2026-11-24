@@ -73,6 +73,35 @@ def clean_daily(s):
 
 
 @st.cache_data(ttl=900, show_spinner=False, max_entries=8)
+def real_yields_eodhd(token):
+    try:
+        response = requests.get(
+            "https://eodhd.com/api/ust/real-yield-rates",
+            params={"api_token": token, "fmt": "json"}, timeout=(3, 8))
+        response.raise_for_status()
+        payload = response.json()
+        rows = payload["data"]
+        if not isinstance(rows, list) or len(rows) != int(payload["meta"]["total"]):
+            raise ValueError("Respuesta incompleta")
+        result = {}
+        today = pd.Timestamp.now(tz="America/New_York").tz_localize(None).normalize()
+        for code, tenor in (("DFII5", "5Y"), ("DFII10", "10Y")):
+            series = clean_daily(_as_series([r for r in rows if r.get("tenor") == tenor], "rate"))
+            result[code] = series.loc[series.index <= today]
+        return result, None
+    except Exception as exc:
+        return {}, type(exc).__name__
+
+
+def extend_real_yield(fred, recent):
+    fred, recent = clean_daily(fred), clean_daily(recent)
+    overlap = pd.concat([fred.rename("fred"), recent.rename("recent")], axis=1, join="inner").dropna().tail(20)
+    if len(overlap) < 5 or (overlap.fred - overlap.recent).abs().max() > 0.01000001:
+        raise ValueError("Históricos incompatibles")
+    return pd.concat([fred, recent.loc[recent.index > fred.index.max()]]).sort_index()
+
+
+@st.cache_data(ttl=900, show_spinner=False, max_entries=8)
 def _load_gold_data_cached(token):
 
     data, sources, errors = {}, {}, []
@@ -191,6 +220,29 @@ def _load_gold_data_cached(token):
         except Exception as exc:
             errors.append(f"FRED {code}: {type(exc).__name__}")
 
+    # Preserve the FRED history; append only validated newer real yields.
+    if token:
+        real, error = real_yields_eodhd(token)
+        if error:
+            errors.append(f"Tipos reales EODHD: {error}; se conserva FRED.")
+        for code, recent in real.items():
+            if recent.empty:
+                errors.append(f"{code}: EODHD sin observaciones; se conserva FRED.")
+                continue
+            if code not in data:
+                data[code] = recent
+                sources[code] = "EODHD · tipo real · histórico disponible limitado"
+                continue
+            original = data[code]
+            if recent.index.max() <= original.index.max():
+                continue
+            try:
+                merged = extend_real_yield(original, recent)
+                data[code] = merged
+                sources[code] = (f"FRED hasta {original.index.max():%Y-%m-%d} | "
+                                 f"EODHD hasta {merged.index.max():%Y-%m-%d}")
+            except ValueError:
+                errors.append(f"{code}: históricos FRED/EODHD incompatibles; se conserva FRED.")
     return data, sources, errors
 
 
