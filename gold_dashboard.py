@@ -117,15 +117,28 @@ Plotly.newPlot(gd,spec.data,spec.layout,{responsive:true,scrollZoom:true,display
 </script>"""
     components.html(html, height=370, scrolling=False)
 
+def compact_selector(label, options, key, default):
+    # Scope styling to these three controls only; native radio keeps keyboard support.
+    st.markdown("""<style>
+    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] {gap:6px; flex-wrap:wrap;}
+    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label {background:#e9edf2;border:1px solid #d4dbe4;border-radius:8px;padding:7px 13px;margin:0;min-height:36px;cursor:pointer;}
+    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label > div:first-child {position:absolute;opacity:0;width:1px;height:1px;overflow:hidden;}
+    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label p {color:#344054;font-weight:600;}
+    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label:has(input:checked) {background:#192331;border-color:#192331;}
+    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label:has(input:checked) p {color:#E3B65C;}
+    :is(.st-key-metals_selector,.st-key-gold_period,.st-key-gold_normalization) [role="radiogroup"] > label:focus-within {outline:2px solid #B78B38;outline-offset:2px;}
+    </style>""", unsafe_allow_html=True)
+    return st.radio(label, options, index=options.index(default), horizontal=True, key=key)
+
 def render_gold_dashboard():
     st.markdown('**MACROFX / GOLD** · Análisis fundamental')
     with st.spinner('Cargando datos de metales…'):
         data,sources,errors=load_gold_data()
     liquidity=net_liquidity(data)
     if not liquidity.empty: data['Liquidez neta']=liquidity
-    period=st.radio('Horizonte',['1M','3M','6M','1Y','3Y','5Y'],index=3,horizontal=True,key='gold_period')
+    period=compact_selector('Horizonte',['1M','3M','6M','1Y','3Y','5Y'],'gold_period','1Y')
     months={'1M':1,'3M':3,'6M':6,'1Y':12,'3Y':36,'5Y':60}[period]
-    mode = st.radio('Normalización de comparaciones', ['Base 100','Z-score','Valores originales'], horizontal=True, key='gold_normalization')
+    mode = compact_selector('Normalización de comparaciones',['Base 100','Z-score','Valores originales'],'gold_normalization','Base 100')
     available = [v.index.max() for v in data.values() if not v.empty]
     gold = data.get('Oro', pd.Series(dtype=float))
     end = max(available) if available else pd.Timestamp.today().normalize()
