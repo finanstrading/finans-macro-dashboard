@@ -1,8 +1,6 @@
 
 """MacroFX — Metals market and FRED data."""
 
-from io import StringIO
-
 import pandas as pd
 import requests
 import streamlit as st
@@ -63,56 +61,6 @@ def yahoo_series(symbol):
     return s[~s.index.duplicated(
         keep="last"
     )].sort_index()
-
-
-# Treasury constant-maturity par yields, in percentage points (same units as FRED).
-TREASURY_MAP = {
-    "DFII5": ("daily_treasury_real_yield_curve", "5 YR"),
-    "DFII10": ("daily_treasury_real_yield_curve", "10 YR"),
-    "DGS2": ("daily_treasury_yield_curve", "2 YR"),
-    "DGS10": ("daily_treasury_yield_curve", "10 YR"),
-}
-
-
-@st.cache_data(ttl=900, show_spinner=False)
-def treasury_curve(kind, year):
-    url = ("https://home.treasury.gov/resource-center/data-chart-center/"
-           "interest-rates/daily-treasury-rates.csv/" + str(year) + "/all")
-    r = requests.get(url, params={"type": kind,
-                     "field_tdr_date_value": year, "page": "", "_format": "csv"},
-                     timeout=15)
-    r.raise_for_status()
-    df = pd.read_csv(StringIO(r.text))
-    df.columns = df.columns.str.strip().str.upper()
-    if "DATE" not in df.columns:
-        raise ValueError("Treasury: CSV sin fecha")
-    df.index = pd.to_datetime(df.pop("DATE"), errors="coerce").dt.normalize()
-    df = df.loc[df.index.notna()]
-    return df.loc[~df.index.duplicated(keep="last")].sort_index()
-
-
-def clean_daily(s):
-    s = pd.to_numeric(s, errors="coerce").dropna().copy()
-    idx = pd.DatetimeIndex(pd.to_datetime(s.index))
-    if idx.tz is not None:
-        idx = idx.tz_localize(None)
-    s.index = idx.normalize()
-    return s.loc[~s.index.duplicated(keep="last")].sort_index()
-
-
-def extend_fred(fred, treasury):
-    fred, treasury = clean_daily(fred), clean_daily(treasury)
-    if fred.empty or treasury.empty:
-        raise ValueError("Serie vacía")
-    newer = treasury.loc[treasury.index > fred.index.max()]
-    if newer.empty:
-        return fred, False
-    overlap = pd.concat([fred.rename("fred"), treasury.rename("treasury")],
-                        axis=1, join="inner").dropna().tail(20)
-    # Require at least five shared dates and agreement within one basis point.
-    if len(overlap) < 5 or (overlap.fred - overlap.treasury).abs().max() > 0.01000001:
-        raise ValueError("Históricos no compatibles (mínimo 5 fechas, tolerancia 1 pb)")
-    return pd.concat([fred, newer]).sort_index(), True
 
 
 def load_gold_data():
@@ -221,33 +169,5 @@ def load_gold_data():
             errors.append(
                 f"FRED {code}: {type(exc).__name__}"
             )
-
-    # Extend only compatible FRED series; never overwrite historical observations.
-    today = pd.Timestamp.now(tz="America/New_York").tz_localize(None).normalize()
-    curves = {}
-    for code, (kind, column) in TREASURY_MAP.items():
-        if code not in data:
-            continue
-        if kind not in curves:
-            try:
-                years = sorted({today.year, (today - pd.Timedelta(days=45)).year})
-                curves[kind] = pd.concat([treasury_curve(kind, y) for y in years])
-            except Exception as exc:
-                curves[kind] = None
-                errors.append(f"Tesoro ({kind}): {type(exc).__name__}; se conserva FRED.")
-        curve = curves[kind]
-        if curve is None:
-            continue
-        try:
-            treasury = clean_daily(curve[column])
-            treasury = treasury.loc[treasury.index <= today]
-            original = clean_daily(data[code])
-            merged, extended = extend_fred(original, treasury)
-            if extended:
-                data[code] = merged
-                sources[code] = (f"FRED · {code} hasta {original.index.max():%Y-%m-%d}"
-                                 f" | Tesoro EE.UU. hasta {merged.index.max():%Y-%m-%d}")
-        except Exception as exc:
-            errors.append(f"{code}: extensión Tesoro no aplicada ({type(exc).__name__}); se conserva FRED.")
 
     return data, sources, errors
