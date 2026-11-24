@@ -8498,6 +8498,7 @@ with st.sidebar:
             "CFTC Positioning",
             "Correlaciones FX",
             "Divergencias de Tipos FX",
+            "METALES",
         ],
         index=0,
         label_visibility="collapsed",
@@ -9030,6 +9031,13 @@ def clasificar_catalizador_fx(article, divisa):
 # ===================================================
 # CFTC POSITIONING
 # ===================================================
+
+if pagina_principal == "METALES":
+    with st.sidebar:
+        render_logout(AUTH_PROFILE)
+    from metals_dashboard import render_metals_dashboard
+    render_metals_dashboard()
+    st.stop()
 
 if pagina_principal == "Divergencias de Tipos FX":
     with st.sidebar:
