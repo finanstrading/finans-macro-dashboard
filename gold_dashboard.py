@@ -1,4 +1,7 @@
 import pandas as pd
+import json
+import streamlit.components.v1 as components
+from plotly.offline import get_plotlyjs
 import streamlit as st
 import plotly.graph_objects as go
 from metals_data import load_gold_data
@@ -13,8 +16,8 @@ def chart(series, title, unit, key, bounds, revision, originals=None, secondary=
         if s.empty:
             continue
         raw = originals[name].reindex(s.index) if originals else s
-        fig.add_scatter(x=s.index, y=s.values, name=name, mode='lines',
-                        customdata=raw.values,
+        fig.add_scatter(x=[v.isoformat() for v in s.index], y=s.tolist(), name=name, mode='lines',
+                        customdata=raw.tolist(),
                         hovertemplate='%{y:.2f}<br>Original: %{customdata:.2f}<extra>%{fullData.name}</extra>',
                         yaxis='y2' if name == secondary else 'y',
                         line=dict(color=[GOLD, BLUE, '#39866B', '#8D73B5'][i % 4], width=2))
@@ -30,9 +33,48 @@ def chart(series, title, unit, key, bounds, revision, originals=None, secondary=
     if secondary:
         fig.update_layout(yaxis2=dict(title=secondary, overlaying='y', side='right',
                                      showgrid=False, autorange=True, fixedrange=False))
-    st.plotly_chart(fig, use_container_width=True, key=key,
-                    config={'scrollZoom':True,'displaylogo':False,'doubleClick':'reset',
-                            'displayModeBar':True,'modeBarButtonsToRemove':['autoScale2d']})
+    # Plotly's native autorange does not follow horizontal zoom.
+    # Use a local Plotly bundle and a relayout listener for visible data.
+    fig.update_layout(dragmode='pan', yaxis=dict(fixedrange=True))
+    if secondary:
+        fig.update_layout(yaxis2=dict(fixedrange=True))
+    payload = fig.to_json().replace("</", "<\\/")
+    html = """<div id="goldplot" style="width:100%;height:360px"></div>
+<script>""" + get_plotlyjs() + """</script><script>
+const revision = """ + json.dumps(revision) + """;
+const spec = """ + payload + """;
+const gd = document.getElementById('goldplot');
+let busy = false;
+function autoscale() {
+  if (busy) return;
+  const xr = gd._fullLayout.xaxis.range.map(v => new Date(v).getTime());
+  const updates = {};
+  for (const axis of ['y','y2']) {
+    const vals = [];
+    for (const tr of gd.data) {
+      if ((tr.yaxis || 'y') !== axis || tr.visible === 'legendonly' || tr.visible === false) continue;
+      for (let i=0;i<tr.x.length;i++) {
+        const t = new Date(tr.x[i]).getTime(), v = tr.y[i];
+        if (t >= xr[0] && t <= xr[1] && v != null && Number.isFinite(Number(v))) vals.push(Number(v));
+      }
+    }
+    if (!vals.length) continue;
+    const lo=Math.min(...vals), hi=Math.max(...vals);
+    const pad=(hi-lo)*0.08 || Math.max(Math.abs(lo)*0.01,0.01);
+    const k=axis==='y'?'yaxis':'yaxis2';
+    updates[k+'.range']=[lo-pad,hi+pad];
+    updates[k+'.autorange']=false;
+  }
+  busy=true;
+  Plotly.relayout(gd,updates).finally(()=>{busy=false;});
+}
+Plotly.newPlot(gd,spec.data,spec.layout,{responsive:true,scrollZoom:true,displaylogo:false,doubleClick:'reset',displayModeBar:true,modeBarButtonsToRemove:['autoScale2d','zoomIn2d','zoomOut2d']}).then(()=>{
+  autoscale();
+  gd.on('plotly_relayout', e=>{if(Object.keys(e).some(k=>k.startsWith('xaxis.'))) autoscale();});
+  gd.on('plotly_restyle',()=>autoscale());
+});
+</script>"""
+    components.html(html, height=370, scrolling=False)
 
 def render_gold_dashboard():
     with st.spinner('Cargando datos de metales…'):
@@ -53,7 +95,7 @@ def render_gold_dashboard():
     def window(s): return s.loc[(s.index >= start) & (s.index <= end)]
     def draw(series,title,unit,key,originals=None,secondary=None):
         chart(series,title,unit,key+'_'+revision,bounds,revision,originals,secondary)
-    st.caption('Zoom independiente: rueda o selección; doble clic para restablecer. La normalización se fija al horizonte seleccionado.')
+    st.caption('Zoom horizontal con rueda, desplazamiento arrastrando y doble clic para restablecer. El eje vertical se adapta al intervalo visible; la normalización permanece fija.')
     cols=st.columns(4)
     for col,k,label,unit in zip(cols,['Oro','DXY','DFII10','Liquidez neta'],['Oro · USD/oz','DXY','Tipo real 10Y','Liquidez neta'],['','', '%',' B USD']):
         with col:
