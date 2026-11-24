@@ -80,7 +80,7 @@ def treasury_curve(kind, year):
            "interest-rates/daily-treasury-rates.csv/" + str(year) + "/all")
     r = requests.get(url, params={"type": kind,
                      "field_tdr_date_value": year, "page": "", "_format": "csv"},
-                     timeout=15)
+                     timeout=(3, 6))
     r.raise_for_status()
     df = pd.read_csv(StringIO(r.text))
     df.columns = df.columns.str.strip().str.upper()
@@ -115,11 +115,10 @@ def extend_fred(fred, treasury):
     return pd.concat([fred, newer]).sort_index(), True
 
 
-def load_gold_data():
+@st.cache_data(ttl=900, show_spinner=False, max_entries=8)
+def _load_gold_data_cached(token):
 
     data, sources, errors = {}, {}, []
-
-    token = _token()
 
     assets = [
         ("Oro", "XAUUSD.FOREX", "GC=F", "GOLD"),
@@ -251,3 +250,8 @@ def load_gold_data():
             errors.append(f"{code}: extensión Tesoro no aplicada ({type(exc).__name__}); se conserva FRED.")
 
     return data, sources, errors
+
+
+def load_gold_data():
+    """Reuse a complete snapshot across Streamlit reruns, including failed sources."""
+    return _load_gold_data_cached(_token())
