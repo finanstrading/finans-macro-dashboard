@@ -6,6 +6,7 @@ import hashlib
 import logging
 import requests
 import plotly.graph_objects as go
+from chart_branding import apply_chart_branding
 from urllib.parse import quote  
 
 from auth import require_authenticated_user, render_logout 
@@ -10333,7 +10334,7 @@ try:
             fixedrange=True,
         )
         st.plotly_chart(
-            figura_score,
+            apply_chart_branding(figura_score),
             use_container_width=True,
             config={
                 "displaylogo": False,
@@ -11178,7 +11179,7 @@ try:
     )
 
     st.plotly_chart(
-        figura,
+        apply_chart_branding(figura),
         use_container_width=True,
         config={
             "displaylogo": False,
