@@ -144,7 +144,7 @@ def _load_gold_data_cached(token):
             if not token:
                 raise ValueError("Sin credencial")
 
-            s = market_series(symbol, token)
+            s = clean_daily(market_series(symbol, token))
 
             if s.empty:
                 raise ValueError("Sin observaciones")
@@ -170,7 +170,7 @@ def _load_gold_data_cached(token):
 
         try:
 
-            s = yahoo_series(yahoo)
+            s = clean_daily(yahoo_series(yahoo))
 
             if s.empty:
                 raise ValueError("Sin observaciones")
@@ -207,7 +207,7 @@ def _load_gold_data_cached(token):
 
         try:
 
-            s = _fred_usd(code)
+            s = clean_daily(_fred_usd(code))
 
             if s.empty:
                 raise ValueError("Sin observaciones")
@@ -247,7 +247,7 @@ def _load_gold_data_cached(token):
                 sources[code] = (f"FRED · {code} hasta {original.index.max():%Y-%m-%d}"
                                  f" | Tesoro EE.UU. hasta {merged.index.max():%Y-%m-%d}")
         except Exception as exc:
-            errors.append(f"{code}: extensión Tesoro no aplicada ({type(exc).__name__}); se conserva FRED.")
+            errors.append(f"{code}: extensión Tesoro no aplicada ({type(exc).__name__}: {exc}); se conserva FRED.")
 
     return data, sources, errors
 
