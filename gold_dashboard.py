@@ -190,10 +190,28 @@ def render_gold_dashboard():
         except Exception as exc:
             cot = None
             st.warning(f'CFTC Gold no disponible: {type(exc).__name__}: {exc}')
-        if cot is not None:
+        if cot is not None and not cot.empty:
             st.subheader('Posicionamiento COT · Managed Money')
             cot_metrics(cot)
     if tab == 'Resumen':
+        st.subheader('Gráficos fundamentales del oro')
+        left, right = st.columns(2)
+        with left:
+            compare('DXY', 'Oro vs. DXY')
+        with right:
+            compare('DFII10', 'Oro vs. tipo real 10Y', True)
+        left, right = st.columns(2)
+        with left:
+            if cot is not None and not cot.empty:
+                draw({'Net':window(cot.Net),'Cambio semanal':window(cot['Cambio semanal'])},'Posición neta y cambio semanal','Contratos netos','summary_cot_net',secondary='Cambio semanal',bars='Cambio semanal')
+            else:
+                st.caption('Posicionamiento COT no disponible.')
+        with right:
+            if cot is not None and not cot.empty and 'Oro' in data:
+                draw({'Oro':window(data['Oro']), 'Net / OI':window(cot['Net / OI'])},'Oro vs. posicionamiento relativo','USD/oz','summary_cot_gold',secondary='Net / OI')
+            else:
+                st.caption('Comparación COT no disponible.')
+        compare('Liquidez neta','Oro vs. liquidez neta Fed')
         st.subheader('Escáner de divergencias · 3M y 12M')
         table=divergence(data)
         if table.empty: st.info('Histórico común insuficiente.')
