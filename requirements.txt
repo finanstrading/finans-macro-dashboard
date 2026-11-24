@@ -6,3 +6,5 @@ streamlit-js-eval
 requests
 feedparser
 openai
+yfinance
+
