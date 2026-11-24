@@ -22,7 +22,7 @@ def chart(series, title, unit, key, bounds, revision, originals=None, secondary=
             continue
         fig.add_scatter(x=[v.isoformat() for v in s.index], y=s.tolist(), name=name, mode='lines',
                         customdata=raw.tolist(),
-                        hovertemplate='%{y:.2f}<br>Original: %{customdata:.2f}<extra>%{fullData.name}</extra>',
+                        hovertemplate='%{x|%d/%m/%Y}<br>%{y:.2f}<br>Original: %{customdata:.2f}<extra>%{fullData.name}</extra>',
                         yaxis='y2' if name == secondary else 'y',
                         line=dict(color=[GOLD, BLUE, '#39866B', '#8D73B5'][i % 4], width=2))
     if not fig.data:
@@ -126,7 +126,7 @@ def render_gold_dashboard():
     mode = st.radio('Normalización de comparaciones', ['Base 100','Z-score','Valores originales'], horizontal=True, key='gold_normalization')
     available = [v.index.max() for v in data.values() if not v.empty]
     gold = data.get('Oro', pd.Series(dtype=float))
-    end = gold.index.max() if not gold.empty else (max(available) if available else pd.Timestamp.today().normalize())
+    end = max(available) if available else pd.Timestamp.today().normalize()
     start = end - pd.DateOffset(months=months)
     bounds = (start, end)
     if st.button('Restablecer zoom de todos los gráficos', key='gold_reset'):
@@ -147,10 +147,12 @@ def render_gold_dashboard():
             for e in errors: st.warning(e)
     def compare(k,title,rate=False):
         if 'Oro' not in data or k not in data: return
-        x = aligned(window(data['Oro']), window(data[k])).dropna().sort_index()
-        if len(x) < 2:
+        x = pd.concat([window(data['Oro']).rename('Oro'), window(data[k]).rename('Factor')], axis=1).sort_index()
+        common = x.dropna()
+        if len(common) < 2:
             st.caption(f'{title}: histórico común insuficiente.')
             return
+        st.caption(f"Oro: {x.Oro.last_valid_index():%d/%m/%Y} · {k}: {x.Factor.last_valid_index():%d/%m/%Y} · Última fecha común: {common.index[-1]:%d/%m/%Y}")
         raw = x.copy()
         if k == 'Liquidez neta':
             raw['Factor'] /= 1000
@@ -160,11 +162,11 @@ def render_gold_dashboard():
             st.caption(f'{title}: Z-score en lugar de base 100 para evitar ratios engañosos en tipos o valores no positivos.')
         secondary = None
         if effective == 'Z-score':
-            std = x.std(ddof=0)
-            x = (x-x.mean()) / std.replace(0,float('nan'))
+            std = common.std(ddof=0)
+            x = (x-common.mean()) / std.replace(0,float('nan'))
             unit = 'Desviaciones estándar'
         elif effective == 'Base 100':
-            x = x / x.iloc[0] * 100
+            x = x / common.iloc[0] * 100
             unit = 'Base 100'
         else:
             x = raw.copy()
