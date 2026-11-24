@@ -11,7 +11,6 @@ from gold_cot import load_gold_cot
 GOLD='#C9A227'; BLUE='#4678A8'
 
 def chart(series, title, unit, key, bounds, revision, originals=None, secondary=None, fixed_y=None, bars=None):
-    correlation = unit == "Correlación"
     fig = go.Figure()
     for i, (name, s) in enumerate(series.items()):
         s = s.dropna().sort_index()
@@ -45,12 +44,6 @@ def chart(series, title, unit, key, bounds, revision, originals=None, secondary=
         fig.update_layout(yaxis2=dict(fixedrange=True))
     if fixed_y is not None:
         fig.update_yaxes(range=list(fixed_y), autorange=False)
-    if correlation:
-        dates = sorted({pd.Timestamp(x).normalize() for tr in fig.data for x in tr.x})
-        missing = pd.date_range(dates[0], dates[-1], freq='D').difference(pd.DatetimeIndex(dates))
-        fig.update_xaxes(rangebreaks=[dict(values=[d.strftime('%Y-%m-%d') for d in missing])])
-        fig.update_yaxes(zeroline=True, zerolinecolor='#8290A0', zerolinewidth=2)
-        fig.update_traces(marker=dict(size=5), selector=dict(type='scatter'))
     payload = fig.to_json().replace("</", "<\\/")
     html = """<div id="goldplot" style="width:100%;height:360px"></div>
 <script>""" + get_plotlyjs() + """</script><script>
@@ -64,12 +57,6 @@ function autoscale() {
   if (busy || (!correlation && spec.layout.yaxis.autorange === false)) return;
   const xr = gd._fullLayout.xaxis.range.map(v => new Date(v).getTime());
   const updates = {};
-  const full = xr[1]-xr[0] >= (initialRange[1]-initialRange[0])*0.98;
-  busy=true;
-  if (correlation) {
-    const count = new Set(gd.data.flatMap(tr => tr.x.filter(x => {const t=new Date(x).getTime(); return t>=xr[0] && t<=xr[1];}))).size;
-    Plotly.restyle(gd, {mode: count <= 25 ? 'lines+markers' : 'lines'});
-  }
   for (const axis of ['y','y2']) {
     const vals = [];
     for (const tr of gd.data) {
@@ -83,15 +70,17 @@ function autoscale() {
     const lo=Math.min(...vals), hi=Math.max(...vals);
     const pad=(hi-lo)*0.08 || Math.max(Math.abs(lo)*0.01,0.01);
     const k=axis==='y'?'yaxis':'yaxis2';
-    updates[k+'.range']=correlation ? (full ? [-1,1] : [Math.max(-1,Math.min(0,lo-pad)),Math.min(1,Math.max(0,hi+pad))]) : [lo-pad,hi+pad];
+    const full = xr[0] <= initialRange[0]+86400000 && xr[1] >= initialRange[1]-86400000;
+    updates[k+'.range']=correlation ? (full ? [-1,1] : [Math.max(-1,Math.min(-0.05,lo-pad)),Math.min(1,Math.max(0.05,hi+pad))]) : [lo-pad,hi+pad];
     updates[k+'.autorange']=false;
   }
-  Plotly.relayout(gd,updates).finally(()=>{busy=false;});
+  busy=true;
+  Promise.resolve(Plotly.relayout(gd,updates)).catch(console.error).finally(()=>{busy=false;});
 }
 Plotly.newPlot(gd,spec.data,spec.layout,{responsive:true,scrollZoom:true,displaylogo:false,doubleClick:'reset',displayModeBar:true,modeBarButtonsToRemove:['autoScale2d','zoomIn2d','zoomOut2d']}).then(()=>{
   autoscale();
   gd.on('plotly_relayout', e=>{if(Object.keys(e).some(k=>k.startsWith('xaxis.'))) autoscale();});
-  gd.on('plotly_restyle',()=>{if(!busy) autoscale();});
+  gd.on('plotly_restyle',()=>autoscale());
 });
 </script>"""
     components.html(html, height=370, scrolling=False)
@@ -220,7 +209,7 @@ def render_gold_dashboard():
         st.caption('COT Index: rango mínimo–máximo móvil del Net/OI, no percentil. 80/20 indica extremos relativos, no señales de giro. Comparación por fecha de observación, no backtest.')
     elif tab == 'Correlaciones':
         st.subheader('Correlaciones móviles')
-        st.caption('Escala completa de −1 a +1; al ampliar se ajusta a los datos visibles incluyendo el cero. Los puntos aparecen al visualizar hasta 25 sesiones.')
+        st.caption('Escala inicial −1 a +1; al ampliar, el eje vertical se adapta a los datos visibles incluyendo el cero.')
         summary=[]
         all_curves={}
         for k in ('DFII10','DFII5','DXY'):
