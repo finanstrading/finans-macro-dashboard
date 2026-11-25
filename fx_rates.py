@@ -28,35 +28,43 @@ POLICY_HINTS = {
     'CHF':['SNB Policy Rate','SNB Interest Rate','Policy Rate'],
 }
 
-def _token():
-    """Busca la clave sin ocultar un secreto válido por errores en otro origen."""
-    for key in ('EODHD_API_KEY', 'EODHD_TOKEN', 'EODHD_API_TOKEN'):
+def _credential(provider, keys):
+    errors = set()
+    for key in keys:
         value = os.environ.get(key)
         if value and value.strip():
-            return value.strip()
-    for key in ('EODHD_API_KEY', 'EODHD_TOKEN', 'EODHD_API_TOKEN'):
+            return value.strip(), 'variable de entorno'
+    try:
+        config = st.secrets
+        names = list(config.keys())
+    except Exception as exc:
+        return None, 'error leyendo Secrets: ' + type(exc).__name__
+    aliases = {k.casefold() for k in keys}
+    for name in names:
         try:
-            value = st.secrets.get(key)
-            if value and str(value).strip():
-                return str(value).strip()
-        except Exception:
-            continue
-    for section in ('Eodhd', 'eodhd', 'EODHD'):
-        try:
-            cfg = st.secrets.get(section)
-            if cfg:
-                for key in ('EODHD_API_KEY', 'EODHD_TOKEN', 'api_key', 'api_token'):
-                    value = cfg.get(key)
-                    if value and str(value).strip():
-                        return str(value).strip()
-        except Exception:
-            continue
-    return None
+            value = config[name]
+            if str(name).casefold() in aliases and isinstance(value, str) and value.strip():
+                return value.strip(), 'Secrets raíz'
+            if hasattr(value, 'keys'):
+                for key in value.keys():
+                    match = str(key).casefold() in aliases or (str(name).casefold() == provider.casefold() and str(key).casefold() in ('api_key', 'api_token', 'token', 'key'))
+                    if match:
+                        candidate = value[key]
+                        if isinstance(candidate, str) and candidate.strip():
+                            return candidate.strip(), 'Secrets sección'
+        except Exception as exc:
+            errors.add(type(exc).__name__)
+    return None, ('error leyendo Secrets: ' + ', '.join(sorted(errors))) if errors else 'Secrets accesibles, clave no encontrada'
+
+
+def _token():
+    return _credential('EODHD', ('EODHD_API_KEY', 'EODHD_TOKEN', 'EODHD_API_TOKEN'))[0]
 
 
 def credential_status():
-    """Diagnóstico seguro: jamás devuelve ni imprime el token."""
-    return 'EODHD: credencial detectada' if _token() else 'EODHD: credencial no detectada en este despliegue'
+    token, status = _credential('EODHD', ('EODHD_API_KEY', 'EODHD_TOKEN', 'EODHD_API_TOKEN'))
+    return 'EODHD: ' + ('credencial detectada · ' if token else '') + status
+
 
 @st.cache_data(ttl=21600, show_spinner=False)
 def _get_json(url, params):
@@ -184,30 +192,7 @@ FINNHUB_POLICY_CODES = {
 
 
 def _finnhub_token():
-    """Consulta variables de entorno o secretos Streamlit sin exponer la clave."""
-    keys = ('FINNHUB_API_KEY', 'FINNHUB_TOKEN', 'FINNHUB_KEY')
-    for key in keys:
-        value = os.environ.get(key)
-        if value and str(value).strip():
-            return str(value).strip()
-    for key in keys:
-        try:
-            value = st.secrets.get(key)
-            if value and str(value).strip():
-                return str(value).strip()
-        except Exception:
-            pass
-    for section in ('Finnhub', 'finnhub', 'FINNHUB'):
-        try:
-            config = st.secrets.get(section)
-            if config:
-                for key in (*keys, 'api_key', 'token'):
-                    value = config.get(key)
-                    if value and str(value).strip():
-                        return str(value).strip()
-        except Exception:
-            pass
-    return None
+    return _credential('Finnhub', ('FINNHUB_API_KEY', 'FINNHUB_TOKEN', 'FINNHUB_KEY'))[0]
 
 
 @st.cache_data(ttl=21600, show_spinner=False)
@@ -335,7 +320,7 @@ def load_rates(currency, sheet_df=None, convert_values=None):
     if 'Tipo oficial (%)' not in result and currency in FINNHUB_POLICY_CODES:
         finnhub_token = _finnhub_token()
         if not finnhub_token:
-            warnings.append('Finnhub: FINNHUB_API_KEY no detectada en los secretos de esta app.')
+            warnings.append('Finnhub: ' + _credential('Finnhub', ('FINNHUB_API_KEY', 'FINNHUB_TOKEN', 'FINNHUB_KEY'))[1])
         else:
             series, error = _policy_finnhub(currency, finnhub_token)
             if not series.empty:
