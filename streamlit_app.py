@@ -667,31 +667,31 @@ st.markdown(
         CONTENIDO PRINCIPAL — CONTRASTE
         =================================================== */
 
-        section[data-testid="stMain"] h1,
-        section[data-testid="stMain"] h2,
-        section[data-testid="stMain"] h3,
-        section[data-testid="stMain"] h4 {{
+        [data-testid="stMain"] h1,
+        [data-testid="stMain"] h2,
+        [data-testid="stMain"] h3,
+        [data-testid="stMain"] h4 {{
             color: #111111 !important;
             -webkit-text-fill-color: #111111 !important;
             opacity: 1 !important;
         }}
 
-        section[data-testid="stMain"] [data-testid="stMarkdownContainer"] p,
-        section[data-testid="stMain"] [data-testid="stCaptionContainer"],
-        section[data-testid="stMain"] [data-testid="stCaptionContainer"] * {{
+        [data-testid="stMain"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMain"] [data-testid="stCaptionContainer"],
+        [data-testid="stMain"] [data-testid="stCaptionContainer"] * {{
             color: #4B5563 !important;
             -webkit-text-fill-color: #4B5563 !important;
             opacity: 1 !important;
         }}
 
-        section[data-testid="stMain"] [data-testid="stMetric"] {{
+        [data-testid="stMain"] [data-testid="stMetric"] {{
             color: #111111 !important;
         }}
 
-        section[data-testid="stMain"] [data-testid="stMetric"] label,
-        section[data-testid="stMain"] [data-testid="stMetric"] label *,
-        section[data-testid="stMain"] [data-testid="stMetricValue"],
-        section[data-testid="stMain"] [data-testid="stMetricValue"] * {{
+        [data-testid="stMain"] [data-testid="stMetric"] label,
+        [data-testid="stMain"] [data-testid="stMetric"] label *,
+        [data-testid="stMain"] [data-testid="stMetricValue"],
+        [data-testid="stMain"] [data-testid="stMetricValue"] * {{
             color: #111111 !important;
             -webkit-text-fill-color: #111111 !important;
             opacity: 1 !important;
@@ -764,31 +764,31 @@ st.markdown(
                 overflow: hidden !important;
             }}
 
-            section[data-testid="stMain"] h1,
-            section[data-testid="stMain"] h2,
-            section[data-testid="stMain"] h3,
-            section[data-testid="stMain"] h4 {{
+            [data-testid="stMain"] h1,
+            [data-testid="stMain"] h2,
+            [data-testid="stMain"] h3,
+            [data-testid="stMain"] h4 {{
                 color: #111111 !important;
                 -webkit-text-fill-color: #111111 !important;
                 opacity: 1 !important;
             }}
 
-            section[data-testid="stMain"] [data-testid="stMarkdownContainer"] p,
-            section[data-testid="stMain"] [data-testid="stCaptionContainer"],
-            section[data-testid="stMain"] [data-testid="stCaptionContainer"] * {{
+            [data-testid="stMain"] [data-testid="stMarkdownContainer"] p,
+            [data-testid="stMain"] [data-testid="stCaptionContainer"],
+            [data-testid="stMain"] [data-testid="stCaptionContainer"] * {{
                 color: #4B5563 !important;
                 -webkit-text-fill-color: #4B5563 !important;
                 opacity: 1 !important;
             }}
 
-            section[data-testid="stMain"] [data-testid="stMetric"] {{
+            [data-testid="stMain"] [data-testid="stMetric"] {{
                 color: #111111 !important;
             }}
 
-            section[data-testid="stMain"] [data-testid="stMetric"] label,
-            section[data-testid="stMain"] [data-testid="stMetric"] label *,
-            section[data-testid="stMain"] [data-testid="stMetricValue"],
-            section[data-testid="stMain"] [data-testid="stMetricValue"] * {{
+            [data-testid="stMain"] [data-testid="stMetric"] label,
+            [data-testid="stMain"] [data-testid="stMetric"] label *,
+            [data-testid="stMain"] [data-testid="stMetricValue"],
+            [data-testid="stMain"] [data-testid="stMetricValue"] * {{
                 color: #111111 !important;
                 -webkit-text-fill-color: #111111 !important;
                 opacity: 1 !important;
@@ -797,14 +797,14 @@ st.markdown(
 
             @media (max-width: 1400px) {{
 
-                section[data-testid="stMain"] [data-testid="stMetric"] {{
+                [data-testid="stMain"] [data-testid="stMetric"] {{
                     min-width: 0 !important;
                     overflow: visible !important;
                 }}
 
-                section[data-testid="stMain"] [data-testid="stMetricValue"],
-                section[data-testid="stMain"] [data-testid="stMetricValue"] > div,
-                section[data-testid="stMain"] [data-testid="stMetricValue"] * {{
+                [data-testid="stMain"] [data-testid="stMetricValue"],
+                [data-testid="stMain"] [data-testid="stMetricValue"] > div,
+                [data-testid="stMain"] [data-testid="stMetricValue"] * {{
                     font-size: 1.75rem !important;
                     white-space: normal !important;
                     overflow: visible !important;
@@ -1011,6 +1011,68 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+
+st.markdown("""<style>
+
+        /* Responsive V1: native widgets inherit the configured light theme.
+           Keep custom dark cards and chart iframes untouched. */
+        @media (max-width: 1024px) {
+            [data-testid="stMain"] [data-testid="stHorizontalBlock"] {
+                flex-wrap: wrap !important;
+                align-items: stretch;
+            }
+            [data-testid="stMain"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+                min-width: 0 !important;
+            }
+            [data-testid="stMain"] [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]:nth-child(4)) > [data-testid="stColumn"] {
+                flex: 1 1 calc(50% - 1rem) !important;
+                width: calc(50% - 1rem) !important;
+            }
+            [data-testid="stMain"] [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]:nth-child(4)):has(> [data-testid="stColumn"]:nth-child(6)) > [data-testid="stColumn"] {
+                flex: 1 1 calc(33.333% - 1rem) !important;
+                width: calc(33.333% - 1rem) !important;
+            }
+            [data-testid="stMain"] [data-testid="stButton"] button {
+                min-height: 44px;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+            [data-testid="stMain"] [data-baseweb="select"] > div {
+                min-height: 44px;
+            }
+            [data-testid="stMain"] iframe {
+                max-width: 100%;
+            }
+            [data-testid="stMain"] [data-testid="stDataFrame"] {
+                max-width: 100%;
+                min-width: 0;
+            }
+            [data-testid="stMain"] [data-testid="stMarkdownContainer"] table {
+                display: block;
+                max-width: 100%;
+                overflow-x: auto;
+            }
+            [data-testid="stMain"] [data-testid="stMetricValue"] {
+                font-size: clamp(1.1rem, 2.5vw, 1.75rem) !important;
+            }
+        }
+        @media (max-width: 640px) {
+            [data-testid="stMain"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+                flex: 1 1 100% !important;
+                width: 100% !important;
+            }
+            [data-testid="stMain"] [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]:nth-child(4)) > [data-testid="stColumn"] {
+                flex: 1 1 calc(50% - 1rem) !important;
+                width: calc(50% - 1rem) !important;
+            }
+            [data-testid="stMain"] [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"]:nth-child(6)) > [data-testid="stColumn"] {
+                flex: 1 1 calc(33.333% - 1rem) !important;
+                width: calc(33.333% - 1rem) !important;
+            }
+        }
+
+</style>""", unsafe_allow_html=True)
 
 
 # ===================================================
