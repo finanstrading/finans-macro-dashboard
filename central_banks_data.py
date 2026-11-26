@@ -14,7 +14,7 @@ def fred(code):
     d=pd.read_csv(io.StringIO(r.text)); return series(d.iloc[:,0],d[code])
 
 def series(d,v):
-    s=pd.Series(pd.to_numeric(v,errors='coerce').to_numpy(),index=pd.to_datetime(d,errors='coerce')).dropna()
+    s=pd.Series(pd.to_numeric(pd.Series(v),errors='coerce').to_numpy(),index=pd.to_datetime(d,errors='coerce')).dropna()
     s=s[~s.index.isna()].sort_index(); return s[~s.index.duplicated(keep='last')]
 
 @st.cache_data(ttl=3600,show_spinner=False)
@@ -40,7 +40,11 @@ def load_bank(bank):
             data[label]=s; sources[label]=source
         except Exception as e: errors.append(f'{label}: {type(e).__name__}')
     get('Activos totales',lambda: fred('WALCL')*.001 if bank=='FED' else fred('JPNASSETS')*.1 if bank=='BOJ' else bis(country),'FRED · WALCL' if bank=='FED' else 'BOJ/FRED · JPNASSETS' if bank=='BOJ' else 'BIS · WS_CBTA (mensual, moneda local)')
-    code=f'TRESEG{country}M052N'; get('Reservas oficiales sin oro',lambda:fred(code)*.001,'FMI/FRED · '+code)
+    code=f'TRESEG{country}M052N'
+    if bank != 'BNS':
+        get('Reservas oficiales sin oro',lambda:fred(code)*.001,'FMI/FRED · '+code)
+    if bank == 'BNS':
+        get('Reservas oficiales sin oro',snb_reserves,'BNS · SDDS, activos oficiales menos oro (USD; códigos inferidos)')
     if 'Reservas oficiales sin oro' not in data:
         get('Reservas oficiales sin oro',lambda:worldbank_reserves(country),'Banco Mundial · FI.RES.XGLD.CD (anual, cierre de año)')
     if bank=='BNS':
@@ -60,11 +64,25 @@ def worldbank_reserves(country):
 @st.cache_data(ttl=3600,show_spinner=False)
 def snb_csv(cube):
     r=requests.get(f'https://data.snb.ch/api/cube/{cube}/data/csv/en',timeout=(5,20)); r.raise_for_status()
-    lines=r.content.decode('utf-8-sig').splitlines()
+    return parse_snb_csv(r.content)
+
+def parse_snb_csv(content):
+    import csv
+    lines=content.decode('utf-8-sig').splitlines()
     for i,line in enumerate(lines):
-        if line.lower().startswith('date;') and 'value' in line.lower():
+        fields=next(csv.reader([line],delimiter=';'))
+        if fields and fields[0].strip().lower()=='date' and 'value' in [f.strip().lower() for f in fields]:
             return pd.read_csv(io.StringIO('\n'.join(lines[i:])),sep=';',dtype=str)
     raise ValueError('Cabecera SNB no reconocida')
+
+def snb_reserves():
+    d=snb_csv('snbimfra')
+    d=d[d['D1']=='T1']
+    total=series(d.loc[d.D0=='T1','Date'],d.loc[d.D0=='T1','Value'])
+    gold=series(d.loc[d.D0=='T7','Date'],d.loc[d.D0=='T7','Value'])
+    a=pd.concat([total,gold],axis=1,join='inner').dropna()
+    out=(a.iloc[:,0]-a.iloc[:,1])*.001
+    return out[out>=0]
 
 def snb_sight():
     d=snb_csv('snbgwdchfsgw'); d=d[d['D0']=='GI']; return series(d['Date'],d['Value'])*.001
