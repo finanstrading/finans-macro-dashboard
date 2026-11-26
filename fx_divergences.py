@@ -1,5 +1,7 @@
 """MacroFX | Divergencias de Tipos FX: diferenciales soberanos 2Y vs FX spot."""
 import os
+import threading
+from datetime import datetime, timezone
 from itertools import combinations
 import numpy as np
 import pandas as pd
@@ -226,7 +228,7 @@ def _directional_bias(frame, window):
                 relative_strength=strength_ratio, observations=len(changes))
 
 
-def _scan_g10_pairs(window=60, months=24):
+def _scan_g10_steps(window=60, months=24):
     """Escaneo bajo demanda: 8 series de bonos, 28 históricos FX, sin duplicar pares."""
     # Orden de cotización convencional para que EUR/USD, GBP/USD, USD/JPY, etc.
     # aparezcan con la orientación más habitual.
@@ -235,6 +237,7 @@ def _scan_g10_pairs(window=60, months=24):
     bonds = {}
     failures = []
     for currency in priority:
+        yield
         try:
             rates, _, warnings = load_rates(currency)
             series = rates.get(bond_key)
@@ -247,6 +250,7 @@ def _scan_g10_pairs(window=60, months=24):
     token = _eodhd_key()
     rows = []
     for a, b in combinations(priority, 2):
+        yield
         pair = a + '/' + b
         if a not in bonds or b not in bonds:
             failures.append(f'{pair}: falta bono 2Y')
@@ -295,25 +299,93 @@ def _scan_g10_pairs(window=60, months=24):
     return pd.DataFrame(rows), failures
 
 
+_rank_lock = threading.Lock()
+_rank_snapshots = {}
+_rank_running = set()
+
+
+def _scan_g10_pairs(window=60, months=24):
+    steps = _scan_g10_steps(window, months)
+    while True:
+        try:
+            next(steps)
+        except StopIteration as done:
+            return done.value
+
+
+def _rank_snapshot(window):
+    with _rank_lock:
+        return _rank_snapshots.get(window)
+
+
+def _publish_rank(window, ranking, errors):
+    with _rank_lock:
+        previous = _rank_snapshots.get(window)
+        if ranking.empty or (previous is not None and len(ranking) < len(previous[0])):
+            return False
+        _rank_snapshots[window] = (ranking, errors, datetime.now(timezone.utc))
+        return True
+
+
+def warm_rank_steps():
+    """Incremental work; yield between currencies and pairs to let other jobs run."""
+    import logging
+    log = logging.getLogger(__name__)
+    for window in (60, 252):
+        with _rank_lock:
+            busy = window in _rank_running
+            if not busy:
+                _rank_running.add(window)
+        if busy:
+            continue
+        try:
+            ranking, errors = yield from _scan_g10_steps(window)
+            saved = _publish_rank(window, ranking, errors)
+            log.warning('MacroFX preload divergences %s: %s/28 pairs; %s errors; published=%s', window, len(ranking), len(errors), saved)
+        finally:
+            with _rank_lock:
+                _rank_running.discard(window)
+
+
+
 def _render_g10_scanner():
     st.markdown('#### Escáner de divergencias G10 · 28 pares')
     horizon = st.radio('Horizonte del ranking', ['3 meses (60 observaciones)', '12 meses (252 observaciones)'], index=0, horizontal=True, key='fxdiv_rank_horizon')
     scan_window = 60 if horizon.startswith('3 meses') else 252
-    st.caption(f'Escaneo bajo demanda: últimos 24 meses de histórico, comparación de {scan_window} observaciones comunes (aproximadamente {3 if scan_window == 60 else 12} meses). '
+    st.caption(f'Últimos 24 meses de histórico; comparación de {scan_window} observaciones comunes. '
                'Divergencia moderada: |Δ spread| ≥ 5 pb y |Δ FX| ≥ 0,5 %. Fuerte: ≥ 15 pb y ≥ 2 %. Solo movimientos opuestos; el color no indica probabilidad de éxito.')
+    auto = os.getenv('MACROFX_PRELOAD', '0') == '1' and os.getenv('MACROFX_PRELOAD_V4', '0') == '1'
+    snapshot = _rank_snapshot(scan_window) if auto else None
     if st.button('Actualizar ranking de 28 pares', key='fxdiv_scan_button'):
-        with st.spinner('Consultando bonos 2Y y los históricos FX de hasta 28 pares; puede tardar...'):
-            ranking, errors = _scan_g10_pairs(window=scan_window)
-        st.session_state['fxdiv_rank_data'] = ranking
-        st.session_state['fxdiv_rank_errors'] = errors
-        st.session_state['fxdiv_rank_window'] = scan_window
-    ranking = st.session_state.get('fxdiv_rank_data')
-    if ranking is not None and st.session_state.get('fxdiv_rank_window') != scan_window:
-        st.info('Has cambiado el horizonte. Pulsa «Actualizar ranking de 28 pares» para recalcularlo con la nueva ventana.')
-        ranking = None
+        with _rank_lock:
+            busy = scan_window in _rank_running
+            if not busy:
+                _rank_running.add(scan_window)
+        if busy:
+            st.info('El ranking se está preparando en segundo plano. Vuelve a consultar en unos instantes.')
+        else:
+            try:
+                with st.spinner('Consultando bonos 2Y y los históricos FX de hasta 28 pares...'):
+                    ranking, errors = _scan_g10_pairs(window=scan_window)
+                if auto:
+                    _publish_rank(scan_window, ranking, errors)
+                    snapshot = _rank_snapshot(scan_window)
+                st.session_state['fxdiv_rank_data'] = ranking
+                st.session_state['fxdiv_rank_errors'] = errors
+                st.session_state['fxdiv_rank_window'] = scan_window
+            finally:
+                with _rank_lock:
+                    _rank_running.discard(scan_window)
+    if snapshot is not None:
+        ranking, errors, prepared = snapshot
+        st.caption(f'Ranking preparado: {prepared:%d/%m/%Y %H:%M} UTC · fecha de mercado en cada fila. El botón reutiliza las cachés de las fuentes.')
+        if (datetime.now(timezone.utc) - prepared).total_seconds() > 3600:
+            st.warning('Último ranking disponible: actualización pendiente o retrasada.')
+    else:
+        ranking = st.session_state.get('fxdiv_rank_data') if st.session_state.get('fxdiv_rank_window') == scan_window else None
+        errors = st.session_state.get('fxdiv_rank_errors', []) if ranking is not None else []
     if ranking is None:
-        st.info('Pulsa «Actualizar ranking de 28 pares» para ejecutar el escaneo. '
-                'No se realizan 28 solicitudes cada vez que cambias el gráfico.')
+        st.info('Ranking automático en preparación. Puedes solicitarlo manualmente si no hay un cálculo en curso.' if auto else 'Pulsa «Actualizar ranking de 28 pares» para ejecutar el escaneo.')
         return
     if ranking.empty:
         st.warning('No se pudieron calcular pares. Revisa el diagnóstico de fuentes.')
@@ -372,7 +444,6 @@ def _render_g10_scanner():
         export_columns = [c for c in ranking.columns if c not in ('Fuente FX', 'Corr. 90d', 'Índice exploratorio', 'Relevancia interna')]
         st.download_button('Descargar ranking CSV', ranking[export_columns].to_csv(index=False).encode('utf-8'),
                            file_name='ranking_divergencias_g10.csv', mime='text/csv', key='fxdiv_rank_csv')
-    errors = st.session_state.get('fxdiv_rank_errors', [])
     if errors:
         with st.expander(f'Diagnóstico: {len(errors)} pares/fuentes no disponibles'):
             for msg in errors:
