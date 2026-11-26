@@ -49,6 +49,8 @@ def load_bank(bank):
         get('Reservas oficiales sin oro',lambda:worldbank_reserves(country),'Banco Mundial · FI.RES.XGLD.CD (anual, cierre de año)')
     if bank=='BNS':
         get('Sight deposits bancos nacionales',snb_sight,'BNS · snbgwdchfsgw GI (media semanal, CHF)')
+        get('Sight deposits totales',lambda:snb_sight('TG'),'BNS · snbgwdchfsgw TG (media semanal, CHF)')
+        get('Inversiones en moneda extranjera',snb_investments,'BNS · snbbipo D (cierre mensual, CHF)')
     get(fxname,lambda:fred(fxcode),'FED/FRED · '+fxcode)
     for name,(code,factor) in DETAIL.get(bank,{}).items(): get(name,lambda c=code,f=factor:fred(c)*f,'FRED · '+code)
     if bank=='FED' and all(k in data for k in ('Activos totales','TGA','Reverse repo')):
@@ -84,8 +86,19 @@ def snb_reserves():
     out=(a.iloc[:,0]-a.iloc[:,1])*.001
     return out[out>=0]
 
-def snb_sight():
-    d=snb_csv('snbgwdchfsgw'); d=d[d['D0']=='GI']; return series(d['Date'],d['Value'])*.001
+def snb_sight(code='GI'):
+    d=snb_csv('snbgwdchfsgw'); d=d[d['D0']==code]; return series(d['Date'],d['Value'])*.001
 
 def snb_transactions_raw():
     return snb_csv('snbfxtr')
+
+
+def snb_investments():
+    d=snb_csv('snbbipo'); d=d[d['D0']=='D']
+    dates=pd.PeriodIndex(d['Date'],freq='M').to_timestamp(how='end').normalize()
+    return series(dates,d['Value'])*.001
+
+def snb_transactions():
+    d=snb_transactions_raw(); d=d[d['D0']=='T0']
+    dates=pd.PeriodIndex(d['Date'],freq='Q').to_timestamp(how='end').normalize()
+    return series(dates,d['Value'])*.001
