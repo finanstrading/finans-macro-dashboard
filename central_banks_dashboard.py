@@ -27,12 +27,21 @@ def chart(series, title, unit, key, bounds, revision, originals=None, secondary=
     if not fig.data:
         st.caption('Sin observaciones para el horizonte seleccionado.')
         return
+    render_figure(fig, title, unit, revision, secondary, fixed_y)
+
+def render_figure(fig, title, unit, revision, secondary=None, fixed_y=None):
     # Bound each chart to its actual plotted observations, not the gold calendar.
     dates = [pd.Timestamp(v) for tr in fig.data for v in tr.x]
     first, last = min(dates), max(dates)
     if first == last:
         first -= pd.Timedelta(hours=12)
         last += pd.Timedelta(hours=12)
+    for tr in fig.data:
+        if tr.type == 'bar':
+            width_days = 3 if 'diarias' in title else 23 if 'mensual' in title else 70 if 'trimestral' in title else 270 if ('anuales' in title or 'por año' in title) else 5
+            tr.width = width_days * 86400000
+            first = min(first, min(pd.Timestamp(v) for v in tr.x) - pd.Timedelta(days=width_days/2))
+            last = max(last, max(pd.Timestamp(v) for v in tr.x) + pd.Timedelta(days=width_days/2))
     bounds = (first, last)
     fig.update_layout(title=title, yaxis_title=unit, template='plotly_white',
                       height=360, margin=dict(l=55,r=65,t=50,b=55),
@@ -68,7 +77,7 @@ const initialRange = spec.layout.xaxis.range.map(timestamp);
 function boundedRange(xr) {
   const [lo, hi] = initialRange;
   if (!xr.every(Number.isFinite) || xr[1] <= xr[0]) return [lo, hi];
-  const width = Math.min(xr[1]-xr[0], hi-lo);
+  const width = Math.min(Math.max(xr[1]-xr[0], 7*86400000), hi-lo);
   const left = Math.max(lo, Math.min(xr[0], hi-width));
   return [left, left+width];
 }
@@ -88,8 +97,18 @@ function autoscale() {
       if ((tr.yaxis || 'y') !== axis || tr.visible === 'legendonly' || tr.visible === false) continue;
       for (let i=0;i<tr.x.length;i++) {
         const t = timestamp(tr.x[i]), v = tr.y[i];
-        if (t >= xr[0] && t <= xr[1] && v != null && Number.isFinite(Number(v))) vals.push(Number(v));
+        const half = tr.type === 'bar' ? Number(tr.width || 0)/2 : 0;
+        if (t+half >= xr[0] && t-half <= xr[1] && v != null && Number.isFinite(Number(v))) vals.push(Number(v));
+        if (tr.type === 'scatter' && (tr.mode || '').includes('lines') && i>0) {
+          const prev=timestamp(tr.x[i-1]), pv=tr.y[i-1];
+          if (t>prev && pv!=null && v!=null && Number.isFinite(Number(pv)) && Number.isFinite(Number(v))) {
+            for (const edge of xr) if (prev<edge && edge<t) vals.push(Number(pv)+(Number(v)-Number(pv))*(edge-prev)/(t-prev));
+          }
+        }
       }
+    }
+    if (!vals.length) {
+      for (const tr of gd.data) if (tr.type==='bar' && (tr.yaxis||'y')===axis && tr.visible!==false && tr.visible!=='legendonly') vals.push(0);
     }
     if (!vals.length) continue;
     if (gd.data.some(tr=>tr.type === "bar" && (tr.yaxis || "y") === axis)) vals.push(0);
@@ -112,7 +131,7 @@ if (xSchema && xSchema.minallowed && xSchema.maxallowed) {
 }
 Plotly.newPlot(gd,spec.data,spec.layout,{responsive:true,scrollZoom:true,displaylogo:false,doubleClick:'reset',displayModeBar:true,toImageButtonOptions:{format:"png",scale:2},modeBarButtonsToRemove:['autoScale2d','zoomIn2d','zoomOut2d']}).then(()=>{
   autoscale();
-  gd.on('plotly_relayout', e=>{if(Object.keys(e).some(k=>k.startsWith('xaxis.'))) autoscale();});
+  gd.on('plotly_relayout', e=>{if(Object.keys(e).some(k=>k.startsWith('xaxis.'))) { if(e['xaxis.autorange']===true && !busy) {busy=true; Plotly.relayout(gd,{'xaxis.range':spec.layout.xaxis.range,'xaxis.autorange':false}).finally(()=>{busy=false;autoscale();});} else autoscale(); }});
   gd.on('plotly_restyle',()=>autoscale());
 });
 </script>"""
@@ -231,10 +250,10 @@ def render_central_banks_dashboard():
                 draw({'Intervenciones':annual[annual.index.year>=cutoff.year]},'Japón · Intervenciones anuales (último año parcial)',unit='Mil millones JPY',bars='Intervenciones')
                 if fx in d:
                     price=w(d[fx]); events=daily[daily.index>=cutoff]; events=events[events.index.isin(price.index)]
-                    fig=go.Figure(go.Scatter(x=price.index,y=price,mode='lines',name=fx,line=dict(color=BLUE)))
-                    fig.add_trace(go.Scatter(x=events.index,y=price.reindex(events.index),mode='markers',name='Intervención',marker=dict(size=9,color=['#549e88' if v>0 else '#ce8285' for v in events]),customdata=events.values,hovertemplate='%{x|%d/%m/%Y}<br>USD/JPY: %{y:.2f}<br>Neto: %{customdata:,.1f} mil M JPY<extra></extra>'))
-                    fig.update_layout(title='USD/JPY · días de intervención',template='plotly_white',dragmode='pan',height=340)
-                    apply_chart_branding(fig); st.plotly_chart(fig,use_container_width=True,config={'scrollZoom':True})
+                    fig=go.Figure(go.Scatter(x=[v.isoformat() for v in price.index],y=price.tolist(),mode='lines',name=fx,line=dict(color=BLUE)))
+                    fig.add_trace(go.Scatter(x=[v.isoformat() for v in events.index],y=price.reindex(events.index).tolist(),mode='markers',name='Intervención',marker=dict(size=9,color=['#549e88' if v>0 else '#ce8285' for v in events]),customdata=events.tolist(),hovertemplate='%{x|%d/%m/%Y}<br>USD/JPY: %{y:.2f}<br>Neto: %{customdata:,.1f} mil M JPY<extra></extra>'))
+                    if not price.empty:
+                        render_figure(fig, 'USD/JPY · días de intervención', 'JPY por USD', 'boj_fx_events')
                     st.caption('Marcadores solo en fechas con cotización FRED disponible; no representan el precio exacto de ejecución.')
                 st.dataframe(table.sort_values('Fecha',ascending=False),use_container_width=True)
                 st.download_button('Descargar intervenciones JPY',table.to_csv(index=False).encode('utf-8'),'mof_intervenciones_jpy.csv','text/csv')
