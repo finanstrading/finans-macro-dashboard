@@ -147,6 +147,32 @@ def draw(items,title,mode='Original',unit='',bars=None):
     chart(values,title,unit if mode=='Original' else mode,title,None,title,originals=originals,bars=bars)
 
 
+def parse_japan(raw):
+    import re
+    months={m:i for i,m in enumerate('Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(),1)}
+    year=month=None; rows=[]; coverage=[]
+    for row in raw.fillna('').astype(str).itertuples(index=False,name=None):
+        y,m,day,amount,pair=(row[i].strip() for i in (3,4,5,6,8))
+        if re.fullmatch(r'\d{4}',y): year=int(y)
+        elif y:
+            match=re.search(r'(\d{4})$',y)
+            if match and '-' in y:
+                end=y.split('-')[-1].strip().split()[0][:3]
+                if end in months: coverage.append(pd.Timestamp(int(match[1]),months[end],1)+pd.offsets.MonthEnd(0))
+            year=month=None; continue
+        if m: month=months.get(m[:3])
+        if not day.isdigit() or not pair: continue
+        if year is None or month is None: raise ValueError('Fecha de intervención incompleta')
+        pair=pair.lower()
+        if 'japanese yen (sold)' in pair: sign=1
+        elif 'japanese yen (bought)' in pair: sign=-1
+        elif 'japanese yen' in pair: raise ValueError('Dirección JPY desconocida')
+        else: continue
+        rows.append((pd.Timestamp(year,month,int(day)),sign*float(amount.replace(',',''))/10,pair))
+    if not rows or not coverage: raise ValueError('Histórico o cobertura no reconocidos')
+    return pd.DataFrame(rows,columns=['Fecha','Neto (mil M JPY)','Divisas']).sort_values('Fecha'),max(coverage)
+
+
 def render_central_banks_dashboard():
     st.title('Balance de Bancos Centrales')
     st.caption('Balances, reservas oficiales y seguimiento de intervenciones FX. Fechas de observación, no de publicación.')
@@ -188,10 +214,31 @@ def render_central_banks_dashboard():
         st.info('Los cambios en reservas o liquidez no confirman una intervención. Consulta los comunicados oficiales.')
         st.markdown(f'[Fuente oficial · {b}]({LINKS[b]})')
         if b=='BOJ':
-            st.caption('Histórico oficial del Ministerio de Finanzas. Tabla original, pendiente de validar esquema y unidades para graficar importes.')
+            st.caption('Ministerio de Finanzas de Japón · ventas de JPY (+), compras de JPY (−). Solo operaciones con JPY; detalle diario publicado trimestralmente.')
             try:
-                raw=japan_interventions_raw(); st.dataframe(raw, use_container_width=True); st.download_button('Descargar tabla original',raw.to_csv(index=False,header=False).encode('utf-8'),'mof_intervenciones.csv','text/csv')
-            except Exception as e: st.warning(f'Histórico no disponible: {type(e).__name__}')
+                raw=japan_interventions_raw(); table,end=parse_japan(raw)
+                daily=table.groupby('Fecha')['Neto (mil M JPY)'].sum()
+                monthly=daily.groupby(daily.index.to_period('M')).sum().reindex(pd.period_range('1991-04',end.to_period('M'),freq='M'),fill_value=0)
+                annual=monthly.groupby(monthly.index.year).sum(); annual.index=pd.to_datetime(annual.index.astype(str)+'-01-01')
+                monthly.index=monthly.index.to_timestamp()
+                last=daily.index[-1]; c1,c2,c3=st.columns(3)
+                c1.metric('Último día publicado con intervención',last.strftime('%d/%m/%Y'))
+                c2.metric('Importe neto del día',f'{daily.iloc[-1]:+,.1f} mil M JPY')
+                c3.metric(f'Acumulado {end.year} hasta {end:%m/%Y}',f'{annual.iloc[-1]:+,.1f} mil M JPY')
+                st.caption(f'Cobertura oficial hasta {end:%d/%m/%Y}; no implica ausencia de operaciones posteriores. Sumas de importes diarios redondeados.')
+                draw({'Intervenciones':w(daily)},'Japón · Intervenciones diarias',unit='Mil millones JPY',bars='Intervenciones')
+                draw({'Intervenciones':w(monthly)},'Japón · Intervenciones mensuales',unit='Mil millones JPY',bars='Intervenciones')
+                draw({'Intervenciones':annual[annual.index.year>=cutoff.year]},'Japón · Intervenciones anuales (último año parcial)',unit='Mil millones JPY',bars='Intervenciones')
+                if fx in d:
+                    price=w(d[fx]); events=daily[daily.index>=cutoff]; events=events[events.index.isin(price.index)]
+                    fig=go.Figure(go.Scatter(x=price.index,y=price,mode='lines',name=fx,line=dict(color=BLUE)))
+                    fig.add_trace(go.Scatter(x=events.index,y=price.reindex(events.index),mode='markers',name='Intervención',marker=dict(size=9,color=['#549e88' if v>0 else '#ce8285' for v in events]),customdata=events.values,hovertemplate='%{x|%d/%m/%Y}<br>USD/JPY: %{y:.2f}<br>Neto: %{customdata:,.1f} mil M JPY<extra></extra>'))
+                    fig.update_layout(title='USD/JPY · días de intervención',template='plotly_white',dragmode='pan',height=340)
+                    apply_chart_branding(fig); st.plotly_chart(fig,use_container_width=True,config={'scrollZoom':True})
+                    st.caption('Marcadores solo en fechas con cotización FRED disponible; no representan el precio exacto de ejecución.')
+                st.dataframe(table.sort_values('Fecha',ascending=False),use_container_width=True)
+                st.download_button('Descargar intervenciones JPY',table.to_csv(index=False).encode('utf-8'),'mof_intervenciones_jpy.csv','text/csv')
+            except Exception as e: st.warning(f'Histórico no disponible: {type(e).__name__}: {e}')
             st.markdown('[Último comunicado mensual y trimestral](https://www.mof.go.jp/english/policy/international_policy/reference/feio/index.html)')
         if b=='BNS':
             st.caption('Compras netas de divisas (+) y ventas netas (−). Importes oficiales trimestrales, en miles de millones CHF.')
