@@ -9112,11 +9112,8 @@ def _warm_central_banks():
             logging.getLogger(__name__).exception("MacroFX preload interventions failed")
 
 
-try:
-    from macrofx_preload import start_preload
-    start_preload(_warm_currency_scores, _warm_central_banks)
-except Exception:
-    logging.getLogger(__name__).exception("MacroFX preload startup failed; normal loading remains available")
+from macrofx_preload import start_preload
+start_preload(_warm_currency_scores, _warm_central_banks)
 
 if pagina_principal == "Balance de Bancos Centrales":
     with st.sidebar:
