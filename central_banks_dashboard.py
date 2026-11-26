@@ -161,7 +161,7 @@ def compact_selector(label, options, key, default):
     if st.session_state.get(state_key) not in options:
         st.session_state[state_key] = default
     st.markdown(f'**{label}**')
-    cols = st.columns(len(options) + 1)
+    cols = st.columns(len(options))
     for i, option in enumerate(options):
         cols[i].button(option, key=f'{key}_btn_{i}',
                        type='primary' if st.session_state[state_key] == option else 'secondary',
