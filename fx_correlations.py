@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 from fx_rates import load_rates
+from central_banks_dashboard import render_figure
 
 PRESETS = {
     'USD': {'Inflación y empleo': ['Core CPI', 'Unemployment'], 'Mercado laboral': ['Non Farm Payroll', 'Unemployment'], 'Actividad': ['ISM Services', 'GDP'], 'Inflación y Fed': ['CPI', 'Tipo oficial (%)']},
@@ -129,13 +130,23 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
         else:
             plotted = s
             secondary = i > 0
-        fig.add_trace(go.Scatter(x=plotted.index, y=plotted.values, name=name, mode='lines+markers', line={'color': COLORS[i % len(COLORS)], 'width': 2.5}, marker={'size': 4}, connectgaps=False, hovertemplate='%{x|%d/%m/%Y}<br>%{y:.2f}<extra>%{fullData.name}</extra>'), secondary_y=secondary)
+        fig.add_trace(go.Scatter(x=[pd.Timestamp(v).isoformat() for v in plotted.index], y=plotted.tolist(), name=name, mode='lines+markers', line={'color': COLORS[i % len(COLORS)], 'width': 2.5}, marker={'size': 4}, connectgaps=False, hovertemplate='%{x|%d/%m/%Y}<br>%{y:.2f}<extra>%{fullData.name}</extra>'), secondary_y=secondary)
     fig.update_layout(height=510, hovermode='x unified', template='plotly_white', legend={'orientation': 'h', 'y': -0.2}, margin={'l': 20, 'r': 30, 't': 30, 'b': 30})
     fig.update_yaxes(title_text='Índice base 100' if mode.startswith('Normalizada') else 'Primer indicador (unidades originales)', secondary_y=False)
     if mode == 'Valores originales' and len(series) > 1:
         fig.update_yaxes(title_text='Otros indicadores (unidades originales)', secondary_y=True)
         st.caption('En escala original, los indicadores 2–4 comparten el eje derecho; si sus unidades difieren, utiliza la escala normalizada.')
-    st.plotly_chart(fig, use_container_width=True, key=f'fxcorr_plot_{currency}')
+    if fig.data:
+        # Reuse the exact intervention chart renderer, including bounded pan,
+        # visible-range Y autoscaling, branding and PNG export.
+        right_axis = ('Otros indicadores (unidades originales)'
+                      if any(tr.yaxis == 'y2' for tr in fig.data) else None)
+        render_figure(fig, f'{currency} · Correlaciones FX',
+                      'Índice base 100' if mode.startswith('Normalizada') else 'Primer indicador (unidades originales)',
+                      f'fxcorr_{currency}_{period}_{mode}_{tuple(series)}', secondary=right_axis)
+        st.caption('Zoom horizontal con rueda, desplazamiento arrastrando y doble clic para restablecer. Los ejes verticales se ajustan al intervalo visible.')
+    else:
+        st.info('No hay series válidas para representar.')
     st.caption(f'Fuentes: {sheet} (macro) y fuentes detalladas en Estado de datos de tipos y bonos. Última fecha del conjunto: {end:%d/%m/%Y}. Sin interpolación.')
     if len(series) >= 2:
         st.markdown('#### Correlación de variaciones mensuales')
