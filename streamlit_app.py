@@ -9010,6 +9010,49 @@ def clasificar_catalizador_fx(article, divisa):
 # CFTC POSITIONING
 # ===================================================
 
+# Optional process-local preloading; no changes to the financial engines.
+def _warm_currency_scores():
+    for currency, sheets in MERCADOS.items():
+        try:
+            started = time.perf_counter()
+            frame, _ = cargar_datos_mercado(tuple(sheets))
+            frame["Fecha"] = convertir_fechas(frame["DATE"])
+            frame = frame.dropna(subset=["Fecha"]).sort_values("Fecha").reset_index(drop=True)
+            if frame.empty:
+                continue
+            version = calcular_data_version(frame, currency)
+            analizar_divisa_completa(frame, currency, obtener_indicadores(frame))
+            history = calcular_historico_currency_score(currency, version, frecuencia="W", periodos=26, revision="release_18")
+            if history is not None and not history.empty:
+                calcular_drivers_historicos_currency_score(currency, history, data_version=version)
+                calcular_drivers_ultimo_cambio(currency, history, data_version=version)
+            logging.getLogger(__name__).warning("MacroFX preload currency %s: %.2fs", currency, time.perf_counter()-started)
+        except Exception:
+            logging.getLogger(__name__).exception("MacroFX preload currency %s failed", currency)
+        time.sleep(1)
+    calcular_ranking_divisas()
+
+
+def _warm_central_banks():
+    from central_banks_data import BANKS, load_bank, japan_interventions_raw, snb_transactions_raw
+    for bank in BANKS:
+        try:
+            _, _, errors = load_bank(bank)
+            if errors:
+                logging.getLogger(__name__).warning("MacroFX preload bank %s: %s", bank, errors)
+        except Exception:
+            logging.getLogger(__name__).exception("MacroFX preload bank %s failed", bank)
+        time.sleep(1)
+    for fetch in (japan_interventions_raw, snb_transactions_raw):
+        try:
+            fetch()
+        except Exception:
+            logging.getLogger(__name__).exception("MacroFX preload interventions failed")
+
+
+from macrofx_preload import start_preload
+start_preload(_warm_currency_scores, _warm_central_banks)
+
 if pagina_principal == "Balance de Bancos Centrales":
     with st.sidebar:
         render_logout(AUTH_PROFILE)
