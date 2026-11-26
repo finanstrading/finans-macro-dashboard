@@ -919,31 +919,31 @@ def analizar_indicador(fechas, valores, indicador, divisa):
         str(divisa).strip().upper() == "USD"
         and str(indicador).strip() == "Non Farm Payrolls"
     ):
-        print("\n========== DEBUG USD NFP ==========")
-        print("Últimos valores serie:", serie.tail(8).tolist())
-        print("ULTIMO:", ultimo)
-        print("ANTERIOR:", anterior)
-        print("===================================\n")
+        pass
+        pass
+        pass
+        pass
+        pass
 
     if (
         str(divisa).strip().upper() == "USD"
         and str(indicador).strip() == "Unemployment Rate"
     ):
-        print("\n========== DEBUG USD UNEMPLOYMENT ==========")
-        print("Últimos valores serie:", serie.tail(6).tolist())
-        print("ULTIMO:", ultimo)
-        print("ANTERIOR:", anterior)
-        print("============================================\n")
+        pass
+        pass
+        pass
+        pass
+        pass
 
     if (
         str(divisa).strip().upper() == "USD"
         and str(indicador).strip() == "Core CPI YoY"
     ):
-        print("\n========== DEBUG MONETARY CORE CPI ==========")
-        print("Últimos valores serie:", serie.tail(6).tolist())
-        print("ULTIMO:", ultimo)
-        print("ANTERIOR:", anterior)
-        print("=============================================\n")
+        pass
+        pass
+        pass
+        pass
+        pass
 
     percentil = calcular_percentil(ultimo, serie)
 
@@ -1236,16 +1236,16 @@ def analizar_indicador(fechas, valores, indicador, divisa):
             str(divisa).strip().upper() == "USD"
             and str(indicador).strip() == "Core CPI YoY"
         ):
-            print("\n========== DEBUG GUARDRAIL CORE CPI ==========")
-            print("ULTIMO:", ultimo)
-            print("ANTERIOR:", anterior)
-            print("SCORE BASE ACTUAL:", score_base)
-            print("SCORE AJUSTADO ACTUAL ANTES GUARDRAIL:", score_ajustado)
-            print("SCORE BASE ANTERIOR:", score_base_anterior)
-            print("SCORE AJUSTADO ANTERIOR:", score_ajustado_anterior)
-            print("COMPONENTES ACTUALES:", componentes)
-            print("COMPONENTES ANTERIORES:", componentes_anteriores)
-            print("==============================================\n")
+            pass
+            pass
+            pass
+            pass
+            pass
+            pass
+            pass
+            pass
+            pass
+            pass
 
         # Cambio directo del componente principal de inflación.
         mandato_actual = componentes.get(
