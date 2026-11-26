@@ -6,7 +6,6 @@ import hashlib
 import logging
 import requests
 import plotly.graph_objects as go
-from chart_branding import apply_chart_branding
 from urllib.parse import quote  
 
 from auth import require_authenticated_user, render_logout 
@@ -8499,6 +8498,7 @@ with st.sidebar:
             "CFTC Positioning",
             "Correlaciones FX",
             "Divergencias de Tipos FX",
+            "Balance de Bancos Centrales",
             "METALES",
         ],
         index=0,
@@ -9032,6 +9032,13 @@ def clasificar_catalizador_fx(article, divisa):
 # ===================================================
 # CFTC POSITIONING
 # ===================================================
+
+if pagina_principal == "Balance de Bancos Centrales":
+    with st.sidebar:
+        render_logout(AUTH_PROFILE)
+    from central_banks_dashboard import render_central_banks_dashboard
+    render_central_banks_dashboard()
+    st.stop()
 
 if pagina_principal == "METALES":
     with st.sidebar:
@@ -10334,7 +10341,7 @@ try:
             fixedrange=True,
         )
         st.plotly_chart(
-            apply_chart_branding(figura_score),
+            figura_score,
             use_container_width=True,
             config={
                 "displaylogo": False,
@@ -11179,7 +11186,7 @@ try:
     )
 
     st.plotly_chart(
-        apply_chart_branding(figura),
+        figura,
         use_container_width=True,
         config={
             "displaylogo": False,
