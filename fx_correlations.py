@@ -54,7 +54,6 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
     except Exception as exc:
         st.error(f'No se pudo cargar la hoja de {currency}: {exc}')
         return
-    rates, rate_sources, rate_warnings = load_rates(currency, df, convert_values)
     rate_labels = ['Tipo oficial (%)', 'Bono 2Y (%)', 'Bono 10Y (%)']
     available_names = list(dict.fromkeys(list(indicators) + rate_labels))
     presets = PRESETS.get(currency, {})
@@ -79,8 +78,13 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
         st.session_state[previous_key] = preset_name
     st.caption('Tipos oficiales y bonos soberanos 2Y/10Y disponibles en el mismo comparador.')
     selected = st.multiselect('Indicadores (máximo 4)', available_names, max_selections=4, key=selection_key)
-    with st.expander('Estado de datos de tipos y bonos', expanded=not all(k in rates for k in rate_labels)):
-        for label in rate_labels:
+    check_rates = st.checkbox('Consultar estado de todos los tipos y bonos', key=f'fxcorr_check_rates_{currency}')
+    needs_rates = check_rates or any(name in rate_labels for name in selected)
+    rates, rate_sources, rate_warnings = load_rates(currency, df, convert_values) if needs_rates else ({}, {}, [])
+    with st.expander('Estado de datos de tipos y bonos', expanded=needs_rates and not all(k in rates for k in rate_labels)):
+        if not needs_rates:
+            st.caption('Consulta bajo demanda: selecciona un tipo o bono, o activa la comprobación de fuentes.')
+        for label in rate_labels if needs_rates else []:
             if label in rates and not rates[label].empty:
                 item = rates[label]
                 st.success(f'{label}: {item.iloc[-1]:.3f}% · {item.index[-1]:%d/%m/%Y} · {rate_sources.get(label, "Fuente desconocida")}')
@@ -99,7 +103,7 @@ def render_fx_correlations(markets, load_market, convert_dates, convert_values, 
     with col2:
         mode = st.radio('Escala', ['Normalizada (base 100)', 'Valores originales'], horizontal=True, key='fxcorr_scale')
     series = {}
-    end = max([df['Fecha'].max()] + [s.index.max() for s in rates.values() if not s.empty])
+    end = max([df['Fecha'].max()] + [rates[n].index.max() for n in selected if n in rates and not rates[n].empty])
     months = {'3M': 3, '6M': 6, '1A': 12, '3A': 36, '5A': 60, '10A': 120}
     start = end - pd.DateOffset(months=months[period]) if period in months else df['Fecha'].min()
     for name in selected:
