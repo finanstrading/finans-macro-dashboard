@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import time
+import io
 import hashlib
 import logging
 import requests
@@ -16,9 +17,8 @@ from currency_score_engine import (
     clasificar_currency_score,
 )
 
-from fx_correlations import render_fx_correlations
-from fx_divergences import render_fx_divergences
-from cftc_positioning import render_cftc_positioning 
+
+
 
 import feedparser
 from datetime import datetime, timezone, timedelta
@@ -1834,7 +1834,17 @@ def construir_url(nombre_hoja):
         f"tqx=out:csv&sheet={nombre_codificado}"
     )
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False, max_entries=32)
+def _read_sheet_csv(url):
+    started = time.perf_counter()
+    try:
+        response = requests.get(url, timeout=(5, 15))
+        response.raise_for_status()
+        return pd.read_csv(io.BytesIO(response.content))
+    finally:
+        logging.getLogger(__name__).warning("MacroFX sheet fetch: %.2fs", time.perf_counter() - started)
+
+@st.cache_data(ttl=300, show_spinner=False)
 def cargar_central_bank_drivers(divisa):
     try:
         url = (
@@ -1842,7 +1852,7 @@ def cargar_central_bank_drivers(divisa):
             f"tqx=out:csv&sheet=CentralBank_Drivers&headers=1"
         )
 
-        df = pd.read_csv(url)
+        df = _read_sheet_csv(url)
 
         df.columns = [
             str(col).strip()
@@ -2743,7 +2753,7 @@ def obtener_firma_actualizacion_declaraciones(divisa):
     ).hexdigest()[:20]
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def cargar_central_bank_members(divisa):
     """
     Lee el snapshot de CentralBank_Members generado por GitHub Actions.
@@ -2755,7 +2765,7 @@ def cargar_central_bank_members(divisa):
             f"tqx=out:csv&sheet=CentralBank_Members&headers=1"
         )
 
-        df = pd.read_csv(url)
+        df = _read_sheet_csv(url)
 
         df.columns = [
             str(col).strip()
@@ -3391,13 +3401,13 @@ def render_central_bank_drivers(divisa, committee_member_map=None):
             unsafe_allow_html=True,
         )
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def cargar_datos_mercado(nombres_posibles):
     errores = []
 
     for nombre_hoja in nombres_posibles:
         try:
-            df = pd.read_csv(construir_url(nombre_hoja))
+            df = _read_sheet_csv(construir_url(nombre_hoja))
             df.columns = [str(columna).strip() for columna in df.columns]
 
             # Elimina columnas vacías o creadas accidentalmente.
@@ -3423,16 +3433,14 @@ def cargar_datos_mercado(nombres_posibles):
     )
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=900, show_spinner=False)
 def cargar_interpretaciones_ia():
     """
     Carga la hoja AI_Interpretations desde Google Sheets.
     """
     nombre_hoja = "AI_Interpretations"
 
-    df_ia = pd.read_csv(
-        construir_url(nombre_hoja)
-    )
+    df_ia = _read_sheet_csv(construir_url(nombre_hoja))
 
     df_ia.columns = [
         str(columna).strip()
@@ -3446,14 +3454,12 @@ def cargar_interpretaciones_ia():
 
     return df_ia
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def cargar_macro_releases():
 
     nombre_hoja = "Macro_Releases"
 
-    df_releases = pd.read_csv(
-        construir_url(nombre_hoja)
-    )
+    df_releases = _read_sheet_csv(construir_url(nombre_hoja))
 
     df_releases.columns = [
         str(columna).strip()
@@ -6579,7 +6585,7 @@ def determinar_sufijo(nombre_indicador):
 # FX LIVE DRIVERS — NEWSAPI
 # ===================================================
 
-@st.cache_data(ttl=1, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_newsapi(divisa, modo="Todos"):
     """
     MVP inicial:
@@ -6938,7 +6944,7 @@ def cargar_live_drivers_newsapi(divisa, modo="Todos"):
             "articles": [],
         }
     
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def cargar_live_drivers_finnhub(divisa):
 
     try:
@@ -9037,25 +9043,34 @@ if pagina_principal == "Balance de Bancos Centrales":
     with st.sidebar:
         render_logout(AUTH_PROFILE)
     from central_banks_dashboard import render_central_banks_dashboard
+    _section_started = time.perf_counter()
     render_central_banks_dashboard()
+    logging.getLogger(__name__).warning("MacroFX section %s: %.2fs", pagina_principal, time.perf_counter() - _section_started)
     st.stop()
 
 if pagina_principal == "METALES":
     with st.sidebar:
         render_logout(AUTH_PROFILE)
     from metals_dashboard import render_metals_dashboard
+    _section_started = time.perf_counter()
     render_metals_dashboard()
+    logging.getLogger(__name__).warning("MacroFX section %s: %.2fs", pagina_principal, time.perf_counter() - _section_started)
     st.stop()
 
 if pagina_principal == "Divergencias de Tipos FX":
+    from fx_divergences import render_fx_divergences
     with st.sidebar:
         render_logout(AUTH_PROFILE)
+    _section_started = time.perf_counter()
     render_fx_divergences()
+    logging.getLogger(__name__).warning("MacroFX section %s: %.2fs", pagina_principal, time.perf_counter() - _section_started)
     st.stop()
 
 if pagina_principal == "Correlaciones FX":
+    from fx_correlations import render_fx_correlations
     with st.sidebar:
         render_logout(AUTH_PROFILE)
+    _section_started = time.perf_counter()
     render_fx_correlations(
         MERCADOS,
         cargar_datos_mercado,
@@ -9063,14 +9078,18 @@ if pagina_principal == "Correlaciones FX":
         convertir_valores,
         obtener_indicadores,
     )
+    logging.getLogger(__name__).warning("MacroFX section %s: %.2fs", pagina_principal, time.perf_counter() - _section_started)
     st.stop()
 
 if pagina_principal == "CFTC Positioning":
+    from cftc_positioning import render_cftc_positioning
 
     with st.sidebar:
         render_logout(AUTH_PROFILE)
 
+    _section_started = time.perf_counter()
     render_cftc_positioning()
+    logging.getLogger(__name__).warning("MacroFX section %s: %.2fs", pagina_principal, time.perf_counter() - _section_started)
 
     st.stop()
 
