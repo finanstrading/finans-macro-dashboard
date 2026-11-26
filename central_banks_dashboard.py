@@ -38,8 +38,9 @@ def render_figure(fig, title, unit, revision, secondary=None, fixed_y=None):
         last += pd.Timedelta(hours=12)
     for tr in fig.data:
         if tr.type == 'bar':
-            width_days = 3 if 'diarias' in title else 23 if 'mensual' in title else 70 if 'trimestral' in title else 270 if ('anuales' in title or 'por año' in title) else 5
+            width_days = 0.72 if 'diarias' in title else 23 if 'mensual' in title else 70 if 'trimestral' in title else 270 if ('anuales' in title or 'por año' in title) else 5
             tr.width = width_days * 86400000
+            tr.marker.line.width = 0
             first = min(first, min(pd.Timestamp(v) for v in tr.x) - pd.Timedelta(days=width_days/2))
             last = max(last, max(pd.Timestamp(v) for v in tr.x) + pd.Timedelta(days=width_days/2))
     bounds = (first, last)
@@ -74,10 +75,12 @@ function timestamp(v) {
   return Date.parse(/(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(s) ? s : (s.length === 10 ? s+'T00:00:00Z' : s+'Z'));
 }
 const initialRange = spec.layout.xaxis.range.map(timestamp);
+const barOnly = spec.data.every(tr => tr.type === 'bar');
+const minSpan = barOnly ? Math.min(initialRange[1]-initialRange[0], Math.max(7*86400000, ...spec.data.map(tr=>Number(tr.width||0)*3))) : 7*86400000;
 function boundedRange(xr) {
   const [lo, hi] = initialRange;
   if (!xr.every(Number.isFinite) || xr[1] <= xr[0]) return [lo, hi];
-  const width = Math.min(Math.max(xr[1]-xr[0], 7*86400000), hi-lo);
+  const width = Math.min(Math.max(xr[1]-xr[0], minSpan), hi-lo);
   const left = Math.max(lo, Math.min(xr[0], hi-width));
   return [left, left+width];
 }
@@ -111,6 +114,10 @@ function autoscale() {
       for (const tr of gd.data) if (tr.type==='bar' && (tr.yaxis||'y')===axis && tr.visible!==false && tr.visible!=='legendonly') vals.push(0);
     }
     if (!vals.length) continue;
+    if (barOnly && vals.every(v=>v===0)) {
+      const all = gd.data.filter(tr=>(tr.yaxis||'y')===axis).flatMap(tr=>tr.y).filter(v=>v!=null && Number.isFinite(Number(v))).map(Number);
+      if (all.length) vals.push(Math.min(...all),Math.max(...all));
+    }
     if (gd.data.some(tr=>tr.type === "bar" && (tr.yaxis || "y") === axis)) vals.push(0);
     const lo=Math.min(...vals), hi=Math.max(...vals);
     const pad=(hi-lo)*0.08 || Math.max(Math.abs(lo)*0.01,0.01);
