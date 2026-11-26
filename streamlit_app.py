@@ -3925,6 +3925,7 @@ def obtener_interpretacion_ia(divisa, indicador):
     return resultado
 
 
+@st.cache_data(ttl=900, max_entries=128, show_spinner=False)
 def convertir_fechas(serie):
     """
     Admite tanto las fechas originales tipo ene-24 como fechas
@@ -4076,6 +4077,7 @@ def calcular_data_version(df_currency, currency):
 
     return hash_obj.hexdigest()[:20]
 
+@st.cache_data(ttl=900, max_entries=128, show_spinner=False)
 def analizar_divisa_completa(
     df,
     divisa,
@@ -5588,6 +5590,7 @@ def construir_df_currency_por_release(
 
     return series_por_indicador
 
+@st.cache_data(ttl=900, max_entries=128, show_spinner=False)
 def analizar_divisa_por_release(
     series_por_indicador,
     divisa,
@@ -5640,7 +5643,7 @@ def analizar_divisa_por_release(
 
     return resultados
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, max_entries=32, show_spinner=False)
 def calcular_historico_currency_score(
     currency,
     data_version,
@@ -5890,10 +5893,11 @@ def calcular_drivers_currency_score(
 
     return drivers
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, max_entries=32, show_spinner=False)
 def calcular_drivers_historicos_currency_score(
     currency,
     historico_score,
+    data_version=None,
 ):
 
     if historico_score is None or historico_score.empty:
@@ -6216,40 +6220,6 @@ def calcular_drivers_historicos_currency_score(
         # CONSERVAR SOLO INDICADORES REALMENTE PUBLICADOS
         # ===================================================
 
-        print("\n================ DEBUG DRIVERS ================")
-        print("INTERVALO:", fecha_anterior, "->", fecha_actual)
-
-        print("\nDRIVERS ANTES DEL FILTRO:")
-        for d in drivers:
-            print(
-                d.get("Indicador"),
-                "|",
-                d.get("Score anterior"),
-                "->",
-                d.get("Score actual"),
-                "| impacto:",
-                d.get("Impacto estimado"),
-            )
-
-        print("\nRELEASES DEL INTERVALO:")
-        if releases_intervalo is not None and not releases_intervalo.empty:
-            print(
-                releases_intervalo[
-                    [
-                        "ReleaseDate",
-                        "Indicator",
-                        "Comparison",
-                        "Actual",
-                        "Previous",
-                        "Estimate",
-                    ]
-                ].to_string(index=False)
-            )
-        else:
-            print("SIN RELEASES")
-
-        print("================================================\n")
-
         drivers = filtrar_drivers_por_releases(
             drivers,
             releases_intervalo,
@@ -6273,10 +6243,11 @@ def calcular_drivers_historicos_currency_score(
 
     return cambios_historicos
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, max_entries=32, show_spinner=False)
 def calcular_drivers_ultimo_cambio(
     currency,
     historico_score,
+    data_version=None,
 ):
 
     if historico_score is None or historico_score.empty:
@@ -6400,7 +6371,7 @@ def calcular_drivers_ultimo_cambio(
         "drivers": drivers,
     }
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, max_entries=32, show_spinner=False)
 def calcular_ranking_divisas():
 
     ranking = []
@@ -9964,6 +9935,7 @@ try:
         divisa
     )
 
+    t_score_actual = time.perf_counter()
     resultados_divisa = analizar_divisa_completa(
         df,
         divisa,
@@ -9989,7 +9961,7 @@ try:
 
         print(
             f"[TIEMPO] Score actual {divisa}: "
-            f"{time.perf_counter() - t0:.2f}s"
+            f"{time.perf_counter() - t_score_actual:.2f}s"
         )
 
         # 2. Ranking de divisas
@@ -10042,6 +10014,7 @@ try:
                 calcular_drivers_historicos_currency_score(
                     divisa,
                     historico_score,
+                    data_version=data_version,
                 )
             )
 
@@ -10055,6 +10028,7 @@ try:
             drivers_ultimo_cambio = calcular_drivers_ultimo_cambio(
                 divisa,
                 historico_score,
+                    data_version=data_version,
             )
 
             print(
