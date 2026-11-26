@@ -6,7 +6,7 @@ from chart_branding import apply_chart_branding
 GOLD="#C9A227"; BLUE="#4678A8"
 import streamlit as st
 import plotly.graph_objects as go
-from central_banks_data import BANKS,LINKS,load_bank,japan_interventions_raw,snb_transactions_raw
+from central_banks_data import BANKS,LINKS,load_bank,japan_interventions_raw,snb_transactions_raw,snb_transactions
 
 
 def chart(series, title, unit, key, bounds, revision, originals=None, secondary=None, fixed_y=None, bars=None):
@@ -181,9 +181,9 @@ def render_central_banks_dashboard():
                 draw({name:w(s)},name,unit=f'Mil millones {ccy}')
                 if name.startswith('Sight deposits'):
                     changes=s.diff().where(s.index.to_series().diff().dt.days.between(6,8)).dropna()
-                    draw({'Cambio semanal':w(changes)},'Sight deposits · variación semanal',unit='Mil millones CHF',bars='Cambio semanal')
-                    if fx in d: draw({name:w(s),fx:w(d[fx])},f'{fx} vs. Sight deposits',mode)
-                    st.caption('Media semanal de depósitos de bancos nacionales; no equivale a intervención.')
+                    draw({'Cambio semanal':w(changes)},f'{name} · variación semanal',unit='Mil millones CHF',bars='Cambio semanal')
+                    if fx in d: draw({name:w(s),fx:w(d[fx])},f'{fx} vs. {name}',mode)
+                    st.caption('Media semanal de depósitos a la vista; no equivale a intervención.')
         st.subheader('Intervenciones cambiarias')
         st.info('Los cambios en reservas o liquidez no confirman una intervención. Consulta los comunicados oficiales.')
         st.markdown(f'[Fuente oficial · {b}]({LINKS[b]})')
@@ -194,10 +194,28 @@ def render_central_banks_dashboard():
             except Exception as e: st.warning(f'Histórico no disponible: {type(e).__name__}')
             st.markdown('[Último comunicado mensual y trimestral](https://www.mof.go.jp/english/policy/international_policy/reference/feio/index.html)')
         if b=='BNS':
-            st.caption('Transacciones oficiales en divisas del BNS. Tabla original trimestral; no inferida de reservas.')
+            st.caption('Compras netas de divisas (+) y ventas netas (−). Importes oficiales trimestrales, en miles de millones CHF.')
             try:
-                raw=snb_transactions_raw(); st.dataframe(raw,use_container_width=True); st.download_button('Descargar transacciones BNS',raw.to_csv(index=False).encode('utf-8'),'snb_transacciones.csv','text/csv')
-            except Exception as e: st.warning(f'Transacciones BNS no disponibles: {type(e).__name__}')
+                q=snb_transactions()
+                if q.empty: raise ValueError('Sin observaciones trimestrales')
+                last=q.index[-1]; year=q[q.index.year==last.year]
+                c1,c2=st.columns(2)
+                c1.metric(f'Último trimestre · {last.year} Q{last.quarter}',f'{q.iloc[-1]:+,.3f} mil M CHF')
+                c2.metric(f'Acumulado {last.year} · {len(year)} trimestres',f'{year.sum():+,.3f} mil M CHF')
+                draw({'Intervenciones netas':w(q)},'BNS · Intervenciones trimestrales',unit='Mil millones CHF',bars='Intervenciones netas')
+                annual=q.groupby(q.index.year).sum(); annual.index=pd.to_datetime(annual.index.astype(str)+'-12-31')
+                draw({'Acumulado anual':w(annual)},'BNS · Intervenciones por año (último año parcial si procede)',unit='Mil millones CHF',bars='Acumulado anual')
+                if fx in d:
+                    # Compare quarterly FX changes with flows, without treating flows as a price index.
+                    fxq=d[fx].groupby(d[fx].index.to_period('Q')).last(); changes=fxq.pct_change()*100; changes.index=changes.index.to_timestamp(how='end').normalize()
+                    aligned=pd.concat([q.rename('Intervenciones (mil M CHF)'),changes.rename('USD/CHF cambio (%)')],axis=1,join='inner').dropna(); aligned=aligned[aligned.index>=cutoff]
+                    if not aligned.empty:
+                        draw({k:aligned[k] for k in aligned},'Intervenciones vs. variación trimestral USD/CHF · Z-score','Z-score')
+                        st.caption('Comparación estandarizada de flujos y rendimientos trimestrales; no implica causalidad.')
+                table=q.rename('Intervenciones netas (mil M CHF)').to_frame().sort_index(ascending=False)
+                st.dataframe(table,use_container_width=True)
+                st.download_button('Descargar transacciones BNS',table.to_csv().encode('utf-8'),'snb_transacciones.csv','text/csv')
+            except Exception as e: st.warning(f'Transacciones BNS no disponibles: {type(e).__name__}: {e}')
             st.markdown('[Serie oficial de transacciones](https://data.snb.ch/en/topics/snb/cube/snbfxtr)')
         with st.expander('Fuentes y últimas observaciones'):
             st.dataframe(pd.DataFrame([{'Serie':k,'Fuente':src[k],'Última observación':s.index[-1].strftime('%d/%m/%Y')} for k,s in d.items()]),use_container_width=True)
